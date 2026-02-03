@@ -3,7 +3,7 @@
 @section('content')
     <div class="card">
         <div class="card-body">
-            <h5 class="text-center mb-4"><strong>DETAIL INFORMASI PROJEK</strong></h5>
+            <h5 class="text-center mb-4"><strong>DETAIL INFORMASI PROJECT</strong></h5>
 
             <div class="row">
 
@@ -91,7 +91,7 @@
                 <div class="col-12 border-start">
 
                     <div class="card-header fw-bold fs-6">
-                        Tracking Projek
+                        Status Project
                     </div>
                     <ul class="list-unstyled">
 
@@ -477,7 +477,7 @@
                 <div class="col-12 mt-4">
                     <div class="card border-warning">
                         <div class="card-header fw-bold fs-6">
-                            Catatan Penting Projek
+                            Riwayat dan Catatan Project
                         </div>
 
                         <div class="card-body p-2">
@@ -504,7 +504,7 @@
                                         @empty
                                             <tr>
                                                 <td colspan="5" class="text-center text-muted">
-                                                    Belum ada catatan untuk projek ini.
+                                                    Belum ada catatan untuk project ini.
                                                 </td>
                                             </tr>
                                         @endforelse
@@ -525,7 +525,7 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-warning">
-                <h5 class="modal-title fw-bold">Rekap Catatan Projek</h5>
+                <h5 class="modal-title fw-bold">Rekap Catatan Project</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -551,7 +551,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted">Belum ada catatan untuk projek ini.</td>
+                                    <td colspan="5" class="text-center text-muted">Belum ada catatan untuk project ini.</td>
                                 </tr>
                             @endforelse
                         </tbody>

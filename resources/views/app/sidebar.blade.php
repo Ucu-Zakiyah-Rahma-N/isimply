@@ -209,6 +209,12 @@
                     </a>
                 </li>
                 <li class="sidebar-item">
+                    <a class="sidebar-link" href="{{ url('tahapan') }}" aria-expanded="false">
+                        <span><i class="bi bi-card-list"></i></span>
+                        <span class="hide-menu">Data Tahapan</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
                     <a class="sidebar-link" href="{{ route('template.index') }}" aria-expanded="false">
                         <span><i class="bi bi-card-list"></i></span>
                         <span class="hide-menu">Template SPH</span>
@@ -267,16 +273,6 @@
                 </li>
             @endif
 
-
-
-
-
-
-
-
-
-
-
             @if (in_array(auth()->user()->role, ['admin 1', 'admin 2']))
                 <!-- PROJEK -->
                 <li class="nav-small-cap mt-3">
@@ -297,7 +293,17 @@
                         <span class="hide-menu">Timeline</span>
                     </a>
                 </li>
+                <li class="nav-small-cap mt-3">
+                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                    <span class="hide-menu">Data Master</span>
                 </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="{{ url('tahapan') }}" aria-expanded="false">
+                        <span><i class="bi bi-card-list"></i></span>
+                        <span class="hide-menu">Data Tahapan</span>
+                    </a>
+                </li>
+                
             @endif
 
 

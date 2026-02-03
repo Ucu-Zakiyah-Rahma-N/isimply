@@ -94,50 +94,73 @@
 
             <br>
 
-            {{-- 🔹 Filter Section --}}
-            <div class="row g-3 align-items-end mb-3">
-                <div class="col-md-3">
+            <div class="row align-items-end mb-3 g-2">
+                
+                <div class="col-md-2">
                     <label for="filterKabupaten" class="form-label fw-semibold">Kabupaten</label>
                     <select id="filterKabupaten" class="form-select">
                         <option value="">Semua Kabupaten</option>
-                        @foreach ($wilayahs as $kab)
-                            <option value="{{ $kab->nama }}">{{ $kab->nama }}</option>
+                        @foreach ($wilayahs->where('jenis', 'kabupaten') as $kab)
+                            <option value="{{ $kab->kode }}" {{ request('kabupaten') == $kab->kode ? 'selected' : '' }}>
+                                {{ $kab->nama }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="filterKawasan" class="form-label fw-semibold">Kawasan</label>
                     <select id="filterKawasan" class="form-select">
                         <option value="">Semua Kawasan</option>
                         @foreach ($projects->pluck('kawasan_name')->unique()->filter() as $kawasan)
-                            <option value="{{ $kawasan }}">{{ $kawasan }}</option>
+                            <option value="{{ $kawasan }}" {{ request('kawasan') == $kawasan ? 'selected' : '' }}>
+                                {{ $kawasan }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
 
+                <div class="col-md-2">
+                            <label for="filterPerizinan" class="form-label fw-semibold">
+                                Jenis Perizinan
+                            </label>
+                            <select id="filterPerizinan" class="form-select">
+                                <option value="">Semua Jenis Perizinan</option>
+                                @foreach ($perizinan as $izin)
+                                    <option value="{{ $izin->jenis }}"
+                                        {{ request('perizinan') == $izin->jenis ? 'selected' : '' }}>
+                                        {{ $izin->jenis }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+
                 <div class="col-md-3">
-                    <label for="filterPerizinan" class="form-label fw-semibold">Jenis Perizinan</label>
-                    <select id="filterPerizinan" class="form-select">
-                        <option value="">Semua Jenis Perizinan</option>
-                        @foreach ($perizinan as $izin)
-                            <option value="{{ $izin->jenis }}">{{ $izin->jenis }}</option>
-                        @endforeach
-                    </select>
+                    <label class="form-label fw-semibold">Cari Perusahaan / Bangunan</label>
+                    <input type="text"
+                        id="searchGlobal"
+                        name="searchGlobal"
+                        value="{{ request('searchGlobal') }}"
+                        class="form-control"
+                        placeholder="Nama perusahaan atau nama bangunan...">
                 </div>
 
                 <div class="col-md-3">
                     <label for="searchPO" class="form-label fw-semibold">Cari No PO</label>
                     <div class="d-flex">
-                        <input type="text" id="searchPO" class="form-control me-2" placeholder="Masukkan No SPH...">
+                        <input type="text" id="searchPO" class="form-control me-2" placeholder="Masukkan No PO">
                         <button id="resetFilter" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-counterclockwise"></i>
                         </button>
                     </div>
                 </div>
+
             </div>
 
         </div>
+
+    </div>
 
         <div class="table-responsive px-3 pb-3">
             @php
@@ -150,6 +173,7 @@
                         <th>No</th>
                         <th>PIC Projek</th>
                         <th>Nama Perusahaan</th>
+                        <th>Nama Bangunan</th>
                         <th>Kabupaten</th>
                         <th>Kawasan</th>
                         <th>Detail Alamat</th>
@@ -168,13 +192,11 @@
                 </thead>
                 <tbody>
                     @forelse ($projects as $project)
-                        <tr data-kabupaten="{{ strtolower($project->kabupaten_name ?? '') }}"
-                            data-kawasan="{{ strtolower($project->kawasan_name ?? '') }}"
-                            data-izin="{{ strtolower($project->jenis_perizinan ?? '') }}"
-                            data-po="{{ strtolower($project->no_po ?? '') }}">
+                        <tr>
                             <td>{{ $no++ }}</td>
                             <td>{{ $project->nama ?? '-' }}</td>
                             <td>{{ $project->nama_perusahaan ?? '-' }}</td>
+                            <td>{{ $project->nama_bangunan }}</td>
                             <td>{{ $project->kabupaten_name ?? '-' }}</td>
                             <td>{{ $project->kawasan_name ?? '-' }}</td>
                             <td>{{ $project->detail_alamat ?? '-' }}</td>
@@ -190,7 +212,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>{{ $project->no_po }}</td>
+                            <td>{{ $project->no_po ?? '-' }}</td>
                             <td>{{ $project->tgl_po ? \Carbon\Carbon::parse($project->tgl_po)->format('d-m-Y') : '-' }}
                             </td>
                             <td>{{ $project->lama_pekerjaan ? $project->lama_pekerjaan . ' hari' : '-' }}</td>
@@ -279,10 +301,10 @@
                             <td>
                                 <span
                                     class="badge 
-                            @if ($project->status_project == 'Belum Mulai') bg-secondary
-                            @elseif($project->status_project == 'On Progress') bg-warning
-                            @elseif($project->status_project == 'Selesai') bg-success
-                            @else bg-dark @endif">
+                                    @if ($project->status_project == 'Belum Mulai') bg-secondary
+                                    @elseif($project->status_project == 'On Progress') bg-warning
+                                    @elseif($project->status_project == 'Selesai') bg-success
+                                    @else bg-dark @endif">
                                     {{ $project->status_project }}
                                 </span>
                             </td>
@@ -339,18 +361,11 @@
                                         Detail
                                     </a>
                                 @endif
-
-
                             </td>
                             <td>{{ \Carbon\Carbon::parse($project->bast_verified_at)->format('d-m-Y H:i') }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="14" class="text-center text-muted">Belum ada proyek dengan BAST terverifikasi.
-                            </td>
-                        </tr>
-                    @endforelse
-                    <tr id="noDataRow" style="display:none;">
                         <td colspan="17" class="text-center text-muted py-4">
                             <i class="bi bi-search me-1"></i>
                             <strong>Data tidak ditemukan</strong>
@@ -358,8 +373,8 @@
                                 Silakan ubah atau reset filter
                             </div>
                         </td>
-                    </tr>
-
+                        </tr>
+                    @endforelse
                 </tbody>
 
             </table>
@@ -373,16 +388,22 @@
 
 
     {{-- Script Filter --}}
-    <script>
-        // load select2 jika belum ada
-        document.write(`
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"><\/script>
-  `);
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+         <script>
+            document.addEventListener('DOMContentLoaded', function() {
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Aktifkan Select2 hanya untuk 2 dropdown ini
+            const params = new URLSearchParams(window.location.search);
+
+            function reloadWith(key, value) {
+                if (value) {
+                    params.set(key, value);
+                } else {
+                    params.delete(key);
+                }
+                params.delete('page'); // reset page saat filter
+                window.location.search = params.toString();
+            }
+
             $('#filterKabupaten, #filterKawasan').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Pilih atau ketik untuk mencari...',
@@ -390,60 +411,49 @@
                 width: '100%'
             });
 
-            const filterKabupaten = document.getElementById('filterKabupaten');
-            const filterKawasan = document.getElementById('filterKawasan');
-            const filterPerizinan = document.getElementById('filterPerizinan');
-            const searchPO = document.getElementById('searchPO');
-            const resetBtn = document.getElementById('resetFilter');
-            const rows = document.querySelectorAll('#projectsTable tbody tr');
-
-            // Filter function
-            function filterTable() {
-                const kabVal = filterKabupaten.value.toLowerCase();
-                const kawVal = filterKawasan.value.toLowerCase();
-                const izinVal = filterPerizinan.value.toLowerCase();
-                const poVal = searchPO.value.toLowerCase();
-
-                let visibleCount = 0;
-                
-                rows.forEach(row => {
-                    const kab = row.dataset.kabupaten || '';
-                    const kaw = row.dataset.kawasan || '';
-                    const izin = row.dataset.izin || '';
-                    const po = row.dataset.po || '';
-
-                    const match =
-                        (kabVal === '' || kab.includes(kabVal)) &&
-                        (kawVal === '' || kaw.includes(kawVal)) &&
-                        (izinVal === '' || izin.includes(izinVal)) &&
-                        (poVal === '' || po.includes(poVal));
-
-                    row.style.display = match ? '' : 'none';
-
-                    //tidak ada data setelah di fiter
-                    if (match) visibleCount++;
-                });
-                // 🔹 Tampilkan / sembunyikan pesan "Data tidak ditemukan"
-                const noDataRow = document.getElementById('noDataRow');
-                if (noDataRow) {
-                    noDataRow.style.display = visibleCount === 0 ? '' : 'none';
-                }
-
-            }
-
-            [filterKabupaten, filterKawasan, filterPerizinan, searchPO].forEach(el => {
-                el.addEventListener('input', filterTable);
-                $(el).on('change', filterTable);
+            // 🔹 EVENT CHANGE TETAP JALAN
+            $('#filterKabupaten').on('change', function() {
+                reloadWith('kabupaten', $(this).val());
             });
 
-            // Reset Filter
-            resetBtn.addEventListener('click', () => {
-                $('#filterKabupaten, #filterKawasan').val(null).trigger('change');
-                if (filterPerizinan) filterPerizinan.value = '';
-                searchPO.value = '';
-                filterTable();
+            $('#filterKawasan').on('change', function() {
+                reloadWith('kawasan', $(this).val());
             });
-        });
+
+// PERIZINAN
+            document.getElementById('filterPerizinan').addEventListener('change', function() {
+                reloadWith('perizinan', this.value);
+            });
+
+            let typingTimer;
+            const delay = 600;
+
+            document.getElementById('searchPO').addEventListener('input', function() {
+                clearTimeout(typingTimer);
+                const value = this.value;
+
+                typingTimer = setTimeout(() => {
+                    reloadWith('searchPO', value);
+                }, delay);
+            });
+
+            document.getElementById('searchGlobal').addEventListener('input', function () {
+                clearTimeout(typingTimer);
+                const value = this.value;
+
+                typingTimer = setTimeout(() => {
+                    reloadWith('searchGlobal', value);
+                }, delay);
+            });
+
+            document.getElementById('resetFilter').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = window.location.pathname;
+            });
+
+    //DELETE 
+        const deleteForms = document.querySelectorAll('.delete-project-form');
+        })
     </script>
 
 @endsection

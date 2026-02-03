@@ -5,7 +5,9 @@
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center mb-0">
                 <h5 class="card-title mb-0">Data PO/SPK</h5>
-                @if (in_array(auth()->user()->role, ['superadmin', 'admin marketing']))
+                @if (
+                    auth()->user()->role === 'superadmin' ||
+                    (auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id == 1))
                     <a href="{{ url('PO/create') }}" class="btn btn-primary">
                         <i class="bi bi-plus-circle me-1"></i> Tambah PO/SPK
                     </a>
@@ -17,6 +19,7 @@
         <div class="card-body">
             {{-- 🔹 Filter Section --}}
             <div class="row align-items-end mb-3 g-2">
+                
                 <div class="col-md-2">
                     <label for="filterKabupaten" class="form-label fw-semibold">Kabupaten</label>
                     <select id="filterKabupaten" class="form-select">
@@ -41,59 +44,58 @@
                     </select>
                 </div>
 
-                <div class="col-md-4">
-                    <div class="row g-2">
-
                         <!-- Perizinan 1 -->
-                        <div class="col-md-6">
-                            <label for="filterPerizinan" class="form-label fw-semibold">
-                                Jenis Perizinan
-                            </label>
-                            <select id="filterPerizinan" class="form-select">
-                                <option value="">Semua Jenis Perizinan</option>
-                                @foreach ($perizinan as $izin)
-                                    <option value="{{ $izin->jenis }}"
-                                        {{ request('perizinan') == $izin->jenis ? 'selected' : '' }}>
-                                        {{ $izin->jenis }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- Perizinan 2 -->
-                        <div class="col-md-6">
-                            <label for="filterCabang" class="form-label fw-semibold">
-                                Pilih Cabang
-                            </label>
-                            <select id="filterCabang" class="form-select">
-                                <option value="">Semua Cabang</option>
-                                @foreach ($cabang as $c)
-                                    <option value="{{ $c->id }}"
-                                        {{ request('cabang') == $c->id ? 'selected' : '' }}>
-                                        {{ $c->nama_cabang }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                    </div>
+                <div class="col-md-2">
+                    <label for="filterPerizinan" class="form-label fw-semibold">
+                        Jenis Perizinan
+                    </label>
+                    <select id="filterPerizinan" class="form-select">
+                        <option value="">Semua Jenis Perizinan</option>
+                        @foreach ($perizinan as $izin)
+                            <option value="{{ $izin->jenis }}"
+                            {{ request('perizinan') == $izin->jenis ? 'selected' : '' }}>
+                            {{ $izin->jenis }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Cari</label>
-                    <div class="d-flex gap-2">
-                        <input type="text" id="searchSPH" value="{{ request('sph') }}" class="form-control me-2"
-                            placeholder="No SPH">
-
-                        <input type="text" id="searchPO" value="{{ request('po') }}" class="form-control me-2"
-                            placeholder="No PO">
-
-                        <button id="resetFilter" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-counterclockwise"></i>
-                        </button>
-                    </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Cari</label>
+            
+                <div class="d-flex gap-2 align-items-center">
+            
+                    {{-- No SPH --}}
+                    <input type="text" id="searchSPH"
+                        value="{{ request('sph') }}"
+                        class="form-control"
+                        placeholder="No SPH">
+            
+                    {{-- No PO --}}
+                    <input type="text" id="searchPO"
+                        value="{{ request('po') }}"
+                        class="form-control"
+                        placeholder="No PO">
+            
+                    {{-- Cabang (conditional) --}}
+                    @if (!(auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id != 1))
+                        <select id="filterCabang" class="form-select" style="max-width: 180px;">
+                            <option value="">Cabang</option>
+                            @foreach ($cabang as $c)
+                                <option value="{{ $c->id }}"
+                                    {{ request('cabang') == $c->id ? 'selected' : '' }}>
+                                    {{ $c->nama_cabang }}
+                                </option>
+                            @endforeach
+                        </select>
+                    @endif
+            
+                    {{-- Reset --}}
+                    <button id="resetFilter" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+            
                 </div>
-
             </div>
 
             <div class="table-responsive">
@@ -124,6 +126,12 @@
                             <th>Kontak</th>
                             <th>Verifikasi</th>
                             <th>Tgl BAST</th>
+                            @if (
+                                auth()->user()->role === 'superadmin' ||
+                                (auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id == 1)
+                            )
+                                <th>Aksi</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -140,7 +148,7 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td>{{ $item->no_po }}</td>
+                                <td>{{ $item->no_po ?? '-' }}</td>
                                 <td>{{ \Carbon\Carbon::parse($item->tgl_po)->format('d-m-Y') }}</td>
                                 <td>{{ $item->quotation->no_sph }}</td>
                                 <td>{{ $item->customer->nama_perusahaan ?? '-' }}</td>
@@ -163,19 +171,7 @@
                                 <td>{{ $item->quotation->detail_alamat ?? '-' }}</td>
                                 {{-- Harga Pekerjaan --}}
                                 <td>
-                                    @if ($item->quotation && $item->quotation->harga_tipe == 'gabungan')
-                                        {{-- Tampilkan harga gabungan --}}
-                                        Rp {{ number_format($item->quotation->harga_gabungan ?? 0, 0, ',', '.') }}
-                                    @else
-                                        {{-- Hitung total dari pivot --}}
-                                        @php
-                                            $total =
-                                                $item->quotation && $item->quotation->perizinan
-                                                    ? $item->quotation->perizinan->sum('pivot.harga_satuan')
-                                                    : 0;
-                                        @endphp
-                                        {{ $total > 0 ? 'Rp ' . number_format($total, 0, ',', '.') : '-' }}
-                                    @endif
+                                    Rp {{ number_format(optional($item->quotation)->grand_total ?? 0, 0, ',', '.') }}
                                 </td>
                                 <td>{{ $item->quotation->lama_pekerjaan . 'hari' ?? '-' }}</td>
                                 <td>
@@ -202,8 +198,16 @@
                                     @if ($item->bast_verified)
                                         <span class="badge bg-success">BAST Terverifikasi</span>
                                     @else
-                                        <button class="btn btn-warning btn-sm verify-bast-btn"
-                                            data-id="{{ $item->id }}">
+                                        @php
+                                            $canVerify =
+                                                auth()->user()->role === 'superadmin' ||
+                                                (auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id == 1);
+                                        @endphp
+                                
+                                        <button
+                                            class="btn btn-warning btn-sm verify-bast-btn {{ !$canVerify ? 'disabled' : '' }}"
+                                            data-url="{{ $canVerify ? route('po.verifyBast', $item->id) : '' }}"
+                                            {{ !$canVerify ? 'disabled title=Tidak memiliki hak verifikasi' : '' }}>
                                             Verifikasi BAST
                                         </button>
                                     @endif
@@ -215,7 +219,17 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                </td>
+                                @if (
+                                    auth()->user()->role === 'superadmin' ||
+                                    (auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id == 1)
+                                )
+                                    <td>
+                                        <a href="{{ route('po.edit', $item->id) }}"
+                                           class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </td>
+                                @endif
                             </tr>
                         @empty
                             <tr>
@@ -230,9 +244,7 @@
                         @endforelse
                     </tbody>
                 </table>
-                <div class="mt-3 d-flex justify-content-end">
-                    {{ $po->links('pagination::bootstrap-5') }}
-                </div>
+
                 <div class="modal fade" id="pdfModal" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                         <div class="modal-content">
@@ -255,51 +267,54 @@
                 </div>
 
             </div>
+            <div class="mt-3 d-flex justify-content-end">
+                {{ $po->links('pagination::bootstrap-5') }}
+            </div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                
                 document.querySelectorAll('.verify-bast-btn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        let id = this.dataset.id;
-
+                    button.addEventListener('click', function () {
+                        let url = this.dataset.url;
+                
                         Swal.fire({
                             title: 'Verifikasi BAST?',
-                            text: "Yakin ingin memverifikasi BAST untuk PO ini?",
+                            text: 'Yakin ingin memverifikasi BAST untuk PO ini?',
                             icon: 'question',
                             showCancelButton: true,
                             confirmButtonText: 'Ya, verifikasi',
                             cancelButtonText: 'Batal'
                         }).then(result => {
                             if (result.isConfirmed) {
-                                fetch(`/PO/verify-bast/${id}`, {
-                                        method: 'POST',
-                                        headers: {
-                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                            'Accept': 'application/json'
-                                        }
-                                    })
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        if (data.success) {
-                                            Swal.fire({
-                                                icon: 'success',
-                                                title: 'Berhasil',
-                                                text: data.message,
-                                                timer: 1500,
-                                                showConfirmButton: false
-                                            });
-                                            setTimeout(() => location.reload(), 1500);
-                                        } else {
-                                            Swal.fire('Gagal', data.message, 'error');
-                                        }
-                                    })
-                                    .catch(() => {
-                                        Swal.fire('Gagal', 'Terjadi kesalahan server',
-                                            'error');
-                                    });
+                                fetch(url, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Accept': 'application/json'
+                                    }
+                                })
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'Berhasil',
+                                            text: data.message,
+                                            timer: 1500,
+                                            showConfirmButton: false
+                                        });
+                                        setTimeout(() => location.reload(), 1500);
+                                    } else {
+                                        Swal.fire('Gagal', data.message, 'error');
+                                    }
+                                })
+                                .catch(() => {
+                                    Swal.fire('Gagal', 'Terjadi kesalahan server', 'error');
+                                });
                             }
                         });
                     });
@@ -352,9 +367,14 @@
                 });
 
                 // CABANG
-                document.getElementById('filterCabang').addEventListener('change', function() {
-                    reloadWith('cabang', this.value);
-                });
+                const filterCabang = document.getElementById('filterCabang');
+                
+                if (filterCabang) {
+                    filterCabang.addEventListener('change', function() {
+                        reloadWith('cabang', this.value);
+                    });
+                }
+
 
                 // LIVE SEARCH NO SPH
                 let typingTimer;

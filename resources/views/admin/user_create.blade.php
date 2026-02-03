@@ -13,7 +13,7 @@
             <div class="mb-3">
                 <label for="username" class="form-label">Nama Perusahaan</label>
                 <select class="form-control @error('customer_id') is-invalid @enderror"
-                id="customer-select" name="customer_id" >
+                id="customer-select" name="customer_id" required >
                     <option value="">Ketik atau pilih nama perusahaan...</option>
                     {{-- khusus untuk akun karyawan --}}
                     <option value="simply">PT Simply Dimensi Indonesia</option> 
@@ -32,7 +32,7 @@
             </div>
 
             <div class="mb-3">
-                <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                <label for="username" class="form-label">Username <span class="text-danger" >*</span></label>
                 <input type="text" class="form-control" id="username" name="username" value="username">
             </div>
 

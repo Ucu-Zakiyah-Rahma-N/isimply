@@ -2,18 +2,18 @@
 
 @section('content')
 
-@if(session('success'))
-    <script>
-        Swal.fire({
-            icon: 'success',
-            title: 'berhasil masuk',
-            text: '{{ session('success') }}',
-            showConfirmButton: false,
-            timer: 2000
-        });
-    </script>
-    {{ session()->forget('success') }}
+@if(session('login_success'))
+<script>
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil Masuk',
+        text: '{{ session('login_success') }}',
+        showConfirmButton: false,
+        timer: 2000
+    });
+</script>
 @endif
+
 
 <style>
 .stats-card {
@@ -68,18 +68,34 @@
 </div>
 
 @if(in_array(strtolower($user->role), ['superadmin', 'admin marketing', 'ceo',  'direktur', 'manager marketing', 'manager project', 'manager finance']))
-<div class="dashboard-header">
-    Rekap Bulan Ini
+<div class="dashboard-header d-flex justify-content-between align-items-center">
+    <span>Rekap Bulan Ini</span>
+
+    <form method="GET" class="d-flex align-items-center">
+        {{-- Filter Bulan --}}
+        <select name="bulan" class="form-select me-2" style="width:180px;" onchange="this.form.submit()">
+            <option value="">-Semua Bulan-</option>
+            @foreach(range(1,12) as $m)
+                @php $namaBulan = \Carbon\Carbon::create()->month($m)->format('F'); @endphp
+                <option value="{{ $m }}" {{ ($bulanFilter == $m) ? 'selected' : '' }}>
+                    {{ $namaBulan }}
+                </option>
+            @endforeach
+        </select>
+
+        {{-- Filter Tahun --}}
+        <select name="tahun" class="form-select" style="width:100px;" onchange="this.form.submit()">
+            @for($y = date('Y'); $y >= 2020; $y--)
+                <option value="{{ $y }}" {{ ($tahunFilter == $y) ? 'selected' : '' }}>{{ $y }}</option>
+            @endfor
+        </select>
+    </form>
 </div>
 
 <div class="row g-3">
-    
-    {{-- Jumlah PO --}}
     <div class="col-12 col-md-6 col-xl-3">
         <div class="stats-card">
-            <div class="stats-icon" style="background:#4a74ff;">
-                <i class="ti ti-file-invoice"></i>
-            </div>
+            <div class="stats-icon" style="background:#4a74ff;"><i class="ti ti-file-invoice"></i></div>
             <div>
                 <div class="stats-label">Jumlah PO</div>
                 <div class="stats-value">{{ $jumlahPO ?? 0 }}</div>
@@ -87,12 +103,9 @@
         </div>
     </div>
 
-    {{-- Nilai PO --}}
     <div class="col-12 col-md-6 col-xl-3">
         <div class="stats-card">
-            <div class="stats-icon" style="background:#1abc9c;">
-                <i class="ti ti-cash"></i>
-            </div>
+            <div class="stats-icon" style="background:#1abc9c;"><i class="ti ti-cash"></i></div>
             <div>
                 <div class="stats-label">Nilai PO</div>
                 <div class="stats-value">Rp {{ number_format($nilaiPO ?? 0, 0, ',', '.') }}</div>
@@ -100,46 +113,41 @@
         </div>
     </div>
 
-    {{-- Achievement --}}
+@if (!(auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id != 1))
     <div class="col-12 col-md-6 col-xl-3">
         <div class="stats-card">
-            <div class="stats-icon" style="background:#f1c40f;">
-                <i class="ti ti-chart-pie"></i>
-            </div>
+            <div class="stats-icon" style="background:#f1c40f;"><i class="ti ti-chart-pie"></i></div>
             <div>
-                <div class="stats-label">Achievement</div>
+                <div class="stats-label">Achievement {{ $bulanFilter ? 'Bulan Ini' : 'Tahun Ini' }}</div>
                 <div class="stats-value">{{ $persentaseAchieve ?? 0 }}%</div>
             </div>
         </div>
     </div>
 
-    {{-- Target Bulan Ini --}}
     <div class="col-12 col-md-6 col-xl-3">
         <div class="stats-card">
-            <div class="stats-icon" style="background:#e67e22;">
-                <i class="ti ti-target"></i>
-            </div>
+            <div class="stats-icon" style="background:#e67e22;"><i class="ti ti-target"></i></div>
             <div>
-                <div class="stats-label">Target Bulan Ini</div>
+                <div class="stats-label">{{ $bulanFilter ? 'Target Bulan Ini' : 'Target Tahun Ini' }}</div>
                 <div class="stats-value">Rp {{ number_format($targetBulanIni ?? 0, 0, ',', '.') }}</div>
             </div>
         </div>
     </div>
-
+@endif
 </div>
 
 <div class="card shadow-sm border-0 mt-4">
     <div class="card-header bg-white">
-        <h6 class="mb-0 fw-semibold">Grafik Nilai PO per Bulan</h6>
+        <h6 class="mb-0 fw-semibold">Grafik Nilai PO per Bulan ({{ $tahunFilter }})</h6>
     </div>
-
     <div class="card-body">
         <canvas id="chartNilaiPO" height="90"></canvas>
     </div>
 </div>
 @endif
 
-@if(in_array(strtolower($user->role), ['admin 1', 'admin 2', 'ceo', 'direktur', 'manager marketing', 'manager projek', 'manager finance']))
+
+@if(in_array(strtolower($user->role), ['superadmin', 'admin 1', 'admin 2', 'ceo', 'direktur', 'manager marketing', 'manager projek', 'manager finance']))
         {{-- REKAP PROJECT --}}
         <div class="dashboard-header">
     Rekap Project
@@ -148,8 +156,10 @@
     <div class="card-body">
         <div class="d-flex justify-content-center mb-1"> {{-- jarak lebih kecil ke tabel --}}
             <div class="d-flex flex-wrap justify-content-center gap-2 flex-nowrap" style="max-width: 1000px;">
-                
+    
                 {{-- Belum Mulai --}}
+                <a href="{{ route('projects.index', ['status' => 'Belum Mulai']) }}"
+                class="text-decoration-none text-dark">
                 <div class="card shadow border-0" style="width: 220px; height: 100px;">
                     <div class="card-body d-flex align-items-center">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
@@ -161,8 +171,11 @@
                         </div>
                     </div>
                 </div>
-
+                </a>
+                
                 {{-- On Progress --}}
+                <a href="{{ route('projects.index', ['status' => 'On Progress']) }}"
+                class="text-decoration-none text-dark">
                 <div class="card shadow border-0" style="width: 220px; height: 100px;">
                     <div class="card-body d-flex align-items-center">
                         <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
@@ -174,8 +187,11 @@
                         </div>
                     </div>
                 </div>
+                </a>
 
                 {{-- Selesai --}}
+                <a href="{{ route('projects.index', ['status' => 'Selesai']) }}"
+                class="text-decoration-none text-dark">
                 <div class="card shadow border-0" style="width: 220px; height: 100px;">
                     <div class="card-body d-flex align-items-center">
                         <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
@@ -187,6 +203,7 @@
                         </div>
                     </div>
                 </div>
+                </a>
 
                 {{-- Total --}}
                 <div class="card shadow border-0" style="width: 220px; height: 100px;">
@@ -203,9 +220,7 @@
 
 @endif
 
-@if(in_array(strtolower($user->role), ['CEO', 'direktur']))
 
-@endif
 {{-- ================= SCRIPT UNTUK CHART ================= --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -221,10 +236,10 @@
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: bulan,
+                labels: @json($bulan),
                 datasets: [{
                     label: 'Nilai PO',
-                    data: nilaiPerBulan,
+                    data: @json($nilaiPerBulan),
                     borderColor: '#0d6efd',
                     backgroundColor: 'rgba(13, 110, 253, 0.15)',
                     borderWidth: 3,
@@ -240,21 +255,22 @@
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: function (context) {
-                                let val = context.raw || 0;
-                                return 'Rp ' + val.toLocaleString('id-ID');
+                            label: function(context) {
+                                return 'Rp ' + (context.raw || 0).toLocaleString('id-ID');
                             }
                         }
                     }
                 },
                 scales: {
                     y: {
+                        beginAtZero: true,
                         ticks: {
+                            stepSize: 100000000, // interval 100 juta
                             callback: function(value){
                                 return 'Rp ' + value.toLocaleString('id-ID');
                             }
                         },
-                        beginAtZero: true
+                    //   max: 500000000 
                     }
                 }
             }

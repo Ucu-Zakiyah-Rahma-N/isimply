@@ -37,7 +37,7 @@
         }
 
         .fc-event.actual {
-            margin-top: 18px;
+            margin-top: 4px;
             height: 18px;
             border: 2px solid rgba(0, 0, 0, .2);
             background-color: #6fbf73;
@@ -138,7 +138,7 @@
                 }
             ];
 
-            let currentZoom = 2; // MONTH
+            let currentZoom = 0; // MONTH
 
             let anchorToday = new Date(); // TODAY TETAP
             let currentDate = new Date();

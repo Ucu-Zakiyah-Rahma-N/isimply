@@ -11,6 +11,8 @@ use App\Models\Cabang;
 use App\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 
 use Illuminate\Http\Request;
@@ -19,10 +21,21 @@ class POController extends Controller
 {
     public function index(Request $request)
     {
+        
+        $user = auth()->user();
         $query = PO::with(['customer', 'perizinan', 'quotation.kawasan_industri', 'quotation.perizinan'])
-            ->orderBy('id', 'DESC');
+            ->orderBy('tgl_po', 'DESC');
+        
+        if (
+            $user->role === 'admin marketing' &&
+            $user->cabang_id != 1
+        ) {
+            $query->whereHas('quotation', function ($q) use ($user) {
+                $q->where('cabang_id', $user->cabang_id);
+            });
+        }
 
-
+    
         // 🔹 Filter Kabupaten
         if ($request->filled('kabupaten')) {
             $query->whereHas('quotation', function ($q) use ($request) {
@@ -62,7 +75,7 @@ class POController extends Controller
             $query->where('no_po', 'like', '%' . $request->po . '%');
         }
 
-        $po = $query->paginate(10)->withQueryString();
+        $po = $query->paginate(500)->withQueryString(); // ganti jadi brp yg mau di tampilkan
 
         $kabupatenList = Wilayah::where('jenis', 'kabupaten')->pluck('nama', 'kode');
 
@@ -140,28 +153,52 @@ class POController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+    Log::info('=== START STORE PO ===', [
+        'user_id' => auth()->id(),
+        'request_all' => $request->except(['file']),
+        'has_file' => $request->hasFile('file'),
+    ]);
+
+    try {
+        
+         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'quotation_id' => 'required|exists:quotations,id',
-            'file' => 'nullable|mimes:pdf|max:10240', // 10MB max
-            'no_po' => 'required|string|unique:po,no_po',
+            'file' => 'nullable|mimes:pdf|max:20480', // 20MB max
+            'no_po' => 'nullable|string|unique:po,no_po',
             'tgl_po' => 'required|date',
             'nama_pic_keuangan' => 'nullable|string|max:255',
             'kontak_pic_keuangan' => 'nullable|string|max:20',
         ]);
+    
+        Log::info('VALIDATION PASSED', $validated);
+
     $filePath = null;
 
     //  CEK ADA FILE ATAU TIDAK
     if ($request->hasFile('file')) {
 
         $file = $request->file('file');
+        
+        
+        Log::info('FILE DETECTED', [
+                'original_name' => $file->getClientOriginalName(),
+                'size_kb' => round($file->getSize() / 1024, 2),
+                'mime' => $file->getMimeType(),
+            ]);
+
 
         $originalName = $file->getClientOriginalName();
         $cleanName = time() . '_' . str_replace(['(', ')', ' '], '_', $originalName);
 
         $filePath = $file->storeAs('po', $cleanName, 'public');
+        
+                    Log::info('FILE STORED', [
+                'file_path' => $filePath,
+            ]);
+
     }
-        PO::insert([
+        PO::create([
             'customer_id' => $request->customer_id,
             'quotation_id' => $request->quotation_id,
             'file_path' => $filePath,
@@ -174,12 +211,42 @@ class POController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        
+           Log::info('PO INSERT SUCCESS', [
+            'no_po' => $validated['no_po'],
+        ]);
 
         return redirect()->route('PO.index')->with('success', 'Data PO berhasil disimpan.');
+        
+        
+    } catch (\Throwable $e) {
+
+        Log::error('STORE PO FAILED', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return back()
+            ->withInput()
+            ->with('error', 'Terjadi kesalahan saat menyimpan PO. Silakan hubungi admin.');
+    }
     }
 
     public function verifyBast($id)
     {
+        $user = auth()->user();
+        if (
+            !($user->role === 'superadmin' ||
+            ($user->role === 'admin marketing' && $user->cabang_id == 1))
+        ) {
+            return response()->json([
+            'success' => false,
+            'message' => 'Anda tidak memiliki hak verifikasi BAST'
+            ], 403);
+        }
+
         $po = PO::find($id);
 
         if (!$po) {
@@ -197,4 +264,62 @@ class POController extends Controller
 
         return response()->json(['success' => true, 'message' => 'BAST berhasil diverifikasi.']);
     }
+    
+    
+    public function edit($id)
+    {
+        $title = 'edit PO';
+        
+        
+        $po = PO::with(['quotation.customer'])->findOrFail($id);
+    
+        $customers = Customer::all();
+    
+        // Ambil SPH milik customer terkait (untuk preload select)
+        $quotations = Quotation::where('customer_id', $po->customer_id)->get();
+    
+        return view('pages.PO.edit', compact(
+            'po',
+            'customers',
+            'quotations',
+            'title'
+        ));
+    }
+
+
+public function update(Request $request, $id)
+{
+    $po = PO::findOrFail($id);
+
+    // Ambil semua data kecuali file
+    $data = $request->except('file');
+
+    // ======================
+    // HANDLE FILE PO
+    // ======================
+    if ($request->hasFile('file')) {
+
+        // 🔹 Hapus file lama kalau ada
+        if ($po->file_path && Storage::disk('public')->exists($po->file_path)) {
+            Storage::disk('public')->delete($po->file_path);
+        }
+
+        $file = $request->file('file');
+        $originalName = $file->getClientOriginalName();
+        $cleanName = time() . '_' . str_replace(['(', ')', ' '], '_', $originalName);
+
+        // 🔹 Simpan file baru di folder storage/app/public/po
+        $data['file_path'] = $file->storeAs('po', $cleanName, 'public');
+    }
+
+    // ======================
+    // UPDATE DATA PO
+    // ======================
+    $po->update($data);
+
+    return redirect()
+        ->route('PO.index')
+        ->with('success', 'PO berhasil diperbarui');
+}
+
 }

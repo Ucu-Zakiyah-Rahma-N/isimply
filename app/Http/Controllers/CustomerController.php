@@ -22,14 +22,24 @@ class CustomerController extends Controller
     /**
      * Tampilkan semua data customer
      */
-    public function index()
+    public function index(Request $request)
     {
-        $customer = Customer::with(['marketing', 'kawasan_industri'])
-        ->orderBy('id', 'DESC')
-        ->paginate(10); // <= pagination di sini
-
-        //$no = 1;
+        $user = auth()->user(); 
         $title = 'Data Customer';
+        $query = Customer::with(['marketing', 'kawasan_industri'])
+        ->orderBy('id', 'DESC');
+        //$no = 1;
+        
+        if ($user->role === 'admin marketing' && $user->cabang_id != 1) {
+        $query->where('cabang_id', $user->cabang_id);
+        }
+        
+            if ($request->filled('search')) {
+            $query->where('nama_perusahaan', 'like', '%' . $request->search . '%');
+        }
+
+        
+        $customer = $query->paginate(10)->withQueryString();
         $marketing = Marketing::all();
 
         // Ambil semua wilayah dari tabel lokal
@@ -57,7 +67,7 @@ class CustomerController extends Controller
     }
 
     /**
-     * 🧩 Form tambah customer
+     * Form tambah customer
      */
     public function create(Request $request)
     {
@@ -77,8 +87,17 @@ class CustomerController extends Controller
         return view('admin.customer_create', compact('statusList', 'title', 'provinsiList'));
     }
 
+    public function cekNama(Request $request)
+    {
+        $exists = Customer::where('nama_perusahaan', $request->nama)->exists();
+    
+        return response()->json([
+            'exists' => $exists
+        ]);
+    }
+
     /**
-     * 💾 Simpan data customer baru
+     *  Simpan data customer baru
      */
     public function store(Request $request)
     {
@@ -94,7 +113,9 @@ class CustomerController extends Controller
             'pic_perusahaan.*.nama' => 'nullable|string|max:255',
             'pic_perusahaan.*.kontak' => 'nullable|string|max:255',
             'pic_perusahaan.*.email' => 'nullable|email|max:255',
+
         ]);
+        
 
         // Tandai PIC utama
         if (!empty($data['pic_perusahaan'])) {
@@ -112,13 +133,14 @@ class CustomerController extends Controller
             'detail_alamat' => $data['detail_alamat'] ?? null,
             'marketing_id' => $data['marketing_id'] ?? null,
             'pic_perusahaan' => $data['pic_perusahaan'] ?? [],
+            'cabang_id' => auth()->user()->cabang_id,
         ]);
 
         return redirect()->route('customer.index')->with('success', 'Data customer berhasil disimpan.');
     }
 
     /**
-     * ✏️ Form edit customer
+     * Form edit customer
      */ public function edit($id, Request $request)
     {
         $customer = Customer::findOrFail($id);
@@ -430,6 +452,18 @@ $project->verified_tahapan = VerifikasiProject::where('project_id', $project->id
     return view('pages.customer.index_customer', compact('customer', 'projects', 'title'));
 }
 
+    public function destroy($id)
+    {
+        $customer = Customer::findOrFail($id);
+    
+        if ($customer->quotations()->exists()) {
+            return back()->with('error', 'Customer masih memiliki SPH.');
+        }
+    
+        $customer->delete();
+    
+        return back()->with('success', 'Customer berhasil dihapus.');
+    }
 
     /**
      * 🔍 Detail proyek customer

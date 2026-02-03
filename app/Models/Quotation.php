@@ -32,37 +32,43 @@ class Quotation extends Model
         return $this->belongsTo(KawasanIndustri::class, 'kawasan_id', 'id');
     }
 
-public function perizinan()
-{
-    return $this->belongsToMany(Perizinan::class, 'quotation_perizinan', 'quotation_id', 'perizinan_id')
-                ->withPivot('harga_satuan')
-                ->withTimestamps();
-}
-public function parent()
-{
-    return $this->belongsTo(Quotation::class, 'parent_id');
-}
+    public function perizinan()
+    {
+        return $this->belongsToMany(Perizinan::class, 'quotation_perizinan', 'quotation_id', 'perizinan_id')
+                    ->withPivot('harga_satuan', 'qty', 'satuan_id')
+                    ->withTimestamps();
+    }
 
-public function versions()
-{
-    return $this->hasMany(Quotation::class, 'parent_id');
-}
+    public function parent()
+    {
+        return $this->belongsTo(Quotation::class, 'parent_id');
+    }
 
-public function cabang()
-{
-    return $this->belongsTo(Cabang::class, 'cabang_id');
-}
+    public function versions()
+    {
+        return $this->hasMany(Quotation::class, 'parent_id');
+    }
 
-public function quotation_perizinan()
-{
-    return $this->hasMany(QuotationPerizinan::class, 'quotation_id');
-}
+    public function cabang()
+    {
+        return $this->belongsTo(Cabang::class, 'cabang_id');
+    }
 
+    public function quotation_perizinan()
+    {
+        return $this->hasMany(QuotationPerizinan::class, 'quotation_id');
+    }
 
     public function po()
     {
         return $this->hasOne(PO::class);
     }
+    
+    public function marketing()
+    {
+        return $this->belongsTo(Marketing::class, 'marketing_id');
+    }
+
 
 // public static function get_data_template($id)
 // {
@@ -114,18 +120,40 @@ public function quotation_perizinan()
     public function getTotalHargaAttribute()
     {
         if ($this->harga_tipe === 'gabungan') {
-            return $this->harga_gabungan ?? 0;
+            return (float) ($this->harga_gabungan ?? 0);
         }
 
-        return $this->perizinan->sum('pivot.harga_satuan');
+        // SATUAN: qty × harga_satuan
+        return $this->perizinan->sum(function ($izin) {
+            $qty   = (int) ($izin->pivot->qty ?? 1);
+            $harga = (float) ($izin->pivot->harga_satuan ?? 0);
+            return $qty * $harga;
+        });
     }
-
+    
+    public function getTotalDiskonAttribute()
+    {
+        if ($this->diskon_tipe === 'nominal') {
+            return $this->diskon_nilai;
+        }
+    
+        if ($this->diskon_tipe === 'persen') {
+            return ($this->total_harga * $this->diskon_nilai) / 100;
+        }
+    
+        return 0;
+    }
+    
+    public function getGrandTotalAttribute()
+    {
+        return max(0, $this->total_harga - $this->total_diskon);
+    }
     /**
      * Text jenis perizinan (SLF, PBG, dst)
      */
     public function getJenisPerizinanTextAttribute()
     {
-        return strtoupper(
+        return (
             $this->perizinan->pluck('jenis')->implode(', ')
         );
     }
@@ -177,5 +205,11 @@ public function quotation_perizinan()
             ];
         })->toArray();
     }
+    
+    // public function customer() { return $this->belongsTo(Customer::class, 'customer_id'); }
+    // public function perizinan() { return $this->belongsToMany(Perizinan::class, 'quotation_perizinan', 'quotation_id', 'perizinan_id')->withPivot('harga_satuan'); }
+    // public function kabupaten() { return $this->belongsTo(Kabupaten::class, 'kabupaten_id'); }
+    // public function provinsi() { return $this->belongsTo(Provinsi::class, 'provinsi_id'); }
+
 }
 

@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\KawasanIndustri;
 use App\Models\Marketing;
 use App\Models\Cabang;
+use App\Models\SatuanPerizinan;
 use App\Models\Perizinan;
 use App\Models\Tahapan;
 use App\Models\Wilayah;
@@ -57,7 +58,7 @@ class DatabaseSeeder extends Seeder
             ['status' => 'internal', 'nama' => 'Ucu Zakiyah Rahma Nindya', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
 
             // ==== CABANG ====
-            ['status' => 'cabang', 'nama' => 'Chairullah', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
+            ['status' => 'cabang', 'nama' => 'Chairul Mustafa', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
             ['status' => 'cabang', 'nama' => 'Rifqi', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
             ['status' => 'cabang', 'nama' => 'Asep Ake', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
 
@@ -213,5 +214,15 @@ class DatabaseSeeder extends Seeder
             ['nama_cabang' => 'Serang', 'kode_sph' => 'CSRG/SDI'],
             ['nama_cabang' => 'Sukabumi', 'kode_sph' => 'CSKB/SDI'],
         ]);
+        
+        SatuanPerizinan::insert([
+            ['nama' => 'ls', 'is_active' => 1],
+            ['nama' => 'unit', 'is_active' => 1],
+            ['nama' => 'titik', 'is_active' => 1],
+            ['nama' => 'paket', 'is_active' => 1],
+            ['nama' => 'set', 'is_active' => 1],
+            ['nama' => 'dokumen', 'is_active' => 1],
+        ]);
+
     }
 }

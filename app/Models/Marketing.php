@@ -15,7 +15,7 @@ class Marketing extends Model
     }
 
     public function customers() {
-        return $this->hasMany(Project::class);
+        return $this->hasMany(Project::class, 'marketing_id');
     }
     
 }

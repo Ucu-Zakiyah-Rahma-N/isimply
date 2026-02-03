@@ -28,6 +28,13 @@
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+.qty-input {
+    color: #000 !important;
+    background-color: #fff !important;
+    font-weight: 600;
+    text-align: center;
+}
+
 </style>
 
 @section('content')
@@ -58,10 +65,17 @@
 
             <div class="col-md-6 mb-3">
                 <label>Pilih Cabang <span class="text-danger">*</span></label>
-                <select name="cabang_id" id="cabang_id" class="form-control" required>
-                    <option value="">-- Pilih Cabang --</option>
+            
+                <select name="cabang_id" id="cabang_id" class="form-select" required>
+                    @if($cabang->count() > 1)
+                        <option value="">-- Pilih Cabang --</option>
+                    @endif
+            
                     @foreach($cabang as $cb)
-                        <option value="{{ $cb->id }}">{{ $cb->nama_cabang }}</option>
+                        <option value="{{ $cb->id }}"
+                            {{ $cabang->count() === 1 ? 'selected' : '' }}>
+                            {{ $cb->nama_cabang }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -79,13 +93,12 @@
                         class="form-control @error('no_sph') is-invalid @enderror"
                         readonly
                         placeholder="Nomor SPH akan muncul otomatis"
-                        required
-                    >
-
+                        required>
                     @error('no_sph')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
+                
                 <div class="col-md-6">
                     <label>Tanggal SPH<span class="text-danger">*</span></label>
                     <input type="date" name="tgl_sph" class="form-control @error('tgl_sph') is-invalid @enderror" value="{{ old('tgl_sph') }}" required>
@@ -96,8 +109,8 @@
                 </div>
                 
             <div class="col-md-6 mb-3">
-                <label>Pilih Fungsi Bangunan</label>
-                <select name="fungsi_bangunan" class="form-select">
+                <label>Pilih Fungsi Bangunan<span class="text-danger">*</span></label>
+                <select name="fungsi_bangunan" class="form-select @error('fungsi_bangunan') is-invalid @enderror required">
                     <option value="-" {{ old('fungsi_bangunan', $quotation->fungsi_bangunan ?? '-') === '-' ? 'selected' : '' }}>
                         Pilih Fungsi Bangunan
                     </option>
@@ -117,6 +130,9 @@
                         </option>
                     @endforeach
                 </select>
+                    @error('fungsi_bangunan')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
             </div>
             
             {{-- Nama Bangunan --}}
@@ -192,6 +208,7 @@
                     <option value="1">1 Termin</option>
                     <option value="2">2 Termin</option>
                     <option value="3">3 Termin</option>
+                    <option value="4">4 Termin</option>
                 </select>
             </div>
 
@@ -199,15 +216,16 @@
 
             <div id="validasiTotal" class="mt-2 fw-bold"></div>
 
-<br>
+            <br>
             {{-- Pilih Jenis Perizinan --}}
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center">
-                    <label class="form-label fw-bold mb-0">Pilih Jenis Perizinan<span class="text-danger">*</span></label>
+                    <label class="form-label fw-bold mb-0">Pilih Jenis Perizinan<span class="text-danger">*</span>
                     <button class="btn btn-sm btn-outline-primary d-flex align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePerizinan" aria-expanded="false">
                         <span class="me-1">Tampilkan</span>
                         <i class="bi bi-chevron-down"></i>
                     </button>
+                    </label>
                 </div>
 
                 <div class="collapse mt-2" id="collapsePerizinan">
@@ -236,15 +254,71 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
+            
 
             {{-- Form Harga Gabungan (hidden by default) --}}
             <div class="mb-3" id="hargaGabunganGroup" style="display:none;">
                 <label class="form-label fw-bold">Harga Gabungan (Rp)</label>
-                <input type="number" name="harga_gabungan" class="form-control" placeholder="Masukkan total harga gabungan...">
+                <div class="harga-wrapper">
+                    <input type="text"
+                        class="form-control format-rupiah"
+                        placeholder="Masukkan total harga gabungan...">
+
+                    <input type="hidden"
+                        class="harga-asli"
+                        name="harga_gabungan">
+                </div>
             </div>
 
             {{-- Form harga dinamis untuk per izin --}}
             <div id="formHargaPerizinan"></div>
+
+            {{-- DISKON --}}
+            <div id="diskonWrapper" class="card mt-3 d-none">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Diskon</h6>
+            
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Tipe Diskon</label>
+                            <select name="diskon_tipe" id="diskon_tipe" class="form-select">
+                                <option value="">Tanpa Diskon</option>
+                                <option value="persen">Persentase (%)</option>
+                                <option value="nominal">Nominal (Rp)</option>
+                            </select>
+                        </div>
+            
+                        <div class="col-md-4 d-none" id="diskonPersen">
+                            <label class="form-label">Diskon (%)</label>
+                            <input type="number" id="diskon_persen" name="diskon_persen" class="form-control" min="0" max="100">
+                        </div>
+            
+                        <div class="col-md-4 d-none" id="diskonNominal">
+                            <label class="form-label">Diskon Nominal</label>
+                            <input type="text" id="diskon_nominal_view" class="form-control format-rupiah">
+                            <input type="hidden" id="diskon_nominal" name="diskon_nominal">
+                        </div>
+                    </div>
+            
+                    {{-- HASIL PERHITUNGAN --}}
+                    <hr>
+                    <div class="row fw-semibold">
+                        <div class="col-md-4">
+                            Total Harga<br>
+                            <span id="totalHarga" class="text-primary">Rp 0</span>
+                        </div>
+                        <div class="col-md-4">
+                            Diskon<br>
+                            <span id="totalDiskon" class="text-danger">Rp 0</span>
+                        </div>
+                        <div class="col-md-4">
+                            Total Keseluruhan<br>
+                            <span id="grandTotal" class="text-success">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             <button type="submit" class="btn btn-success mt-3">Submit</button>
         </form>
@@ -270,11 +344,14 @@ $(document).ready(function() {
             Swal.fire('Error', 'Gagal mengambil data perusahaan.', 'error');
         });
     }
+    
+    const baseKabupatenUrl = "{{ url('wilayah/kabupaten') }}";
+    const baseKawasanUrl = "{{ url('kawasan') }}";
 
     // =======================
     // FUNGSI LOAD WILAYAH
     function loadKabupaten(provId, selectedKabId = null, callback = null) {
-        $.get(`/wilayah/kabupaten/${provId}`, function(kab) {
+        $.get(`${baseKabupatenUrl}/${provId}`, function(kab) {
             $('#kabupaten_id').html('<option value="">-- Pilih Kabupaten/Kota --</option>');
             kab.forEach(k => {
                 $('#kabupaten_id').append(`<option value="${k.kode}" ${k.kode == selectedKabId ? 'selected' : ''}>${k.nama}</option>`);
@@ -283,22 +360,13 @@ $(document).ready(function() {
         });
     }
 
+
     function loadKawasan(kabId, selectedKawasanId = null, callback = null) {
-        $.get(`/kawasan/${kabId}`, function(kaw) {
-            const $kawasanSelect = $('#kawasan_id');
-            // selalu mulai dengan opsi default
-            $kawasanSelect.html('<option value="">-</option>');
-
-            if (kaw.length > 0) {
-                kaw.forEach(k => {
-                    $kawasanSelect.append(`
-                        <option value="${k.id}" ${k.id == selectedKawasanId ? 'selected' : ''}>
-                            ${k.nama_kawasan}
-                        </option>
-                    `);
-                });
-            }
-
+        $.get(`${baseKawasanUrl}/${kabId}`, function(kaw) {
+            $('#kawasan_id').html('<option value="">-- Pilih Kawasan --</option>');
+            kaw.forEach(k => {
+                $('#kawasan_id').append(`<option value="${k.id}" ${k.id == selectedKawasanId ? 'selected' : ''}>${k.nama_kawasan}</option>`);
+            });
             if (callback) callback();
         });
     }
@@ -409,56 +477,196 @@ function buatCardPerizinan(id, label) {
     const found = perizinanButuhLuas.find(nama => labelUpper.includes(nama));
     if (found) luasFieldName = luasMap[found];
 
-let luasHtml = '';
-if (luasFieldName) {
-    // pakai name array dengan ID perizinan supaya tidak tertimpa
-    luasHtml = `
-        <div class="mb-2">
-            <label for="${luasFieldName}_${id}">Luas ${label} (m²) - isi dengan titik</label>
-            <input type="number" id="${luasFieldName}_${id}" 
-                   name="${luasFieldName}[${id}]" 
-                   class="form-control" 
-                   step="any"
-            >
-        </div>
-    `;
-}
+    let luasHtml = '';
+    if (luasFieldName) {
+        luasHtml = `
+            <div class="col-md-3 mb-2 luas-group">
+                <label>Luas (m²)</label>
+                <input type="number"
+                       name="${luasFieldName}[${id}]"
+                       class="form-control"
+                       step="any">
+            </div>
+        `;
+    }
 
     return `
-        <div class="card mb-3" id="harga-${id}">
+    
+        <div class="card mb-3 perizinan-card" id="harga-${id}" data-id="${id}">
             <div class="card-body">
-                <h6 class="fw-bold">${label}</h6>
+                <h6 class="fw-bold mb-3">${label}</h6>
 
-                <div class="mb-2">
-                    <label>Harga (Rp)</label>
-                    
-                <!-- Input tampilan -->
-                <input type="text" 
-                       class="form-control format-rupiah" 
-                       placeholder="0">
+                <!-- ROW ATAS -->
+                <div class="row align-items-end">
 
-                <!-- Input asli yang akan dikirim ke server -->
-                <input type="hidden" 
-                       name="harga_satuan[${id}]" 
-                       class="harga-asli">
+                    <!-- JENIS -->
+                    <div class="col-md-2 mb-2">
+                        <label>Jenis</label>
+                        <select class="form-select satuan-select">
+                            <option value="">-- Pilih Satuan --</option>
+                            @foreach ($satuan_perizinans as $satuan)
+                                <option value="{{ $satuan->id }}">
+                                    {{ $satuan->nama }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <input type="hidden"
+                        name="satuan_id[${id}]"
+                        class="satuan-hidden">
+                    </div>
+
+                    <!-- QTY -->
+                    <div class="col-md-3 mb-2">
+                        <label>Qty</label>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary btn-minus">−</button>
+                            <input type="number"
+                                   class="form-control text-center qty-input"
+                                   value="1"
+                                   min="1">
+
+                            <input type="hidden"
+                                name="qty[${id}]"
+                                class="qty-hidden"
+                                value="1">
+                            <button type="button" class="btn btn-outline-secondary btn-plus">+</button>
+                        </div>
+                    </div>
+
+                    <!-- HARGA SATUAN -->
+                    <div class="col-md-3 mb-2 harga-satuan-group">
+                        <label>Harga Satuan (Rp)</label>
+
+                        <div class="harga-wrapper">
+                            <input type="text"
+                                class="form-control format-rupiah"
+                                placeholder="0">
+
+                            <input type="hidden"
+                                name="harga_satuan[${id}]"
+                                class="harga-asli">
+                        </div>
+                    </div>
+
+                    <!-- LUAS -->
+                    ${luasHtml}
+
                 </div>
-                ${luasHtml}
+
+                <!-- ROW SUBTOTAL (KHUSUS SATUAN) -->
+                <!-- SUBTOTAL (TEXT SAJA) -->
+                <div class="mt-2 subtotal-group">
+                    <small class="text-muted">
+                        Subtotal:
+                        <strong class="subtotal-text">Rp 0</strong>
+                    </small>
+                    <input type="hidden"
+                           name="subtotal[${id}]"
+                           class="subtotal-asli">
+                </div>
+
             </div>
         </div>
     `;
 }
 
-//agar format harga ada titik nya per ribu
+function toggleSubtotal(card, show = true) {
+    const subtotalGroup = card.querySelector('.subtotal-group');
+    if (!subtotalGroup) return;
+
+    subtotalGroup.style.display = show ? 'block' : 'none';
+}
+
+//tambah dan kurang qty
+document.addEventListener('click', function(e) {
+    const card = e.target.closest('.perizinan-card');
+    if (!card) return;
+
+    const qtyInput  = card.querySelector('.qty-input');
+    const qtyHidden = card.querySelector('.qty-hidden');
+
+    if (e.target.classList.contains('btn-plus')) {
+        qtyInput.value = parseInt(qtyInput.value) + 1;
+        qtyHidden.value = qtyInput.value; // WAJIB
+        hitungSubtotal(card);
+    }
+
+    if (e.target.classList.contains('btn-minus')) {
+        if (qtyInput.value > 1) {
+            qtyInput.value = parseInt(qtyInput.value) - 1;
+            qtyHidden.value = qtyInput.value; // WAJIB
+            hitungSubtotal(card);
+        }
+    }
+});
+
+// qty sync
 document.addEventListener('input', function(e) {
-    if (e.target.classList.contains('format-rupiah')) {
+    if (e.target.classList.contains('qty-input')) {
+        const card = e.target.closest('.card');
+        if (!card) return;
+        card.querySelector('.qty-hidden').value = e.target.value;
+    }
+});
 
-        let angka = e.target.value.replace(/\D/g, ''); // hanya digit
-        let format = angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+// satuan sync
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('satuan-select')) {
+        const card = e.target.closest('.card');
+        if (!card) return;
+        card.querySelector('.satuan-hidden').value = e.target.value;
+    }
+});
 
-        e.target.value = format; // tampil titik
+function hitungSubtotal(card) {
+    const tipeHarga = document.getElementById('harga_tipe').value;
 
-        // simpan angka murni ke hidden input
-        e.target.parentElement.querySelector('.harga-asli').value = angka;
+    // JIKA HARGA GABUNGAN → JANGAN HITUNG SUBTOTAL
+    if (tipeHarga === 'gabungan') {
+        // pastikan nilainya nol (biar ga keikut total)
+        card.querySelector('.subtotal-text').innerText = 'Rp 0';
+        card.querySelector('.subtotal-asli').value = 0;
+        return;
+    }
+
+    // === HARGA SATUAN ===
+    const harga = parseInt(card.querySelector('.harga-asli')?.value || 0);
+    const qty   = parseInt(card.querySelector('.qty-input')?.value || 1);
+
+    const subtotal = harga * qty;
+
+    card.querySelector('.subtotal-text').innerText =
+        'Rp ' + subtotal.toLocaleString('id-ID');
+
+    card.querySelector('.subtotal-asli').value = subtotal;
+
+    hitungTotal();
+}
+
+
+document.addEventListener('input', function (e) {
+    if (!e.target.classList.contains('format-rupiah')) return;
+
+    let angka = e.target.value.replace(/\D/g, '');
+    e.target.value = angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    const hidden = e.target
+        .closest('.harga-wrapper')
+        ?.querySelector('.harga-asli');
+
+    if (hidden) hidden.value = angka;
+
+    const card = e.target.closest('.perizinan-card');
+    if (card) hitungSubtotal(card);
+
+    hitungTotal();
+});
+
+//qty ubah manual
+document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('qty-input')) {
+        const card = e.target.closest('.card');
+        hitungSubtotal(card);
     }
 });
 
@@ -475,10 +683,11 @@ checkboxes.forEach(cb => {
         tipeHargaGroup.style.display = adaYangDipilih ? 'block' : 'none';
 
         // STEP 2 → Jangan tampilkan card apapun sampai tipe harga dipilih
-        formHargaPerizinan.style.display = "none";
+        // formHargaPerizinan.style.display = "none";
 
         // Ambil card jika sudah ada
         let card = document.getElementById(`harga-${id}`);
+        const tipeHargaSekarang = hargaTipe.value;
 
         if (this.checked) {
             // Jika card belum ada → buat baru
@@ -487,8 +696,31 @@ checkboxes.forEach(cb => {
                 formHargaPerizinan.insertAdjacentHTML('beforeend', cardHtml);
                 card = document.getElementById(`harga-${id}`);
             }
-            // SELALU sembunyikan card dulu sampai tipe harga dipilih
-            card.classList.add('d-none');
+
+            // // SELALU sembunyikan card dulu sampai tipe harga dipilih
+            applyHargaTipeToCard(card);
+            card.classList.remove('d-none');
+
+            if (!tipeHargaSekarang) {
+                // belum pilih tipe harga → sembunyikan
+                card.classList.add('d-none');
+            } else {
+                // SUDAH pilih tipe harga → langsung tampilkan
+                card.classList.remove('d-none');
+
+                if (tipeHargaSekarang === 'gabungan') {
+                    // sembunyikan harga & subtotal
+                    card.querySelector('.harga-asli')?.closest('.mb-2')?.style.setProperty('display','none');
+                    card.querySelector('.subtotal-asli')?.closest('.mb-2')?.style.setProperty('display','none');
+                }
+
+                if (tipeHargaSekarang === 'satuan') {
+                    // tampilkan harga & subtotal
+                    card.querySelector('.harga-asli')?.closest('.mb-2')?.style.setProperty('display','block');
+                    card.querySelector('.subtotal-asli')?.closest('.mb-2')?.style.setProperty('display','block');
+                }
+            }
+
         } else {
             // Jika uncheck → tetap sembunyikan
             if (card) card.classList.add('d-none');
@@ -499,6 +731,15 @@ checkboxes.forEach(cb => {
 // Event tipe harga
 hargaTipe.addEventListener('change', function() {
     const tipe = this.value;
+    
+    if (tipe === 'gabungan') {
+        resetHargaSatuan();    // hapus semua harga satuan
+    }
+
+    if (tipe === 'satuan') {
+        resetHargaGabungan();  // hapus harga gabungan
+    }
+
 
     // Tunjukkan wrapper form harga (karena tipe harga dipilih)
     formHargaPerizinan.style.display = 'block';
@@ -511,6 +752,18 @@ hargaTipe.addEventListener('change', function() {
 
             if (cb.checked && card) {
                 card.classList.remove('d-none'); // ← tampilkan card
+                nonaktifkanSubtotal(card);
+                toggleSubtotal(card, false); // ⛔ sembunyikan subtotal
+
+
+                
+                // SEMBUNYIKAN harga satuan
+                card.querySelector('.harga-satuan-asli')?.closest('.mb-2')
+                    ?.style.setProperty('display', 'none');
+
+                //  SEMBUNYIKAN subtotal
+                card.querySelector('.subtotal-asli')?.closest('.mb-2')
+                    ?.style.setProperty('display', 'none');
 
                 // sembunyikan input harga
                 const hargaInputGroup = card.querySelector('input[name^="harga_satuan"]')?.closest('.mb-2');
@@ -531,6 +784,15 @@ hargaTipe.addEventListener('change', function() {
 
             if (cb.checked && card) {
                 card.classList.remove('d-none'); // ← tampilkan card
+                toggleSubtotal(card, true); 
+
+                // tampilkan harga satuan
+                card.querySelector('.harga-satuan-asli')?.closest('.mb-2')
+                    ?.style.setProperty('display', 'block');
+
+                //  tampilkan subtotal
+                card.querySelector('.subtotal-asli')?.closest('.mb-2')
+                    ?.style.setProperty('display', 'block');
 
                 // tampilkan input harga
                 const hargaInputGroup = card.querySelector('input[name^="harga_satuan"]')?.closest('.mb-2');
@@ -542,6 +804,184 @@ hargaTipe.addEventListener('change', function() {
     else {
         hargaGabunganGroup.style.display = 'none';
         formHargaPerizinan.style.display = 'none';
+    }
+    
+        // optional tapi bagus
+    if (typeof hitungTotal === 'function') {
+        hitungTotal();
+    }
+});
+
+
+function applyHargaTipeToCard(card) {
+    const tipe = document.getElementById('harga_tipe').value;
+
+    const hargaGroup = card.querySelector('.harga-satuan-asli')?.closest('.mb-2');
+    const subtotalGroup = card.querySelector('.subtotal-asli')?.closest('.mb-2');
+
+    if (tipe === 'gabungan') {
+        if (hargaGroup) hargaGroup.style.display = 'none';
+        if (subtotalGroup) subtotalGroup.style.display = 'none';
+    }
+
+    if (tipe === 'satuan') {
+        if (hargaGroup) hargaGroup.style.display = 'block';
+        if (subtotalGroup) subtotalGroup.style.display = 'block';
+    }
+}
+
+function nonaktifkanSubtotal(card) {
+    const subtotalInput = card.querySelector('.subtotal-asli');
+    const subtotalText  = card.querySelector('.subtotal-text');
+
+    if (subtotalInput) subtotalInput.value = 0;
+    if (subtotalText) subtotalText.innerText = 'Rp 0';
+}
+
+
+function resetHargaSatuan() {
+    document.querySelectorAll('#formHargaPerizinan .harga-asli').forEach(input => {
+        input.value = '';
+    });
+
+    document.querySelectorAll('#formHargaPerizinan .format-rupiah').forEach(input => {
+        input.value = '';
+    });
+}
+
+function resetHargaGabungan() {
+    const gabunganView = document.querySelector('#hargaGabunganGroup .format-rupiah');
+    const gabunganAsli = document.querySelector('#hargaGabunganGroup .harga-asli');
+
+    if (gabunganView) gabunganView.value = '';
+    if (gabunganAsli) gabunganAsli.value = '';
+}
+
+// ===============================
+// ELEMENT TAMBAHAN DISKON & TOTAL
+// ===============================
+const diskonWrapper = document.getElementById('diskonWrapper');
+const diskonTipe = document.getElementById('diskon_tipe');
+const totalHargaEl = document.getElementById('totalHarga');
+const totalDiskonEl = document.getElementById('totalDiskon');
+const grandTotalEl = document.getElementById('grandTotal');
+
+// ===============================
+// CEK TAMPILKAN DISKON
+// ===============================
+function cekTampilkanDiskon() {
+    const adaPerizinan = Array.from(
+        document.querySelectorAll('input[name="perizinan_id[]"]')
+    ).some(cb => cb.checked);
+
+    const tipeHarga = document.getElementById('harga_tipe').value;
+
+    if (adaPerizinan && tipeHarga) {
+        diskonWrapper.classList.remove('d-none');
+    } else {
+        diskonWrapper.classList.add('d-none');
+    }
+}
+
+// ===============================
+// FORMAT RUPIAH
+// ===============================
+function formatRupiah(angka) {
+    return 'Rp ' + Number(angka || 0).toLocaleString('id-ID');
+}
+
+// ===============================
+// HITUNG TOTAL
+// ===============================
+function hitungTotal() {
+    let totalAwal = 0;
+    const tipeHarga = document.getElementById('harga_tipe').value;
+
+    // === HARGA SATUAN ===
+    if (tipeHarga === 'satuan') {
+        // document.querySelectorAll('.harga-asli').forEach(el => {
+            document.querySelectorAll('.subtotal-asli').forEach(el => {
+            totalAwal += parseInt(el.value || 0);
+        });
+    }
+
+    // === HARGA GABUNGAN ===
+    if (tipeHarga === 'gabungan') {
+        const hargaGabungan = document.querySelector('#hargaGabunganGroup .harga-asli');
+        totalAwal = parseInt(hargaGabungan?.value || 0);
+    }
+
+    // === DISKON ===
+    let diskon = 0;
+
+    if (diskonTipe.value === 'persen') {
+        const persen = parseFloat(
+            document.getElementById('diskon_persen').value || 0
+        );
+        diskon = totalAwal * persen / 100;
+    }
+
+    if (diskonTipe.value === 'nominal') {
+        const nominal = document
+            .getElementById('diskon_nominal_view')
+            .value.replace(/\D/g, '');
+        diskon = parseInt(nominal || 0);
+    }
+
+    if (diskon > totalAwal) diskon = totalAwal;
+
+    // === OUTPUT ===
+    totalHargaEl.innerText = formatRupiah(totalAwal);
+    totalDiskonEl.innerText = formatRupiah(diskon);
+    grandTotalEl.innerText = formatRupiah(totalAwal - diskon);
+}
+
+// ===============================
+// EVENT LISTENER TAMBAHAN
+// ===============================
+document.addEventListener('input', function(e) {
+    if (
+        e.target.classList.contains('format-rupiah') ||
+        e.target.id === 'diskon_persen'
+    ) {
+        hitungTotal();
+    }
+});
+
+document.addEventListener('input', function (e) {
+    if (e.target.id === 'diskon_nominal_view') {
+        const angka = e.target.value.replace(/\D/g, '');
+        document.getElementById('diskon_nominal').value = angka;
+        hitungTotal();
+    }
+});
+
+
+diskonTipe.addEventListener('change', function() {
+    document.getElementById('diskonPersen').classList.add('d-none');
+    document.getElementById('diskonNominal').classList.add('d-none');
+
+    if (this.value === 'persen') {
+        document.getElementById('diskonPersen').classList.remove('d-none');
+    }
+
+    if (this.value === 'nominal') {
+        document.getElementById('diskonNominal').classList.remove('d-none');
+    }
+
+    hitungTotal();
+});
+
+// ===============================
+// PANGGIL OTOMATIS SAAT INTERAKSI
+// ===============================
+document.addEventListener('change', function(e) {
+    if (
+        e.target.name === 'perizinan_id[]' ||
+        e.target.id === 'harga_tipe'
+    ) {
+        cekTampilkanDiskon();
+        hitungTotal();
     }
 });
 
@@ -594,21 +1034,36 @@ $(document).on('input', '.termin-input', function() {
 });
 
 //auto untuk no sph 
-document.getElementById('cabang_id').addEventListener('change', function() {
-    let cabangId = this.value;
+const previewSphUrl = "{{ url('quotation/preview-sph') }}";
+const cabangSelect = document.getElementById('cabang_id');
+const noSphInput = document.getElementById('no_sph');
 
+function loadNoSph(cabangId) {
     if (!cabangId) {
-        document.getElementById('no_sph').value = "";
+        noSphInput.value = "";
         return;
     }
-    
-    fetch('/quotation/preview-sph/' + cabangId)
+
+    fetch(previewSphUrl + '/' + cabangId)
         .then(res => res.json())
         .then(data => {
-            document.getElementById('no_sph').value = data.no_sph;
+            noSphInput.value = data.no_sph;
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+            console.error(err);
+            noSphInput.value = "";
+        });
+}
+
+// 🔹 Saat user ganti cabang manual
+cabangSelect.addEventListener('change', function () {
+    loadNoSph(this.value);
 });
+
+// 🔹 Saat halaman pertama kali dibuka (AUTO)
+if (cabangSelect.value) {
+    loadNoSph(cabangSelect.value);
+}
 
 
 });

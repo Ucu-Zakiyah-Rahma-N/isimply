@@ -28,65 +28,96 @@ use Illuminate\Support\Facades\Log;
 use App\Helpers\DashboardHelper;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Pagination\LengthAwarePaginator;
+
 
 
 class ProjectController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
-        $projects = DB::table('po')
-            ->join('quotations', 'po.quotation_id', '=', 'quotations.id')
-            ->join('customers', 'po.customer_id', '=', 'customers.id')
-            ->leftJoin('projects', 'projects.po_id', '=', 'po.id')
-            ->leftJoin('marketing', 'projects.marketing_id', '=', 'marketing.id')
-            ->leftJoin('quotation_perizinan', 'quotations.id', '=', 'quotation_perizinan.quotation_id')
-            ->leftJoin('perizinans', 'quotation_perizinan.perizinan_id', '=', 'perizinans.id')
-            ->leftJoin('kawasan_industri', 'quotations.kawasan_id', '=', 'kawasan_industri.id')
-            ->leftJoin('wilayahs', 'quotations.kabupaten_id', '=', 'wilayahs.kode')
-            ->where('po.bast_verified', 1)
-            ->select(
-                'po.id as po_id',
-                'po.no_po',
-                'po.tgl_po',
-                'po.bast_verified',
-                'po.bast_verified_at',
-                'customers.nama_perusahaan',
-                'wilayahs.nama as kabupaten_name',
-                'kawasan_industri.nama_kawasan as kawasan_name',
-                'quotations.detail_alamat',
-                'quotations.luas_slf',
-                'quotations.luas_pbg',
-                'quotations.luas_shgb',
-                DB::raw("
-                GROUP_CONCAT(
-                    perizinans.jenis 
-                    ORDER BY quotation_perizinan.id 
-                    SEPARATOR ', '
-                ) AS jenis_perizinan
-            "),
-                'quotations.lama_pekerjaan',
-                'marketing.nama'
-            )
-            ->groupBy(
-                'po.id',
-                'po.tgl_po',
-                'po.no_po',
-                'po.bast_verified',
-                'po.bast_verified_at',
-                'customers.nama_perusahaan',
-                'wilayahs.nama',
-                'kawasan_industri.nama_kawasan',
-                'quotations.detail_alamat',
-                'quotations.luas_slf',
-                'quotations.luas_pbg',
-                'quotations.luas_shgb',
-                'quotations.lama_pekerjaan',
-                'marketing.nama'
+        
+$query = DB::table('po')
+    ->join('quotations', 'po.quotation_id', '=', 'quotations.id')
+    ->join('customers', 'po.customer_id', '=', 'customers.id')
+    ->leftJoin('projects', 'projects.po_id', '=', 'po.id')
+    ->leftJoin('marketing', 'projects.marketing_id', '=', 'marketing.id')
+    ->leftJoin('quotation_perizinan', 'quotations.id', '=', 'quotation_perizinan.quotation_id')
+    ->leftJoin('perizinans', 'quotation_perizinan.perizinan_id', '=', 'perizinans.id')
+    ->leftJoin('kawasan_industri', 'quotations.kawasan_id', '=', 'kawasan_industri.id')
+    ->leftJoin('wilayahs', 'quotations.kabupaten_id', '=', 'wilayahs.kode')
+    ->where('po.bast_verified', 1);
 
-            )
-            ->paginate(10);
+// Kabupaten
+if ($request->filled('kabupaten')) {
+    $query->where('quotations.kabupaten_id', $request->kabupaten);
+}
 
+// Kawasan
+if ($request->filled('kawasan')) {
+    $query->where('kawasan_industri.nama_kawasan', $request->kawasan);
+}
+
+// Jenis Perizinan
+if ($request->filled('perizinan')) {
+    $query->where('perizinans.jenis', $request->perizinan);
+}
+
+// Cari No PO
+if ($request->filled('searchPO')) {
+    $query->where('po.no_po', 'LIKE', '%' . $request->searchPO . '%');
+}
+
+// GLOBAL SEARCH (Perusahaan / Bangunan)
+if ($request->filled('searchGlobal')) {
+    $search = $request->searchGlobal;
+
+    $query->where(function ($q) use ($search) {
+        $q->where('customers.nama_perusahaan', 'LIKE', "%{$search}%")
+          ->orWhere('quotations.nama_bangunan', 'LIKE', "%{$search}%");
+    });
+}
+
+
+$projects = $query
+    ->orderBy('po.tgl_po', 'ASC')
+    ->select(
+        'po.id as po_id',
+        'po.no_po',
+        'po.tgl_po',
+        'po.bast_verified',
+        'po.bast_verified_at',
+        'customers.nama_perusahaan',
+        'wilayahs.nama as kabupaten_name',
+        'kawasan_industri.nama_kawasan as kawasan_name',
+        'quotations.detail_alamat',
+        'quotations.nama_bangunan',
+        'quotations.luas_slf',
+        'quotations.luas_pbg',
+        'quotations.luas_shgb',
+        DB::raw("GROUP_CONCAT(perizinans.jenis SEPARATOR ', ') AS jenis_perizinan"),
+        'quotations.lama_pekerjaan',
+        'marketing.nama'
+    )
+    ->groupBy(
+        'po.id',
+        'po.no_po',
+        'po.tgl_po',
+        'po.bast_verified',
+        'po.bast_verified_at',
+        'customers.nama_perusahaan',
+        'wilayahs.nama',
+        'kawasan_industri.nama_kawasan',
+        'quotations.detail_alamat',
+        'quotations.nama_bangunan',
+        'quotations.luas_slf',
+        'quotations.luas_pbg',
+        'quotations.luas_shgb',
+        'quotations.lama_pekerjaan',
+        'marketing.nama'
+    )
+    ->get();
         // ======================
         // FORMAT LUAS (SLF, PBG, SHGB)
         // ======================
@@ -325,6 +356,29 @@ class ProjectController extends Controller
 
             return $item;
         });
+        
+        $collection = $projects;
+
+        if (request()->filled('status')) {
+            $collection = $collection->filter(function ($item) {
+                return $item->status_project === request('status');
+            })->values();
+        }
+        
+        $page = request()->get('page', 1);
+        $perPage = 100;
+        
+        $projects = new LengthAwarePaginator(
+            $collection->forPage($page, $perPage),
+            $collection->count(),
+            $perPage,
+            $page,
+            [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ]
+        );
+
         $allProjects = DashboardHelper::getAllProjects();
 
         // REKAP PROJECT BERDASARKAN STATUS
@@ -347,49 +401,6 @@ class ProjectController extends Controller
         ]);
     }
 
-    //  kekurangan dokumen dengan list(tidak di pakai karena tampilan kurang bagus)
-    // $projects->transform(function ($item) {
-
-    //     // Cari project_id yg punya po_id ini
-    //     $project = DB::table('projects')->where('po_id', $item->po_id)->first();
-
-    //     if (!$project) {
-    //         $item->kekurangan_dokumen = [];
-    //         return $item;
-    //     }
-
-    //     // Ambil perizinan yg dipilih
-    //     $perizinan = DB::table('project_perizinan')
-    //         ->where('project_id', $project->id)
-    //         ->pluck('perizinan_id');
-
-    //     if ($perizinan->isEmpty()) {
-    //         $item->kekurangan_dokumen = [];
-    //         return $item;
-    //     }
-
-    //     // Ambil seluruh ceklis dokumen per perizinan
-    //     $ceklist = DB::table('ceklis_perizinan')
-    //         ->whereIn('perizinan_id', $perizinan)
-    //         ->get();
-
-    //     // Ambil dokumen yg SUDAH diverifikasi
-    //     $verified = DB::table('verifikasi_project')
-    //         ->where('project_id', $project->id)
-    //         ->pluck('ceklis_perizinan_id')
-    //         ->toArray();
-
-    //     // Filter dokumen yg BELUM diverifikasi
-    //     $kekurangan = $ceklist->filter(function ($c) use ($verified) {
-    //         return !in_array($c->id, $verified);
-    //     })->pluck('nama_dokumen')->toArray();
-
-    //     // Tambahkan ke object
-    //     $item->kekurangan_dokumen = $kekurangan;
-
-    //     return $item;
-    // });
-
     public function create($id)
     {
         $po = PO::findOrFail($id);
@@ -401,7 +412,7 @@ class ProjectController extends Controller
         $customers = Customer::all();
         $projects = Project::with(['customer', 'perizinan'])->get();
         $perizinans = Perizinan::orderBy('jenis')->get();
-        $tahapanOpsional = Tahapan::orderBy('id')->get();
+        $tahapanOpsional = Tahapan::orderBy('nama_tahapan')->get();
 
         $data = [
             'title' => 'Form Project',
@@ -419,50 +430,159 @@ class ProjectController extends Controller
         return view('pages.projects.create', $data);
     }
 
-    public function store(Request $request)
-    {
-        // dd($request->all());
 
-        // 🔒 Validasi input dasar
-        $validated = $request->validate([
-            'po_id'         => 'required|exists:po,id',
-            'marketing_id'  => 'required|exists:users,id',
-        ]);
 
-        // 1️⃣ SIMPAN PROJECT
+    // public function store(Request $request)
+    // {
+    //     // dd($request->all());
+
+    //     // 🔒 Validasi input dasar
+    //     $validated = $request->validate([
+    //         'po_id'         => 'required|exists:po,id',
+    //         'marketing_id'  => 'required|exists:marketing,id',
+    //     ]);
+
+    //     // 1️⃣ SIMPAN PROJECT
+    //     $project = Project::create([
+    //         'po_id'        => $validated['po_id'],
+    //         'marketing_id' => $validated['marketing_id'],
+    //         'status'       => 'draft', // sesuai enum
+    //     ]);
+
+    //     // 2️⃣ Simpan relasi project_perizinan
+    //     if ($request->has('perizinan')) {
+    //         foreach ($request->perizinan as $perizinan_id) {
+    //             ProjectPerizinan::create([
+    //                 'project_id'    => $project->id,
+    //                 'perizinan_id'  => $perizinan_id,
+    //             ]);
+    //         }
+    //     }
+
+    //     // urutan klik admin
+    //     $urutanTahapan = $request->tahapan_input ?? [];
+
+    //     $urutan = 1;
+
+    //     foreach ($urutanTahapan as $slug) {
+
+    //         // cek apakah ini survey
+    //         if ($slug === 'survey') {
+    //             $tahapanSurvey = Tahapan::whereRaw('LOWER(nama_tahapan) = ?', ['survey'])->first();
+
+    //             $petugas = $request->personil['survey'] ?? null;
+    //             $petugasArray = $petugas ? array_map('trim', explode(',', $petugas)) : [];
+
+    //             ProjectTahapan::create([
+    //                 'project_id'        => $project->id,
+    //                 'tahapan_id'        => $tahapanSurvey->id,
+    //                 'urutan'            => $urutan++,
+    //                 'rencana_start'     => $request->rencana_mulai['survey'] ?? null,
+    //                 'rencana_end'       => $request->rencana_selesai['survey'] ?? null,
+    //                 'persentase_target' => $request->persentase_survey ?? 0,
+    //                 'petugas'           => json_encode($petugasArray),
+    //             ]);
+
+    //             continue;
+    //         }
+
+    //         // selain survey = tahapan opsional
+    //         $tahapan = Tahapan::whereRaw('LOWER(REPLACE(nama_tahapan, " ", "_")) = ?', [$slug])->first();
+    //         if (!$tahapan) continue;
+
+    //         ProjectTahapan::create([
+    //             'project_id'        => $project->id,
+    //             'tahapan_id'        => $tahapan->id,
+    //             'urutan'            => $urutan++,
+    //             'rencana_start'     => $request->rencana_mulai_opsional[$slug] ?? null,
+    //             'rencana_end'       => $request->rencana_selesai_opsional[$slug] ?? null,
+    //             'persentase_target' => $request->persentase_opsional[$slug] ?? 0,
+    //         ]);
+    //     }
+
+    //     // ✅ Redirect dengan pesan sukses
+    //     return redirect()->route('projects.index')->with('success', 'Project berhasil dibuat!');
+    // }
+
+public function store(Request $request)
+{
+    // ===============================
+    // LOG AWAL (DEBUG)
+    // ===============================
+    \Log::info('STORE PROJECT - REQUEST MASUK', [
+        'user_id' => auth()->id(),
+        'payload' => $request->all(),
+    ]);
+
+    // ===============================
+    // VALIDASI DASAR
+    // ===============================
+    $validated = $request->validate([
+        'po_id'        => 'required|exists:po,id',
+        'marketing_id' => 'required|exists:marketing,id',
+
+        'tahapan_input'        => 'required|array|min:1',
+        'tahapan_input.*'      => 'string',
+
+        'perizinan_input'      => 'nullable|array',
+        'perizinan_input.*'    => 'exists:perizinans,id',
+
+        'persentase_survey'    => 'nullable|numeric|min:0|max:100',
+        'persentase_opsional'  => 'nullable|array',
+        
+        'rencana_mulai_opsional.*'   => 'nullable|date',
+        'rencana_selesai_opsional.*'=> 'nullable|date|after_or_equal:rencana_mulai_opsional.*',
+
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+
+        // ===============================
+        // 1. SIMPAN PROJECT
+        // ===============================
         $project = Project::create([
             'po_id'        => $validated['po_id'],
             'marketing_id' => $validated['marketing_id'],
-            'status'       => 'draft', // sesuai enum
+            'status'       => 'draft',
         ]);
 
-        // 2️⃣ Simpan relasi project_perizinan
-        if ($request->has('perizinan')) {
-            foreach ($request->perizinan as $perizinan_id) {
+        // ===============================
+        // 2. SIMPAN PERIZINAN (URUTAN KLIK)
+        // ===============================
+        if (!empty($validated['perizinan_input'])) {
+            foreach ($validated['perizinan_input'] as $index => $perizinanId) {
                 ProjectPerizinan::create([
-                    'project_id'    => $project->id,
-                    'perizinan_id'  => $perizinan_id,
+                    'project_id'   => $project->id,
+                    'perizinan_id' => $perizinanId,
+                    'urutan'       => $index + 1,
                 ]);
             }
         }
 
-        // urutan klik admin
-        $urutanTahapan = $request->tahapan_input ?? [];
-
+        // ===============================
+        // 3. SIMPAN TAHAPAN (URUTAN KLIK)
+        // ===============================
         $urutan = 1;
 
-        foreach ($urutanTahapan as $slug) {
+        foreach ($validated['tahapan_input'] as $slug) {
 
-            // cek apakah ini survey
+            // ===============================
+            // SURVEY
+            // ===============================
             if ($slug === 'survey') {
-                $tahapanSurvey = Tahapan::whereRaw('LOWER(nama_tahapan) = ?', ['survey'])->first();
+
+                $tahapan = Tahapan::whereRaw('LOWER(nama_tahapan) = ?', ['survey'])->firstOrFail();
 
                 $petugas = $request->personil['survey'] ?? null;
-                $petugasArray = $petugas ? array_map('trim', explode(',', $petugas)) : [];
+                $petugasArray = $petugas
+                    ? array_map('trim', explode(',', $petugas))
+                    : [];
 
                 ProjectTahapan::create([
                     'project_id'        => $project->id,
-                    'tahapan_id'        => $tahapanSurvey->id,
+                    'tahapan_id'        => $tahapan->id,
                     'urutan'            => $urutan++,
                     'rencana_start'     => $request->rencana_mulai['survey'] ?? null,
                     'rencana_end'       => $request->rencana_selesai['survey'] ?? null,
@@ -473,9 +593,20 @@ class ProjectController extends Controller
                 continue;
             }
 
-            // selain survey = tahapan opsional
-            $tahapan = Tahapan::whereRaw('LOWER(REPLACE(nama_tahapan, " ", "_")) = ?', [$slug])->first();
-            if (!$tahapan) continue;
+            // ===============================
+            // TAHAPAN OPSIONAL
+            // ===============================
+            $namaTahapan = str_replace('_', ' ', $slug);
+
+            $tahapan = Tahapan::whereRaw(
+                'LOWER(nama_tahapan) = ?',
+                [strtolower($namaTahapan)]
+            )->first();
+
+            if (!$tahapan) {
+                \Log::warning('Tahapan tidak ditemukan', ['slug' => $slug]);
+                continue;
+            }
 
             ProjectTahapan::create([
                 'project_id'        => $project->id,
@@ -487,9 +618,30 @@ class ProjectController extends Controller
             ]);
         }
 
-        // ✅ Redirect dengan pesan sukses
-        return redirect()->route('projects.index')->with('success', 'Project berhasil dibuat!');
+        DB::commit();
+
+        // ===============================
+        // REDIRECT SUCCESS
+        // ===============================
+        return redirect()
+            ->route('projects.index')
+            ->with('success', 'Project berhasil dibuat');
+
+    } catch (\Throwable $e) {
+
+        DB::rollBack();
+
+        \Log::error('STORE PROJECT - GAGAL', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return back()
+            ->withInput()
+            ->with('error', 'Gagal menyimpan project. Silakan cek log.');
     }
+}
+
 
     public function verifikasi($po_id)
     {
@@ -737,14 +889,24 @@ class ProjectController extends Controller
 
     public function updateProgress(Request $request, $projectTahapanId)
     {
+  
+    \Log::info('UPDATE PROGRESS MASUK', [
+        'project_tahapan_id' => $projectTahapanId,
+        'request' => $request->all()
+    ]);
+
+  
         $projectTahapan = \App\Models\ProjectTahapan::findOrFail($projectTahapanId);
         $persentaseTarget = $projectTahapan->persentase_target ?? 0;
         $now = now();
+        
+        $persentaseActual = str_replace(',', '.', $request->persentase_actual ?? 0);
+        $persentaseActual = floatval($persentaseActual);
 
         if ($request->filled('sub_tahapan_id')) {
 
             $subTahapanId = $request->sub_tahapan_id;
-            $persentaseActual = $request->persentase_actual ?? 0;
+            // $persentaseActual = $request->persentase_actual ?? 0;
 
             // Simpan progress baru
             $progress = \App\Models\ProjectTahapanProgress::create([
@@ -764,24 +926,31 @@ class ProjectController extends Controller
                     ->where('sub_tahapan_id', $sub->id)
                     ->latest('tanggal_update')
                     ->value('persentase_actual') ?? 0;
+                    
                 $values[] = $last;
-                if ($last < 100) $allDone = false;
+                
+            if ($last < 100) {
+                $allDone = false;
+            }
+            
             }
 
-            $persentaseActualTahapan = $allDone ? 100 : collect($values)->avg();
-            $realisasi = ($persentaseActualTahapan / 100) * $persentaseTarget;
+            $persentaseActualTahapan = $allDone ? 100 : round(collect($values)->avg(), 2);
+            $realisasi = round(($persentaseActualTahapan / 100) * $persentaseTarget, 2);
 
             // Hitung actual_start & actual_end
-            $actual_start = ProjectTahapanProgress::where('project_tahapan_id', $projectTahapanId)
-                ->orderBy('tanggal_update')
-                ->value('tanggal_update');
+            // $actual_start = ProjectTahapanProgress::where('project_tahapan_id', $projectTahapanId)
+            //     ->orderBy('tanggal_update')
+            //     ->value('tanggal_update');
 
-            $actual_end = $allDone
-                ? ProjectTahapanProgress::where('project_tahapan_id', $projectTahapanId)
-                ->where('persentase_actual', 100)
-                ->latest('tanggal_update')
-                ->value('tanggal_update')
-                : null;
+            // $actual_end = $allDone
+            //     ? ProjectTahapanProgress::where('project_tahapan_id', $projectTahapanId)
+            //     ->where('persentase_actual', 100)
+            //     ->latest('tanggal_update')
+            //     ->value('tanggal_update')
+            //     : null;
+            $actual_start = $projectTahapan->actual_start ?? $now;
+            $actual_end   = $allDone ? $now : null;
 
             $projectTahapan->update([
                 'persentase_actual' => $persentaseActualTahapan,
@@ -794,17 +963,17 @@ class ProjectController extends Controller
                 'success' => true,
                 'message' => 'Progress sub-tahapan berhasil disimpan!',
                 'data' => [
-                    'persentase_actual' => round($persentaseActualTahapan, 2),
-                    'realisasi' => round($realisasi, 2),
+                    'persentase_actual' => $persentaseActualTahapan,
+                    'realisasi' => $realisasi,
                     'actual_start' => $actual_start,
-                    'actual_end' => $actual_end
+                    'actual_end' => $actual_end,
                 ]
             ]);
         }
 
         // ===== Jika tanpa SUB-TAHAPAN =====
-        $persentaseActual = $request->persentase_actual ?? 0;
-        $realisasi = ($persentaseActual / 100) * $persentaseTarget;
+        // $persentaseActual = $request->persentase_actual ?? 0;
+        // $realisasi = ($persentaseActual / 100) * $persentaseTarget;
 
         // Simpan progress
         $progress = ProjectTahapanProgress::create([
@@ -812,13 +981,20 @@ class ProjectController extends Controller
             'tanggal_update' => $now,
             'persentase_actual' => $persentaseActual,
         ]);
+        
+        $realisasi = round(($persentaseActual / 100) * $persentaseTarget, 2);
+
 
         // Hitung actual_start & actual_end
-        $actual_start = ProjectTahapanProgress::where('project_tahapan_id', $projectTahapanId)
-            ->orderBy('tanggal_update')
-            ->value('tanggal_update');
+        // $actual_start = ProjectTahapanProgress::where('project_tahapan_id', $projectTahapanId)
+        //     ->orderBy('tanggal_update')
+        //     ->value('tanggal_update');
 
-        $actual_end = $persentaseActual == 100 ? $progress->tanggal_update : null;
+        // $actual_end = $persentaseActual == 100 ? $progress->tanggal_update : null;
+
+        $actual_start = $projectTahapan->actual_start ?? $now;
+        $actual_end   = $persentaseActual >= 100 ? $now : null;
+    
 
         $projectTahapan->update([
             'persentase_actual' => $persentaseActual,
@@ -832,7 +1008,7 @@ class ProjectController extends Controller
             'message' => 'Progress tahapan berhasil diperbarui!',
             'data' => [
                 'persentase_actual' => $persentaseActual,
-                'realisasi' => round($realisasi, 2),
+                'realisasi' => $realisasi,
                 'actual_start' => $actual_start,
                 'actual_end' => $actual_end
             ]
@@ -1014,6 +1190,7 @@ class ProjectController extends Controller
     public function timeline(Request $request)
     {
         $title = 'timeline';
+        $user = Auth::user();
 
         $allowedRoles = [
             'admin 1',
@@ -1030,11 +1207,32 @@ class ProjectController extends Controller
         if (!in_array(Auth::user()->role, $allowedRoles)) {
             abort(403);
         }
-
-        $projects = \App\Models\Project::with([
+        
+            // =========================
+        // LOGIKA CABANG MARKETING
+        // =========================
+        $isAdminMarketingCabang =
+            $user->role === 'admin marketing'
+            && $user->cabang_id != 1;
+    
+        $query = \App\Models\Project::with([
             'po.quotation.customer',
             'project_tahapan.tahapan'
-        ])->get();
+        ]);
+    
+        // 🔥 FILTER KHUSUS ADMIN MARKETING CABANG
+        if ($isAdminMarketingCabang) {
+            $query->whereHas('po.quotation', function ($q) use ($user) {
+                $q->where('cabang_id', $user->cabang_id);
+            });
+        }
+    
+        $projects = $query->get();
+
+        // $projects = \App\Models\Project::with([
+        //     'po.quotation.customer',
+        //     'project_tahapan.tahapan'
+        // ])->get();
 
         $resources = [];
         $events = [];

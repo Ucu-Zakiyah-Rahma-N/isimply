@@ -57,6 +57,7 @@
                         </tr>
                     @endif
                     <tr>
+                        
                         <td>Deadline Project</td>
                         <td id="deadline-project">
                             <div> :
@@ -831,7 +832,7 @@
                                         class="form-control form-control-sm" id="progress-sub-{{ $sub->id }}"
                                         data-projecttahapan="{{ $tahapan->id }}" data-subtahapan="{{ $sub->id }}"
                                         {{-- untuk menampilkan persentase update di form edit (dengan sub tahapan) --}}
-                                        value="{{ rtrim(rtrim(number_format($persentaseActual, 2, ',', ''), '0'), ',') }}"
+                                        value="{{ rtrim(rtrim(number_format($persentaseActual, 2, '.', ''), '0'), '.') }}"
                                         readonly style="width:100px;" @if ($sudahVerif) disabled @endif>
                                     @admin
                                         <button type="button" class="btn btn-sm btn-outline-primary"
@@ -1309,9 +1310,8 @@
 
 
             //untuk catatan
-            document.addEventListener('DOMContentLoaded', function() {
-                @if (session('success'))
-                    // Alert sukses
+            document.addEventListener('DOMContentLoaded', function () {
+                @if (session('open_catatan_modal'))
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil',
@@ -1319,9 +1319,9 @@
                         showConfirmButton: false,
                         timer: 2000
                     });
-
-                    // Otomatis buka modal catatan
-                    var modal = new bootstrap.Modal(document.getElementById('modalCatatan'));
+            
+                    const modalEl = document.getElementById('modalCatatan');
+                    const modal = new bootstrap.Modal(modalEl);
                     modal.show();
                 @endif
             });
@@ -1342,7 +1342,9 @@
                     const formData = new FormData();
                     formData.append('persentase_actual', value);
 
-                    fetch(`/projects/update-progress/${id}`, {
+        fetch(`{{ route('projects.updateProgress', ':id') }}`
+            .replace(':id', id), {
+
                             method: "POST", // 🔹 Ganti PATCH → POST
                             headers: {
                                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
@@ -1393,7 +1395,8 @@
                     formData.append('sub_tahapan_id', subTahapanId);
                     formData.append('persentase_actual', value);
 
-                    fetch(`/projects/update-progress/${projectTahapanId}`, {
+fetch(`{{ route('projects.updateProgress', ':id') }}`
+    .replace(':id', projectTahapanId), {
                             method: 'POST',
                             headers: {
                                 'X-CSRF-TOKEN': '{{ csrf_token() }}'

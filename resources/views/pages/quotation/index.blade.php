@@ -52,6 +52,7 @@
 
             {{-- 🔹 Filter Section --}}
             <div class="row align-items-end mb-3 g-2">
+                
                 <div class="col-md-2">
                     <label for="filterKabupaten" class="form-label fw-semibold">Kabupaten</label>
                     <select id="filterKabupaten" class="form-select">
@@ -76,11 +77,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-5">
-                    <div class="row g-2">
-
-                        <!-- Perizinan 1 -->
-                        <div class="col-md-6">
+                <div class="col-md-2">
                             <label for="filterPerizinan" class="form-label fw-semibold">
                                 Jenis Perizinan
                             </label>
@@ -96,34 +93,54 @@
                         </div>
 
                         <!-- Perizinan 2 -->
-                        <div class="col-md-6">
-                            <label for="filterCabang" class="form-label fw-semibold">
-                                Pilih Cabang
-                            </label>
-                            <select id="filterCabang" class="form-select">
-                                <option value="">Semua Cabang</option>
-                                @foreach ($cabang as $c)
-                                    <option value="{{ $c->id }}"
-                                        {{ request('cabang') == $c->id ? 'selected' : '' }}>
-                                        {{ $c->nama_cabang }}
-                                    </option>
-                                @endforeach
-                            </select>
+                <div class="col-md-3">
+                        <label for="searchSPH" class="form-label fw-semibold">Cari No SPH</label>
+                        <input type="text" id="searchSPH" value="{{ request('search') }}" class="form-control"
+                            placeholder="Masukkan No SPH...">
                         </div>
 
-                    </div>
-                </div>
-
                 <div class="col-md-3">
-                    <label for="searchSPH" class="form-label fw-semibold">Cari No SPH</label>
-                    <div class="d-flex">
-                        <input type="text" id="searchSPH" value="{{ request('search') }}" class="form-control me-2"
-                            placeholder="Masukkan No SPH...">
+                        <label for="searchPIC" class="form-label fw-semibold">Cari PIC Marketing</label>
+                        <input type="text" name="searchPIC" id="searchPIC" value="{{ request('searchPIC') }}" class="form-control"
+                            placeholder="Masukkan Nama PIC...">
+                        </div>
+            </div>
+
+            <div class="row align-items-end mb-3 g-2">
+
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Cari Nama Perusahaan</label>
+                <input type="text"
+                    name="searchPT"
+                    id ="searchPT"
+                    value="{{ request('searchPT') }}"
+                    class="form-control"
+                    placeholder="Masukkan nama perusahaan...">
+            </div>
+
+                @if (!(auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id != 1))
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Pilih Cabang</label>
+                    <div class="input-group">
+                        <select id="filterCabang" class="form-select">
+                            <option value="">Semua Cabang</option>
+                            @foreach ($cabang as $c)
+                                <option value="{{ $c->id }}">{{ $c->nama_cabang }}</option>
+                            @endforeach
+                        </select>
                         <button id="resetFilter" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-counterclockwise"></i>
                         </button>
                     </div>
                 </div>
+                @else
+                <div class="col-md-1 d-flex align-items-end">
+                    <button id="resetFilter" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+                @endif
+                
             </div>
 
             {{-- Table --}}
@@ -137,11 +154,11 @@
                     <thead class="table-light text-center align-middle">
                         <tr>
                             <th>No</th>
-                            <th>No SPH</th>
-                            {{-- <th>Versi</th> --}}
-                            <th>Tanggal SPH</th>
-                            <th>Fungsi Bangunan</th>
                             <th>Nama Perusahaan</th>
+                            <th>No SPH</th>
+                            <th>Tanggal SPH</th>
+                            <th>Nama Bangunan</th>
+                            <th>Fungsi Bangunan</th>
                             <th>Jenis Perizinan</th>
                             <th>Luas</th>
                             <th>Kabupaten</th>
@@ -149,6 +166,7 @@
                             <th>Alamat</th>
                             <th>Nominal Pekerjaan</th>
                             <th>Lama Pekerjaan</th>
+                            <th>PIC Marketing</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -156,10 +174,11 @@
                         @forelse ($quotation as $q)
                             <tr data-cabang-id="{{ $q->cabang_id }}">
                                 <td class="text-center">{{ $no++ }}</td>
+                                <td>{{ $q->customer->nama_perusahaan ?? '-' }}</td>
                                 <td>{{ $q->no_sph ?? '-' }}</td>
                                 <td>{{ $q->tgl_sph ? \Carbon\Carbon::parse($q->tgl_sph)->format('d/m/Y') : '-' }}</td>
+                                <td>{{ $q->nama_bangunan ?? '-' }}</td>
                                 <td>{{ $q->fungsi_bangunan }}</td>
-                                <td>{{ $q->customer->nama_perusahaan ?? '-' }}</td>
                                 <td>
                                     @if ($q->perizinan && count($q->perizinan) > 0)
                                         @foreach ($q->perizinan as $izin)
@@ -176,16 +195,10 @@
                                 <td>{{ $q->detail_alamat ?? '-' }}</td>
                                 {{-- Harga Pekerjaan --}}
                                 <td>
-                                    @if ($q->harga_tipe == 'gabungan')
-                                        Rp {{ number_format($q->harga_gabungan ?? 0, 0, ',', '.') }}
-                                    @else
-                                        @php
-                                            $total = $q->perizinan->sum('pivot.harga_satuan');
-                                        @endphp
-                                        {{ $total > 0 ? 'Rp ' . number_format($total, 0, ',', '.') : '-' }}
-                                    @endif
+                                    <div>Rp {{ number_format($q->grand_total, 0, ',', '.') }}</div>
                                 </td>
                                 <td>{{ $q->lama_pekerjaan ? "{$q->lama_pekerjaan} hari" : '-' }}</td>
+                                <td>{{ $q->customer->marketing->nama ?? '-' }}</td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-2">
                                         <a href="{{ route('quotation.show', $q->id) }}" class="btn btn-sm btn-outline-info"
@@ -204,7 +217,7 @@
                                             </a>
 
                                             <form action="{{ route('quotation.destroy', $q->id) }}" method="POST"
-                                                onsubmit="return confirm('Yakin ingin menghapus quotation ini?')">
+                                                class="delete-quotation-form">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus">
@@ -212,7 +225,6 @@
                                                 </button>
                                             </form>
                                         @endif
-
                                     </div>
                                 </td>
                             </tr>
@@ -254,8 +266,6 @@
                 window.location.search = params.toString();
             }
 
-
-
             $('#filterKabupaten, #filterKawasan').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Pilih atau ketik untuk mencari...',
@@ -289,13 +299,22 @@
             });
 
             // CABANG
-            document.getElementById('filterCabang').addEventListener('change', function() {
-                reloadWith('cabang', this.value);
-            });
+            // document.getElementById('filterCabang').addEventListener('change', function() {
+            //     reloadWith('cabang', this.value);
+            // });
+            
+            const filterCabang = document.getElementById('filterCabang');
+            
+            if (filterCabang) {
+                filterCabang.addEventListener('change', function() {
+                    reloadWith('cabang', this.value);
+                });
+            }
 
-            // LIVE SEARCH NO SPH
+            
             let typingTimer;
             const delay = 600;
+            // LIVE SEARCH NO SPH
             document.getElementById('searchSPH').addEventListener('input', function() {
                 clearTimeout(typingTimer);
                 const value = this.value;
@@ -304,13 +323,56 @@
                     reloadWith('search', value);
                 }, delay);
             });
+            
+            document.getElementById('searchPIC').addEventListener('input', function() {
+                clearTimeout(typingTimer);
+                const value = this.value;
 
+                typingTimer = setTimeout(() => {
+                    reloadWith('searchPIC', value);
+                }, delay);
+            });
+
+            document.getElementById('searchPT').addEventListener('input', function() {
+                clearTimeout(typingTimer);
+                const value = this.value;
+
+                typingTimer = setTimeout(() => {
+                    reloadWith('searchPT', value);
+                }, delay);
+            });
+
+
+            
             // RESET
             document.getElementById('resetFilter').addEventListener('click', function(e) {
                 e.preventDefault();
                 window.location.href = window.location.pathname;
             });
 
+    //DELETE 
+        const deleteForms = document.querySelectorAll('.delete-quotation-form');
+
+    deleteForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault(); // hentikan submit default
+
+            Swal.fire({
+                title: 'Yakin ingin menghapus?',
+                text: "Data quotation akan dihapus permanen!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit(); // submit form jika konfirmasi
+                }
+            });
+        });
+    });
         });
     </script>
 @endsection

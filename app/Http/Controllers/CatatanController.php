@@ -22,6 +22,6 @@ class CatatanController extends Controller
             'isi_catatan' => $request->isi_catatan,
         ]);
 
-        return redirect()->back()->with('success', 'Catatan berhasil dibuat!');
+        return redirect()->back()->with('success', 'Catatan berhasil dibuat!')->with('open_catatan_modal', true);;
     }
 }

@@ -14,6 +14,8 @@ class QuotationPerizinan extends Model
     protected $fillable = [
         'quotation_id',
         'perizinan_id',
+        'qty',
+        'satuan_id',
         'harga_satuan',
     ];
 
@@ -30,5 +32,10 @@ class QuotationPerizinan extends Model
     public function perizinan()
     {
         return $this->belongsTo(Perizinan::class, 'perizinan_id');
+    }
+
+    public function satuan()
+    {
+        return $this->belongsTo(SatuanPerizinan::class, 'satuan_id');
     }
 }

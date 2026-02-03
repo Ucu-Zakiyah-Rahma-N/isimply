@@ -38,17 +38,27 @@ class UserController extends Controller
         ]);
     }
 
-
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
+        try {
         $validated = $request->validate([
-            'customer_id' => ['nullable',
-                        function ($attribute, $value, $fail) {
+            'customer_id' => ['required',
+                function ($attribute, $value, $fail) {
                 // Jika pilihannya bukan "simply" dan bukan null, cek apakah sudah ada user
-                if ($value && User::where('customer_id', $value)->exists()) {
+                if ($value === 'simply') {
+                    return;
+                }      
+                        
+                // kalau bukan simply, pastikan customer ada
+                if (!Customer::where('id', $value)->exists()) {
+                    $fail('Nama perusahaan tidak valid.');
+                    return;
+                }
+                // cek apakah customer sudah punya user
+                if (User::where('customer_id', $value)->exists()) {
                     $fail('User untuk customer ini sudah pernah dibuat.');
                 }
             }
@@ -56,6 +66,7 @@ class UserController extends Controller
             'username' => 'required|string|unique:users,username',
             'password' => 'required|min:4',
             'role' => 'required',
+            'cabang_id' => 'nullable|exists:cabang,id',
         ]);
 
         $customer = Customer::find($request->customer_id);
@@ -66,10 +77,28 @@ class UserController extends Controller
             'username' => $request->username,
             'password' => Hash::make($request->password),
             'role'     => $request->role, // langsung dari input form
+            'cabang_id'   => $request->cabang_id, 
         ]);
 
         return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
+    } catch (\Throwable $e) {
+
+        //  LOG WAJIB SEBELUM RETURN
+        Log::error('Gagal membuat user', [
+            'user_login' => auth()->user()->username ?? null,
+            'request'    => $request->except(['password']),
+            'error'      => $e->getMessage(),
+            'file'       => $e->getFile(),
+            'line'       => $e->getLine(),
+        ]);
+
+        return back()
+            ->withInput()
+            ->with('error', 'Terjadi kesalahan sistem, silakan coba lagi.');
     }
+        
+    }
+
 
     /**
      * Display the specified resource.
@@ -84,12 +113,6 @@ class UserController extends Controller
      */
     public function edit(string $id)
     {
-        $data = [
-            'title' => 'User',
-            'user' => User::findOrFail($id)
-        ];
-
-        return view('admin.user_detail', $data);
     }
 
     /**
@@ -97,21 +120,6 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $request->validate([
-            'username'   => 'required|string|max:100',
-            'email'      => 'required|email|max:100',
-            'customer_id'  => 'required|exists:customer,id',
-        ]);
-
-        $user = User::findOrFail($id);
-
-        $user->update([
-            'username'   => $request->username,
-            'email'      => $request->email,
-            'customer_id'  => $request->customer_id,
-        ]);
-
-        return redirect()->back()->with('success', 'Data user berhasil diperbarui');
     }
 
     /**

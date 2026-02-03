@@ -1,6 +1,18 @@
 @extends('app.template')
 
 @section('content')
+@if(session('login_success'))
+<script>
+    Swal.fire({
+        icon: 'success',
+        title: 'Selamat Datang',
+        text: '{{ session('login_success') }}',
+        showConfirmButton: false,
+        timer: 2000
+    });
+</script>
+@endif
+
 <div class="card">
     <div class="card-header">
         <h5>Data Projek {{ $customer->nama_perusahaan }}</h5>

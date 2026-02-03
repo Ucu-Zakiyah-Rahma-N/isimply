@@ -12,63 +12,78 @@ use Illuminate\Support\Facades\DB;
 class DashboardHelper
 {
     //dahboard untuk marketing
-    public static function getMarketingSummary()
+    public static function getMarketingSummary($bulan = null, $tahun = null)
     {
+        $user = auth()->user();
         $now = Carbon::now();
-        $bulanNama = $now->format('F Y');
-        $tahun = $now->year;
 
-        // =============== Hitung PO Bulan Ini ===============
-        $poThisMonth = PO::with('quotation.quotation_perizinan')
+        $tahun = $tahun ?? $now->year;  // default tahun sekarang
+        $bulan = $bulan ?: null;        // null berarti semua bulan
+
+        $isCabang = $user->role === 'admin marketing' && $user->cabang_id != 1;
+
+        // Query PO
+        $poQuery = PO::with('quotation.quotation_perizinan')
             ->whereYear('tgl_po', $tahun)
-            ->whereMonth('tgl_po', $now->month)
-            ->get();
+            ->when($bulan, fn($q) => $q->whereMonth('tgl_po', $bulan))
+            ->when($isCabang, fn($q) => $q->whereHas('quotation', fn($qq) => $qq->where('cabang_id', $user->cabang_id)));
 
-        $jumlahPO = $poThisMonth->count();
+        $poFiltered = $poQuery->get();
 
-        $nilaiPO = $poThisMonth->sum(function ($po) {
-            if (!$po->quotation) return 0;
+        // Jumlah & Nilai PO
+        $jumlahPO = $poFiltered->count();
+        $nilaiPO = $poFiltered->sum(fn($po) => $po->quotation->grand_total ?? 0);
 
-            $q = $po->quotation;
-            return $q->harga_tipe == 'gabungan'
-                ? $q->harga_gabungan
-                : $q->quotation_perizinan->sum('harga_satuan');
-        });
+        // $nilaiPO = $poFiltered->sum(function($po){
+        //     if (!$po->quotation) return 0;
+        //     $q = $po->quotation;
+        //     return $q->harga_tipe === 'gabungan'
+        //         ? $q->harga_gabungan
+        //         : $q->quotation_perizinan->sum('harga_satuan');
+        // });
 
-        // =============== Ambil Target Bulan Ini ===============
-        $target = AchievementTarget::where('bulan', $bulanNama)
-            ->where('tahun', $tahun)
-            ->first()
-            ->target ?? 0;
+        // Target & Achievement (Hanya HO)
+        $target = $achievement = 0;
+        if (!$isCabang) {
+            if ($bulan) {
+                // Per bulan
+                $bulanNama = Carbon::createFromDate($tahun, $bulan, 1)->format('F Y');
+                $target = AchievementTarget::where('bulan', $bulanNama)
+                    ->where('tahun', $tahun)
+                    ->first()
+                    ->target ?? 0;
+                $achievement = $target > 0 ? round(($nilaiPO / $target) * 100, 1) : 0;
+            } else {
+                // Total tahun
+                $targets = AchievementTarget::where('tahun', $tahun)->get();
+                $target = $targets->sum('target');
+                $achievement = $target > 0 ? round(($nilaiPO / $target) * 100, 1) : 0;
+            }
+        }
 
-        // =============== Hitung Achievement ===============
-        $achievement = $target > 0
-            ? round(($nilaiPO / $target) * 100, 1)
-            : 0;
-
-        // =============== DATA GRAFIK 12 BULAN ===============
+        // Grafik 12 bulan
         $bulanList = [];
         $nilaiList = [];
-
-        for ($i = 1; $i <= 12; $i++) {
+        for ($i=1; $i<=12; $i++) {
             $bulanList[] = Carbon::createFromDate($tahun, $i, 1)->format('M');
 
             $nilai = PO::with('quotation.quotation_perizinan')
                 ->whereYear('tgl_po', $tahun)
                 ->whereMonth('tgl_po', $i)
+                ->when($isCabang, fn($q) => $q->whereHas('quotation', fn($qq) => $qq->where('cabang_id', $user->cabang_id)))
                 ->get()
-                ->sum(function ($po) {
-                    if (!$po->quotation) return 0;
+                ->sum(fn($po) => $po->quotation->grand_total ?? 0);
 
-                    $q = $po->quotation;
-                    return $q->harga_tipe == 'gabungan'
-                        ? $q->harga_gabungan
-                        : $q->quotation_perizinan->sum('harga_satuan');
-                });
+                // ->sum(function($po){
+                //     if (!$po->quotation) return 0;
+                //     $q = $po->quotation;
+                //     return $q->harga_tipe === 'gabungan'
+                //         ? $q->harga_gabungan
+                //         : $q->quotation_perizinan->sum('harga_satuan');
+                // });
 
             $nilaiList[] = $nilai;
         }
-
 
         return [
             'jumlahPO' => $jumlahPO,
@@ -77,7 +92,8 @@ class DashboardHelper
             'achievement' => $achievement,
             'bulan_list' => $bulanList,
             'nilai_list' => $nilaiList,
-
+            'tahun' => $tahun,
+            'bulan' => $bulan, // null jika semua bulan
         ];
     }
 

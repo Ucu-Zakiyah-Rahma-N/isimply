@@ -154,13 +154,13 @@ $(document).ready(function() {
 
     // Preload Kabupaten & Kawasan sesuai data lama
     if (provinsi_id) {
-        $.get(`/wilayah/kabupaten/${provinsi_id}`, function(data) {
+        $.get(`{{ url('wilayah/kabupaten') }}/${provinsi_id}`, function(data) {
             data.forEach(k => {
                 $('#kabupaten_id').append(`<option value="${k.kode}" ${k.kode == kabupaten_id ? 'selected' : ''}>${k.nama}</option>`);
             });
 
             if (kabupaten_id) {
-                $.get(`/wilayah/kawasan/${kabupaten_id}`, function(kws) {
+                $.get(`{{ url('kawasan') }}/${kabupaten_id}`, function(kws) {
                     kws.forEach(k => {
                         $('#kawasan_id').append(`<option value="${k.id}" ${k.id == kawasan_id ? 'selected' : ''}>${k.nama_kawasan}</option>`);
                     });
@@ -176,7 +176,7 @@ $(document).ready(function() {
         $('#kawasan_id').html('<option value="">-- Pilih Kawasan --</option>');
 
         if (provinsiKode) {
-            const kabupatenData = await $.get(`/wilayah/kabupaten/${provinsiKode}`);
+            const kabupatenData = await $.get(`{{ url('wilayah/kabupaten') }}/${provinsiKode}`);
             kabupatenData.forEach(k => {
                 $('#kabupaten_id').append(`<option value="${k.kode}">${k.nama}</option>`);
             });
@@ -189,8 +189,8 @@ $(document).ready(function() {
         $('#kawasan_id').html('<option value="">-- Pilih Kawasan --</option>');
 
         if (kabupatenKode) {
-            const kawasanData = await $.get(`/kawasan/${kabupatenKode}`);
-            kawasanData.forEach(k => {
+                const kawasanData = await $.get(`{{ url('kawasan') }}/${kabupatenKode}`);
+                kawasanData.forEach(k => {
                 $('#kawasan_id').append(`<option value="${k.id}">${k.nama_kawasan}</option>`);
             });
         }

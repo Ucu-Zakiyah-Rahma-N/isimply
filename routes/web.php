@@ -12,6 +12,7 @@ use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\POController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\PerizinanController;
+use App\Http\Controllers\TahapanController;
 use App\Http\Controllers\RekapController;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
@@ -29,11 +30,20 @@ Route::middleware('auth')->group(function () {
 
     //marketing
     Route::get('marketing', [MarketingController::class, 'index'])->name('marketing.index');
+    Route::get('marketing/create', [MarketingController::class, 'create'])->name('marketing.create');
+    Route::post('marketing', [MarketingController::class, 'store'])->name('marketing.store');
+    Route::delete('/marketing/{id}', [MarketingController::class, 'destroy'])->name('marketing.destroy');
+    
     //jenis perizinan
-
     Route::get('perizinan', [PerizinanController::class, 'index'])->name('perizinan.index');
     Route::get('perizinan/create', [PerizinanController::class, 'create'])->name('perizinan.create');
     Route::post('perizinan', [PerizinanController::class, 'store'])->name('perizinan.store');
+    Route::delete('/perizinan/{id}', [perizinanController::class, 'destroy'])->name('perizinan.destroy');
+    
+    Route::get('tahapan', [TahapanController::class, 'index'])->name('tahapan.index');
+    Route::get('tahapan/create', [TahapanController::class, 'create'])->name('tahapan.create');
+    Route::post('tahapan', [TahapanController::class, 'store'])->name('tahapan.store');
+    Route::delete('/tahapan/{id}', [TahapanController::class, 'destroy'])->name('tahapan.destroy');
 
     //wilayah   
     Route::get('/wilayah/provinsi', [WilayahController::class, 'getProvinsi']);
@@ -44,10 +54,13 @@ Route::middleware('auth')->group(function () {
     //customer
     Route::get('customer', [CustomerController::class, 'index'])->name('customer.index');
     Route::get('customer/create', [CustomerController::class, 'create']);
+    Route::get('/customer/cek-nama', [CustomerController::class, 'cekNama']);
     Route::post('customer', [CustomerController::class, 'store']);
     Route::post('customer/{id}/set-pic-utama', [CustomerController::class, 'setPicUtama'])->name('customer.setPicUtama');
     Route::get('customer/edit/{id}', [CustomerController::class, 'edit'])->name('customer.edit');
     Route::put('customer/update/{id}', [CustomerController::class, 'update']);
+    Route::delete('customer/{id}', [CustomerController::class, 'destroy'])->name('customer.destroy');
+
     //dashboard customer
     Route::get('/tracking', [CustomerController::class, 'tracking'])
         ->middleware(['auth', 'customer'])
@@ -62,7 +75,7 @@ Route::middleware('auth')->group(function () {
     Route::post('user', [UserController::class, 'store'])->name('user.store');
     Route::get('user/edit/{id}', [UserController::class, 'edit']);
     Route::put('userupdate/{id}', [UserController::class, 'update']);
-    Route::delete('user/{id}', [UserController::class, 'destroy']);
+    Route::delete('user/{id}', [UserController::class, 'destroy'])->name('user.destroy');
     Route::get('ubah_password/{id}', [UserController::class, 'ubahPassword']);
     Route::patch('update_password/{id}', [UserController::class, 'updatePassword']);
 
@@ -70,7 +83,7 @@ Route::middleware('auth')->group(function () {
     Route::get('quotation', [QuotationController::class, 'index'])->name('quotation.index');
     Route::get('quotation/create', [QuotationController::class, 'create'])->name('quotation.create');
     Route::get('customer/{id}/get-customer', [QuotationController::class, 'getCustomer'])->name('get-customer');
-    Route::get('/quotation/preview-sph/{id}', [QuotationController::class, 'previewSph']);
+    Route::get('/quotation/preview-sph/{id}', [QuotationController::class, 'previewSph'])->name('quotation.previewSPH'); 
     Route::post('quotation', [QuotationController::class, 'store'])->name('quotation.store');
 
     Route::get('/templateSPH', [QuotationController::class, 'templateIndex'])->name('template.index');
@@ -86,7 +99,7 @@ Route::middleware('auth')->group(function () {
     Route::get('quotation/edit/{id}', [QuotationController::class, 'edit'])->name('quotation.edit');
     Route::put('quotation/update/{id}', [QuotationController::class, 'update'])->name('quotation.update');
     Route::delete('quotation/{id}', [QuotationController::class, 'destroy'])->name('quotation.destroy');
-    Route::get('/quotation/by-customer/{id}', [QuotationController::class, 'getByCustomer']);
+    Route::get('/quotation/by-customer/{id}', [QuotationController::class, 'getByCustomer'])->name('quotation.byCustomer');
     // Route::get('quotation/print/{id}', [QuotationController::class, 'printPdf'])->name('quotation.print');
     // Route::get('quotation/download/{id}', [QuotationController::class, 'downloadPdf'])->name('quotation.download');
 
@@ -94,12 +107,14 @@ Route::middleware('auth')->group(function () {
     Route::get('PO', [POController::class, 'index'])->name('PO.index');
     Route::get('PO/create', [POController::class,    'create']);
     Route::post('PO', [POController::class, 'store'])->name('PO.store');
-    Route::post('/PO/verify-bast/{id}', [POController::class, 'verifyBast'])->name('po.verifyBast');
+    Route::post('/po/verify-bast/{id}', [POController::class, 'verifyBast'])->name('po.verifyBast');
     Route::get('/files/{filename}', function ($filename) {
         $path = storage_path('app/public/' . $filename);
         if (!file_exists($path)) abort(404);
         return response()->file($path);
     })->name('files.view')->where('filename', '.*');
+    Route::get('po/edit/{id}', [POController::class, 'edit'])->name('po.edit');
+    Route::put('po/update/{id}', [POController::class, 'update'])->name('po.update');
 
 
     Route::get('rekap_marketing', [RekapController::class, 'rekapBulanan'])->name('rekap.bulanan');

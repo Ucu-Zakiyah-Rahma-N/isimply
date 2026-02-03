@@ -101,7 +101,7 @@ $(document).ready(function () {
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: '/user/' + userId,
+                    url: "{{ route('user.destroy', ':id') }}".replace(':id', userId),
                     type: 'DELETE',
                     data: {
                         _token: '{{ csrf_token() }}'

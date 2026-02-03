@@ -54,6 +54,18 @@
                                     {{ (int) request('tahun_rekap') === $y ? 'selected' : '' }}>{{ $y }}</option>
                             @endfor
                         </select>
+                        
+                        @if (!(auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id != 1))
+                        {{-- Filter Cabang --}}
+                        <select name="cabang_id" class="form-select ms-2" style="min-width:150px;" onchange="this.form.submit()">
+                            <option value="">Semua Cabang</option>
+                            @foreach ($cabang as $cabang)
+                                <option value="{{ $cabang->id }}" {{ request('cabang_id') == $cabang->id ? 'selected' : '' }}>
+                                    {{ $cabang->nama_cabang }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @endif
                     </form>
                 </div>
                 <div class="card-body">
@@ -69,6 +81,10 @@
                                     <th>Nominal SPK</th>
                                 </tr>
                             </thead>
+                            @php
+                                $tahun = request('tahun_rekap') ?? date('Y');
+                                $rekapTahun = $rekapGabungan->filter(fn($r) => $r['tahun'] == $tahun)->values();
+                            @endphp
                             <tbody>
                                 @php
                                     $total_sph = 0;
@@ -76,8 +92,7 @@
                                     $total_spk = 0;
                                     $total_nominal_spk = 0;
                                 @endphp
-                                @foreach ($rekapGabungan as $index => $r)
-                                    @if ($r['tahun'] == (request('tahun_rekap') ?? date('Y')))
+                                @forelse ($rekapGabungan as $index => $r)
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
                                             <td>{{ $r['bulan'] }}</td>
@@ -92,9 +107,16 @@
                                             $total_spk += $r['jumlah_spk'];
                                             $total_nominal_spk += $r['nominal_spk'];
                                         @endphp
-                                    @endif
-                                @endforeach
-                                @if ($total_sph + $total_spk > 0)
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="bi bi-inbox"></i><br>
+                                            <strong>Data belum tersedia</strong>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                                
+                                @if ($rekapTahun->count())
                                     <tr class="table-warning fw-bold">
                                         <td colspan="2">Total</td>
                                         <td>{{ $total_sph }}</td>
@@ -110,6 +132,7 @@
             </div>
         </div>
 
+        @if (!(auth()->user()->role === 'admin marketing' && auth()->user()->cabang_id != 1))
         {{-- Tabel Achievement --}}
         <div class="col-12">
             <div class="card shadow">
@@ -189,7 +212,8 @@
                 </div>
             </div>
         </div>
-
+        @endif
+        
         <script>
             function toggleEditSave(index) {
                 let input = document.getElementById('target-' + index);

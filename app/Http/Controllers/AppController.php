@@ -32,17 +32,20 @@ class AppController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             $user = Auth::user();
-            $request->session()->put('success', 'Selamat Datang ');
+            // $request->session()->put('success', 'Selamat Datang ');
 
-            // ✅ KHUSUS CUSTOMER
-            if (strtolower($user->role) === 'customer') {
-                return redirect()->route('tracking'); 
-                // atau ->route('customer.timeline') kalau mau langsung timeline
+            // KHUSUS CUSTOMER
+            // if (strtolower($user->role) === 'customer') {
+            //     return redirect()->route('tracking'); 
+            // }
+
+            // return redirect()->intended('dashboard');
+            
+            return redirect()->route(
+                    strtolower($user->role) === 'customer' ? 'tracking' : 'dashboard'
+                )->with('login_success', 'Selamat Datang ' . $user->username);
             }
 
-            return redirect()->intended('dashboard');
-        }
- 
         return back()->withErrors([
             'username' => 'Username atau password yang Anda masukkan salah.',
         ])->onlyInput('username');
@@ -62,6 +65,8 @@ class AppController extends Controller
 public function dashboard()
 {
     $user = Auth::user(); // otomatis ambil user yang login
+        $bulan = request('bulan'); // null = total tahun
+    $tahun = request('tahun') ?? date('Y');
 
     // Kalau role-nya customer dan kamu mau ambil datanya dari tabel customer juga
     if ($user->role === 'customer') {
@@ -76,7 +81,9 @@ public function dashboard()
         'target' => 0,
         'achievement' => 0,
         'bulan_list' => [],
-        'nilai_list' => []
+        'nilai_list' => [],
+        'bulan' => $bulan,  
+        'tahun' => $tahun   
     ];
     
     $rekap = [];
@@ -84,7 +91,7 @@ public function dashboard()
 
 if(in_array(strtolower($user->role), ['superadmin', 'admin marketing', 'ceo',  'direktur', 'manager marketing', 'manager project', 'manager finance']))
 {
-    $summary = DashboardHelper::getMarketingSummary();
+    $summary = DashboardHelper::getMarketingSummary($bulan, $tahun);
 }
 
 if(in_array(strtolower($user->role), ['admin 1', 'admin 2', 'ceo',  'direktur', 'manager marketing', 'manager project', 'manager finance']))
@@ -105,7 +112,8 @@ if(in_array(strtolower($user->role), ['admin 1', 'admin 2', 'ceo',  'direktur', 
         'persentaseAchieve' => $summary['achievement'],
         'bulan' => $summary['bulan_list'],
         'nilaiPerBulan' => $summary['nilai_list'],
-
+        'bulanFilter' => $summary['bulan'], // null atau 1-12
+        'tahunFilter' => $summary['tahun'],
         'rekap' => $rekap,
     ]);
 }

@@ -18,15 +18,14 @@
 
                 {{-- Nama Perusahaan --}}
                 <div class="mb-3">
-                    <label for="nama_perusahaan" class="form-label">Nama Perusahaan <span class="text-danger">*</span></label>
-                    <input type="text" name="nama_perusahaan" id="nama_perusahaan"
-                           class="form-control @error('nama_perusahaan') is-invalid @enderror"
-                           value="{{ old('nama_perusahaan') }}">
-                    @error('nama_perusahaan')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <label class="form-label">Nama Perusahaan *</label>
+                    <p class="text-muted small">Pastikan nama perusahaan lengkap. Contoh : PT Simply Dimensi Indonesia</p>
+                    <input type="text"
+                           name="nama_perusahaan"
+                           id="nama_perusahaan"
+                           class="form-control"
+                           autocomplete="off">
                 </div>
-
 
                 {{-- Alamat --}}
                 <div class="mb-3">
@@ -114,9 +113,56 @@
     </div>
 </div>
 
+
+<div class="modal fade" id="modalDuplikat" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">Data Sudah Ada</h5>
+            </div>
+            <div class="modal-body">
+                Nama perusahaan <b id="namaDuplikat"></b> sudah terdaftar.
+                <br>
+                Silakan pastikan cabang / alamat berbeda.
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-bs-dismiss="modal">
+                    Mengerti
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+    
+const inputNama = document.getElementById('nama_perusahaan');
+const modal = new bootstrap.Modal(document.getElementById('modalDuplikat'));
+
+let sudahCek = false;
+
+inputNama.addEventListener('blur', function () {
+    const nama = this.value.trim();
+    if (!nama || sudahCek) return;
+
+    fetch(`/customer/cek-nama?nama=${encodeURIComponent(nama)}`)
+        .then(res => res.json())
+        .then(res => {
+            if (res.exists) {
+                document.getElementById('namaDuplikat').innerText = nama;
+                modal.show();
+            }
+            sudahCek = true;
+        });
+});
+
+// reset kalau user edit ulang
+inputNama.addEventListener('input', () => {
+    sudahCek = false;
+});
+
 $(document).ready(function() {
     // 1️⃣ Ketika provinsi berubah → load kabupaten
     $('#provinsi_id').change(function() {
@@ -124,7 +170,9 @@ $(document).ready(function() {
         resetDropdown(['#kabupaten_id', '#kawasan_id']); // reset kabupaten & kawasan
 
         if (provId) {
-            $.get(`/wilayah/kabupaten/${provId}`, function(data) {
+            // $.get(`/wilayah/kabupaten/${provId}`, function(data) {
+            $.get(`{{ url('wilayah/kabupaten') }}/${provId}`, function(data) {
+
                 if (data.length > 0) {
                     data.forEach(item => {
                         $('#kabupaten_id').append(`<option value="${item.kode}">${item.nama}</option>`);
@@ -140,9 +188,8 @@ $(document).ready(function() {
     $('#kabupaten_id').change(function() {
         let kabId = $(this).val();
         $('#kawasan_id').html('<option value="">-- Pilih Kawasan --</option>');
-
         if(kabId){
-            $.get(`/kawasan/${kabId}`, function(data) {
+            $.get("{{ url('kawasan') }}/" + kabId, function(data){
                 if(data.length > 0){
                     data.forEach(item => {
                         $('#kawasan_id').append(`<option value="${item.id}">${item.nama_kawasan}</option>`);

@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('customers', function (Blueprint $table) {
             $table->id(); // BIGINT UNSIGNED PRIMARY KEY
+            $table->foreignId('cabang_id')
+                ->default(1)
+                ->constrained('cabang')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
             $table->string('nama_perusahaan');
             $table->unsignedBigInteger('provinsi_id')->nullable();
             $table->unsignedBigInteger('kabupaten_id')->nullable();

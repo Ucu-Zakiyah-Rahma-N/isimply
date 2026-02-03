@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('username');
             $table->string('password');
             $table->string('role');
+            $table->foreignId('cabang_id')->nullable()->constrained('cabang')
+                ->nullOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     

@@ -28,6 +28,15 @@ return new class extends Migration
                   ->on('perizinans')
                   ->onDelete('cascade');
 
+            $table->integer('qty')
+                ->default(1);
+            // satuan
+            $table->foreignId('satuan_id')
+                ->nullable()
+                ->constrained('satuan_perizinans')
+                ->nullOnDelete()
+                ->cascadeOnUpdate();
+                  
             // Harga per izin
             $table->decimal('harga_satuan', 15, 2)->nullable();
 

@@ -16,8 +16,12 @@ return new class extends Migration
 
             // Relasi ke customer
             $table->unsignedBigInteger('customer_id');
-            $table->foreign('customer_id')->references('id')->on('customers')->onDelete('cascade');
-            
+            $table->foreign('customer_id')
+                  ->references('id')
+                  ->on('customers')
+                  ->restrictOnDelete()
+                  ->cascadeOnUpdate();
+                        
             $table->unsignedInteger('version')->default(1);
             $table->unsignedBigInteger('parent_id')->nullable()->index();
 
@@ -56,6 +60,10 @@ return new class extends Migration
             // Harga gabungan atau per-satuan
             $table->enum('harga_tipe', ['satuan', 'gabungan'])->default('satuan');
             $table->decimal('harga_gabungan', 15, 2)->nullable();
+            
+            $table->enum('diskon_tipe', ['persen', 'nominal'])->nullable();
+            $table->unsignedBigInteger('diskon_nilai')->default(0);
+    
 
             $table->boolean('is_same_nama_bangunan')->default(false);
             $table->boolean('is_same_alamat')->default(false);

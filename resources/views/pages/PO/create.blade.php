@@ -13,8 +13,8 @@
             {{-- No PO & Tanggal PO --}}
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label>No PO <span class="text-danger">*</span></label>
-                    <input type="text" name="no_po" class="form-control" required>
+                    <label>No PO</label>
+                    <input type="text" name="no_po" class="form-control" value="">
                 </div>
                 <div class="col-md-6">
                     <label>Tanggal PO <span class="text-danger">*</span></label>
@@ -22,13 +22,44 @@
                 </div>
             </div>
 
-            {{-- File PO (1 baris penuh) --}}
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <label>File PO </label>
-                    <input type="file" name="file" accept= "application/pdf" class="form-control">
-                </div>
-            </div>
+{{-- Kondisi PO --}}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <label>File PO<span class="text-danger">*</span></label><br>
+        
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="po_status" id="po-ada" value="ada">
+            <label class="form-check-label" for="po-ada">Ada</label>
+        </div>
+
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="po_status" id="po-belum" value="belum">
+            <label class="form-check-label" for="po-belum">Belum Ada</label>
+        </div>
+
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="po_status" id="po-tidak" value="tidak">
+            <label class="form-check-label" for="po-tidak">Tidak Ada</label>
+        </div>
+    </div>
+</div>
+
+{{-- File PO (disembunyikan default) --}}
+<div class="row mb-3" id="file-po-wrapper" style="display: none;">
+    <div class="col-md-12">
+        <label>File PO</label>
+        <input type="file" name="file" accept="application/pdf" class="form-control">
+    </div>
+</div>
+
+
+            <!--{{-- File PO (1 baris penuh) --}}-->
+            <!--<div class="row mb-3">-->
+            <!--    <div class="col-md-12">-->
+            <!--        <label>File PO </label>-->
+            <!--        <input type="file" name="file" accept= "application/pdf" class="form-control">-->
+            <!--    </div>-->
+            <!--</div>-->
 
             {{-- Nama Perusahaan & Referensi SPH --}}
             <div class="row mb-3">
@@ -74,9 +105,21 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+            
+            
+$('input[name="po_status"]').on('change', function() {
+    let status = $('input[name="po_status"]:checked').val();
+
+    if (status === 'ada') {
+        $('#file-po-wrapper').show(); // tampilkan input file
+    } else {
+        $('#file-po-wrapper').hide(); // sembunyikan input file
+        $('#file-po-wrapper input[type=file]').val(''); // reset file jika sebelumnya ada
+    }
+});
+
             // Inisialisasi Select2 (opsional)
             $('#customer-select').select2({
                 placeholder: 'Pilih nama perusahaan...',
@@ -129,7 +172,7 @@
                 sphSelect.prop('disabled', true).append('<option>Loading...</option>');
 
                 $.ajax({
-                    url: '/quotation/by-customer/' + customerId,
+                url: '{{ url("quotation/by-customer") }}/' + customerId,
                     type: 'GET',
                     success: function(data) {
                         sphSelect.empty();
