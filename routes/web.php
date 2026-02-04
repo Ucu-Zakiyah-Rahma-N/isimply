@@ -14,6 +14,7 @@ use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\PerizinanController;
 use App\Http\Controllers\TahapanController;
 use App\Http\Controllers\RekapController;
+use App\Http\Controllers\FinanceController;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
 
@@ -131,6 +132,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/projects/update/{id}', [ProjectController::class, 'update'])->name('projects.update');
     Route::post('/projects/update-progress/{projectTahapanId}', [ProjectController::class, 'updateProgress'])->name('projects.updateProgress');
     Route::post('/projects/{projectId}/tambah-tahapan-opsional', [ProjectController::class, 'tambahTahapanOpsional'])->name('tahapan.opsional.store');
+
+    // finance
+    Route::get('finance', [FinanceController::class, 'index'])->name('finance.index');
+
 
     //menu timeline
     Route::middleware([

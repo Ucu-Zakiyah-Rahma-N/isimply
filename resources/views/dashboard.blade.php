@@ -67,7 +67,7 @@
     </div>
 </div>
 
-@if(in_array(strtolower($user->role), ['superadmin', 'admin marketing', 'ceo',  'direktur', 'manager marketing', 'manager project', 'manager finance']))
+@if(in_array(strtolower($user->role), ['superadmin', 'admin marketing', 'ceo',  'direktur', 'manager marketing', 'manager projek', 'manager finance']))
 <div class="dashboard-header d-flex justify-content-between align-items-center">
     <span>Rekap Bulan Ini</span>
 

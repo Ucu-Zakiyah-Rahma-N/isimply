@@ -351,8 +351,19 @@
 
 
 
+            @if (in_array(auth()->user()->role, ['manager finance', 'admin finance']))
+                <li class="nav-small-cap">
+                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                    <span class="hide-menu">Finance</span>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="{{ url('finance') }}" aria-expanded="false">
+                        <span><i class="bi bi-search"></i></span>
+                        <span class="hide-menu">Data BAST</span>
+                    </a>
+                </li>
 
-
+            @endif  
 
 
 

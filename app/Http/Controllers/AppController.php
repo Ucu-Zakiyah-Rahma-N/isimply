@@ -89,12 +89,12 @@ public function dashboard()
     $rekap = [];
 
 
-if(in_array(strtolower($user->role), ['superadmin', 'admin marketing', 'ceo',  'direktur', 'manager marketing', 'manager project', 'manager finance']))
+if(in_array(strtolower($user->role), ['superadmin', 'admin marketing', 'ceo',  'direktur', 'manager marketing', 'manager projek', 'manager finance']))
 {
     $summary = DashboardHelper::getMarketingSummary($bulan, $tahun);
 }
 
-if(in_array(strtolower($user->role), ['admin 1', 'admin 2', 'ceo',  'direktur', 'manager marketing', 'manager project', 'manager finance']))
+if(in_array(strtolower($user->role), ['admin 1', 'admin 2', 'ceo',  'direktur', 'manager marketing', 'manager projek', 'manager finance']))
 {
     $projects = DashboardHelper::getAllProjects();
 
