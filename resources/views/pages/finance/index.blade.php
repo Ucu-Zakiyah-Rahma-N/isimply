@@ -28,58 +28,64 @@
                         <th>Status</th>
                         <th>PIC Keuangan</th>
                         <th>Kontak</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
 
                 <tbody>
                     @forelse ($data as $po)
-                        <tr>
-                            <td class="text-center">{{ $loop->iteration }}</td>
-                            <td>{{ $po->no_po }}</td>
-                            <td>{{ $po->tgl_po }}</td>
+                    <tr>
+                        <td class="text-center">{{ $loop->iteration }}</td>
+                        <td>{{ $po->no_po }}</td>
+                        <td>{{ $po->tgl_po }}</td>
 
-                            <td>{{ optional($po->customer)->nama_perusahaan ?? '-' }}</td>
-                            <td>{{ optional($po->quotation)->nama_bangunan ?? '-' }}</td>
-                            <td>{{ $po->kabupaten_name ?? '-' }}</td>
-                            <td>{{ $po->kawasan_name ?? '-' }}</td>
-                            <td>{{ $po->detail_alamat ?? '-' }}</td>
-                            <td>{{ $po->luasan ?? '-' }}</td>
+                        <td>{{ optional($po->customer)->nama_perusahaan ?? '-' }}</td>
+                        <td>{{ optional($po->quotation)->nama_bangunan ?? '-' }}</td>
+                        <td>{{ $po->kabupaten_name ?? '-' }}</td>
+                        <td>{{ $po->kawasan_name ?? '-' }}</td>
+                        <td>{{ $po->detail_alamat ?? '-' }}</td>
+                        <td>{{ $po->luasan ?? '-' }}</td>
 
-                            <td>
-                                @if (!empty($po->jenis_perizinan))
-                                    @foreach (explode(',', $po->jenis_perizinan) as $izin)
-                                        <span class="badge bg-primary-subtle text-dark border me-1">
-                                            {{ trim($izin) }}
-                                        </span>
-                                    @endforeach
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
+                        <td>
+                            @if (!empty($po->jenis_perizinan))
+                            @foreach (explode(',', $po->jenis_perizinan) as $izin)
+                            <span class="badge bg-primary-subtle text-dark border me-1">
+                                {{ trim($izin) }}
+                            </span>
+                            @endforeach
+                            @else
+                            <span class="text-muted">-</span>
+                            @endif
+                        </td>
 
-                            <td>
-                                {{ optional($po->quotation)->lama_pekerjaan
+                        <td>
+                            {{ optional($po->quotation)->lama_pekerjaan
                                     ? optional($po->quotation)->lama_pekerjaan . ' hari'
                                     : '-' }}
-                            </td>
+                        </td>
 
-                            <td class="text-end">
-                                Rp {{ number_format(optional($po->quotation)->grand_total ?? 0, 0, ',', '.') }}
-                            </td>
+                        <td class="text-end">
+                            Rp {{ number_format(optional($po->quotation)->grand_total ?? 0, 0, ',', '.') }}
+                        </td>
 
-                            <td class="text-center">
-                                {{ $po->status ?? '-' }}
-                            </td>
+                        <td class="text-center">
+                            {{ $po->status ?? '-' }}
+                        </td>
 
-                            <td>{{ $po->nama_pic_keuangan }}</td>
-                            <td>{{ $po->kontak_pic_keuangan }}</td>
-                        </tr>
+                        <td>{{ $po->nama_pic_keuangan }}</td>
+                        <td>{{ $po->kontak_pic_keuangan }}</td>
+                        <td>
+                            <a href="{{ route('finance.create', $po->id) }}" class="btn btn-sm btn-primary">
+                                Buat Invoice
+                            </a>
+                        </td>
+                    </tr>
                     @empty
-                        <tr>
-                            <td colspan="15" class="text-center text-muted">
-                                Data BAST belum tersedia
-                            </td>
-                        </tr>
+                    <tr>
+                        <td colspan="15" class="text-center text-muted">
+                            Data BAST belum tersedia
+                        </td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>

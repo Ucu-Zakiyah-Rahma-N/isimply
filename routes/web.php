@@ -34,13 +34,13 @@ Route::middleware('auth')->group(function () {
     Route::get('marketing/create', [MarketingController::class, 'create'])->name('marketing.create');
     Route::post('marketing', [MarketingController::class, 'store'])->name('marketing.store');
     Route::delete('/marketing/{id}', [MarketingController::class, 'destroy'])->name('marketing.destroy');
-    
+
     //jenis perizinan
     Route::get('perizinan', [PerizinanController::class, 'index'])->name('perizinan.index');
     Route::get('perizinan/create', [PerizinanController::class, 'create'])->name('perizinan.create');
     Route::post('perizinan', [PerizinanController::class, 'store'])->name('perizinan.store');
     Route::delete('/perizinan/{id}', [perizinanController::class, 'destroy'])->name('perizinan.destroy');
-    
+
     Route::get('tahapan', [TahapanController::class, 'index'])->name('tahapan.index');
     Route::get('tahapan/create', [TahapanController::class, 'create'])->name('tahapan.create');
     Route::post('tahapan', [TahapanController::class, 'store'])->name('tahapan.store');
@@ -84,7 +84,7 @@ Route::middleware('auth')->group(function () {
     Route::get('quotation', [QuotationController::class, 'index'])->name('quotation.index');
     Route::get('quotation/create', [QuotationController::class, 'create'])->name('quotation.create');
     Route::get('customer/{id}/get-customer', [QuotationController::class, 'getCustomer'])->name('get-customer');
-    Route::get('/quotation/preview-sph/{id}', [QuotationController::class, 'previewSph'])->name('quotation.previewSPH'); 
+    Route::get('/quotation/preview-sph/{id}', [QuotationController::class, 'previewSph'])->name('quotation.previewSPH');
     Route::post('quotation', [QuotationController::class, 'store'])->name('quotation.store');
 
     Route::get('/templateSPH', [QuotationController::class, 'templateIndex'])->name('template.index');
@@ -134,7 +134,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/projects/{projectId}/tambah-tahapan-opsional', [ProjectController::class, 'tambahTahapanOpsional'])->name('tahapan.opsional.store');
 
     // finance
-    Route::get('finance', [FinanceController::class, 'index'])->name('finance.index');
+    Route::prefix('finance')->name('finance.')->group(function () {
+        Route::get('/', [FinanceController::class, 'index'])->name('index');
+        Route::get('/create/{po}', [FinanceController::class, 'create'])->name('create');
+    });
 
 
     //menu timeline

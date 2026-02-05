@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\DB;
+
 use Illuminate\Database\Eloquent\Model;
 
 class PO extends Model
@@ -31,7 +33,7 @@ class PO extends Model
         );
     }
 
-        public function provinsi()
+    public function provinsi()
     {
         return $this->belongsTo(Wilayah::class, 'provinsi_id', 'kode')->where('jenis', 'provinsi');
     }
@@ -47,7 +49,16 @@ class PO extends Model
         return $this->belongsTo(KawasanIndustri::class, 'kawasan_id', 'id');
     }
 
-
-    
-
+    public static function getCustomerData($poId)
+    {
+        return DB::table('po as po')
+            ->leftJoin('customers as customer', 'po.customer_id', '=', 'customer.id')
+            ->where('po.id', $poId)
+            ->select(
+                'customer.nama_perusahaan',
+                'customer.detail_alamat',
+                'customer.npwp'
+            )
+            ->first();
+    }
 }
