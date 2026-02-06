@@ -48,19 +48,29 @@
 
         <div class="col-md-3">
           <label class="form-label">Alamat Penagihan</label>
-          <textarea class="form-control" name="alamat_penagihan" rows="3" readonly>{{ $customer->detail_alamat ?? '-' }}</textarea>
+          <textarea class="form-control" rows="3" readonly>{{ 
+              collect([
+                  $quotation->detail_alamat,
+                  $quotation->kawasan_industri->nama_kawasan ?? null,
+                  isset($quotation->kabupaten->nama)
+                      ? \Illuminate\Support\Str::title(strtolower($quotation->kabupaten->nama))
+                      : null,
+                  isset($quotation->provinsi->nama)
+                      ? \Illuminate\Support\Str::title(strtolower($quotation->provinsi->nama))
+                      : null,
+              ])->filter()->implode(', ')
+          }}</textarea>
         </div>
 
         <div class="col-md-3">
           <label class="form-label">NPWP</label>
-          <input type="text" class="form-control" name="npwp" value="{{ $customer->npwp ?? '-' }}" readonly>
+          <input type="text" class="form-control" name="npwp" value="{{ $customer->npwp ?? '-' }}" >
         </div>
 
         <div class="col-md-3">
           <label class="form-label">Referensi Proyek (No PO)</label>
           <select class="form-control" name="po_reference">
-            <option value="">Pilih PO</option>
-            <option value="{{ $po_id }}">PO-{{ $po_id }}</option>
+            <option value="{{ $no_po }}"> {{ $no_po }}</option>
           </select>
         </div>
       </div>
@@ -79,17 +89,32 @@
           </div>
         </div>
 
+        <div class="col-md-2">
+            <label class="form-label">Invoice Sebelumnya</label>
+            @forelse ($invoice_sebelumnya as $inv)
+                <input type="text"
+                      class="form-control"
+                      value="{{ $inv->no_invoice }}"
+                      readonly>
+            @empty
+                <input type="text"
+                      class="form-control"
+                      value="Belum ada invoice"
+                      readonly>
+            @endforelse
+        </div>
+
         <div class="col-md-3">
           <label class="form-label">Keterangan</label>
           <input type="text" class="form-control" name="description">
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label">Tgl Invoice</label>
           <input type="date" class="form-control" name="invoice_date">
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label">Tgl Jatuh Tempo</label>
           <input type="date" class="form-control" name="due_date">
         </div>
@@ -101,40 +126,59 @@
       <h6 class="mb-3">Produk</h6>
 
       <div id="items">
+      @foreach ($perizinans as $i => $izin)
         <div class="row align-items-end mb-2 item-row">
-          <div class="col-md-2">
+
+          <div class="col-md-3">
             <label class="form-label">Produk</label>
-            <select class="form-control" name="items[0][product]">
-              <option>ERP</option>
-              <option>PBG</option>
-            </select>
+            <input type="hidden" name="items[{{ $i }}][perizinan_id]" value="{{ $izin->id }}">
+            <input type="text"
+                  class="form-control"
+                  value="{{ $izin->jenis }}"
+                  readonly>
           </div>
 
           <div class="col-md-3">
             <label class="form-label">Deskripsi</label>
-            <input type="text" class="form-control" name="items[0][description]">
+            <input type="text"
+                  class="form-control"
+                  name="items[{{ $i }}][description]">
           </div>
 
           <div class="col-md-1">
             <label class="form-label">Qty</label>
-            <input type="number" class="form-control qty" name="items[0][qty]" value="1">
+            <input type="number"
+                  class="form-control qty"
+                  name="items[{{ $i }}][qty]"
+                  value="{{ $izin->pivot->tipe_harga === 'gabungan' ? '' : ($izin->pivot->qty ?? 1) }}"
+                  {{ $izin->pivot->tipe_harga === 'gabungan' ? 'readonly' : '' }}>
           </div>
 
           <div class="col-md-2">
             <label class="form-label">Harga</label>
-            <input type="number" class="form-control price" name="items[0][price]">
+            <input type="number"
+                  class="form-control price"
+                  name="items[{{ $i }}][price]"
+                  value="{{ $izin->pivot->tipe_harga === 'gabungan' ? '' : ($izin->pivot->harga_satuan ?? '') }}"
+                  {{ $izin->pivot->tipe_harga === 'gabungan' ? 'readonly' : '' }}>
           </div>
 
           <div class="col-md-2">
             <label class="form-label">Jumlah</label>
-            <input type="text" class="form-control subtotal" readonly>
+            <input type="text"
+                  class="form-control subtotal"
+                  value="{{ $izin->pivot->tipe_harga === 'gabungan'
+                              ? ''
+                              : (($izin->pivot->qty ?? 1) * ($izin->pivot->harga_satuan ?? 0)) }}"
+                  readonly>
           </div>
 
-          <div class="col-md-2">
+          <div class="col-md-1">
             <button type="button" class="btn btn-danger btn-sm remove-item">−</button>
             <button type="button" class="btn btn-primary btn-sm add-item">+</button>
           </div>
         </div>
+      @endforeach
       </div>
 
       <hr>

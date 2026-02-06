@@ -61,4 +61,10 @@ class PO extends Model
             )
             ->first();
     }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'po_id');
+    }
+
 }

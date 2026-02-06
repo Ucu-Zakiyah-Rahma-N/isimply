@@ -14,22 +14,29 @@ class FinanceController extends Controller
         $title = 'BAST Finance';
 
         // Ambil PO + relasi penting
-        $data = PO::with([
+        $po = PO::with([
             'customer',
             'quotation.kabupaten',
             'quotation.kawasan_industri',
-            'quotation.perizinan' // ← SINGULAR
+            'quotation.perizinan',
+            'invoices'
         ])
             ->where('bast_verified', 1)
             ->orderBy('tgl_po', 'desc')
             ->get();
+
+        $po->each(function ($po) {
+            $po->total_termin = $po->quotation->jumlah_termin ?? 0;
+            $po->invoice_terbuat = $po->invoices->count();
+            $po->sisa_termin = $po->total_termin - $po->invoice_terbuat;
+        });
 
         // Mapping kabupaten
         $kabupatenList = Wilayah::where('jenis', 'kabupaten')
             ->pluck('nama', 'kode')
             ->toArray();
 
-        foreach ($data as $item) {
+        foreach ($po as $item) {
 
             $quotation = $item->quotation;
 
@@ -75,8 +82,10 @@ class FinanceController extends Controller
 
 
             $item->jenis_perizinan = $quotation?->perizinan->isNotEmpty()
-                ? $quotation->perizinan->pluck('nama_perizinan')->implode(', ')
+                ? $quotation->perizinan->pluck('jenis')->implode(', ')
                 : '-';
+
+        
         }
 
         return view('pages.finance.index', compact('data', 'title'));
@@ -87,14 +96,50 @@ class FinanceController extends Controller
         $title = 'Create Invoice';
 
         $noInvoice = $this->generateInvoiceNumber();
+        
+        $po = Po::with([
+            'quotation.perizinan',
+            'quotation.kawasan_industri',
+            'quotation.kabupaten',
+            'quotation.provinsi',
+            'invoices'
+        ])->findOrFail($po_id);
+
+        $quotation = $po->quotation;
+        $perizinans = $quotation->perizinan;
+
+        // $totalTermin = $po->quotation->jumlah_termin ?? 0;
+        // $invoiceTerbuat = $po->invoice->count();
+
+        // if ($invoiceTerbuat >= $totalTermin) {
+        //     abort(403, 'Invoice sudah lengkap');
+        // }
+        // $terminKe = $invoiceTerbuat + 1;
+        // $sisaTermin = $totalTermin - $invoiceTerbuat;
 
         $customer = Po::getCustomerData($po_id);
 
+        $po->kabupaten_name = $quotation->kabupaten->nama ?? '-';
+        // Kawasan Industri
+        $po->kawasan_name = $quotation && $quotation->kawasan_industri
+                ? $quotation->kawasan_industri->nama_kawasan
+                : '-';
+        // Detail Alamat
+        $po->detail_alamat = $quotation->detail_alamat ?? '-';
+
+
         return view('pages.finance.create', [
-            'po_id' => $po_id,
             'title' => $title,
+            'po_id' => $po_id,
+            'po' => $po,
+            'no_po' => $po->no_po,
+            'quotation' => $quotation,
+            'perizinans'  => $perizinans,
             'no_invoice' => $noInvoice,
-            'customer' => $customer
+            'customer' => $customer,
+            // 'termin_ke' => $terminKe,
+            // 'sisa_termin' => $sisaTermin,
+            'invoice_sebelumnya' => $po->invoices,
         ]);
     }
 

@@ -29,4 +29,10 @@ class Invoice extends Model
     {
         return $this->hasMany(Quotation::class);
     }
+
+    public function po()
+    {
+        return $this->belongsTo(Po::class, 'po_id');
+    }
+
 }

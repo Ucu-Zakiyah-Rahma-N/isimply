@@ -29,6 +29,7 @@
                         <th>PIC Keuangan</th>
                         <th>Kontak</th>
                         <th>Aksi</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
 
@@ -74,10 +75,17 @@
 
                         <td>{{ $po->nama_pic_keuangan }}</td>
                         <td>{{ $po->kontak_pic_keuangan }}</td>
-                        <td>
-                            <a href="{{ route('finance.create', $po->id) }}" class="btn btn-sm btn-primary">
-                                Buat Invoice
-                            </a>
+                        <td class="text-center">
+                            @if ($po->sisa_termin > 0)
+                                <a href="{{ route('finance.create', $po->id) }}"
+                                class="btn btn-sm btn-primary">
+                                    Buat Invoice ({{ $po->invoice_terbuat + 1 }}/{{ $po->total_termin }})
+                                </a>
+                            @else
+                                <button class="btn btn-sm btn-secondary" disabled>
+                                    Invoice Lengkap
+                                </button>
+                            @endif
                         </td>
                     </tr>
                     @empty
