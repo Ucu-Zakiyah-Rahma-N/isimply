@@ -48,7 +48,7 @@
 
         <div class="col-md-3">
           <label class="form-label">Alamat Penagihan</label>
-          <textarea class="form-control" rows="3" readonly>{{ 
+          <textarea class="form-control" rows="3" readonly>{{
               collect([
                   $quotation->detail_alamat,
                   $quotation->kawasan_industri->nama_kawasan ?? null,
@@ -64,7 +64,7 @@
 
         <div class="col-md-3">
           <label class="form-label">NPWP</label>
-          <input type="text" class="form-control" name="npwp" value="{{ $customer->npwp ?? '-' }}" >
+          <input type="text" class="form-control" name="npwp" value="{{ $customer->npwp ?? '-' }}">
         </div>
 
         <div class="col-md-3">
@@ -90,18 +90,18 @@
         </div>
 
         <div class="col-md-2">
-            <label class="form-label">Invoice Sebelumnya</label>
-            @forelse ($invoice_sebelumnya as $inv)
-                <input type="text"
-                      class="form-control"
-                      value="{{ $inv->no_invoice }}"
-                      readonly>
-            @empty
-                <input type="text"
-                      class="form-control"
-                      value="Belum ada invoice"
-                      readonly>
-            @endforelse
+          <label class="form-label">Invoice Sebelumnya</label>
+          @forelse ($invoice_sebelumnya as $inv)
+          <input type="text"
+            class="form-control"
+            value="{{ $inv->no_invoice }}"
+            readonly>
+          @empty
+          <input type="text"
+            class="form-control"
+            value="Belum ada invoice"
+            readonly>
+          @endforelse
         </div>
 
         <div class="col-md-3">
@@ -126,51 +126,51 @@
       <h6 class="mb-3">Produk</h6>
 
       <div id="items">
-      @foreach ($perizinans as $i => $izin)
+        @foreach ($perizinans as $i => $izin)
         <div class="row align-items-end mb-2 item-row">
 
           <div class="col-md-3">
             <label class="form-label">Produk</label>
             <input type="hidden" name="items[{{ $i }}][perizinan_id]" value="{{ $izin->id }}">
             <input type="text"
-                  class="form-control"
-                  value="{{ $izin->jenis }}"
-                  readonly>
+              class="form-control"
+              value="{{ $izin->jenis }}"
+              readonly>
           </div>
 
           <div class="col-md-3">
             <label class="form-label">Deskripsi</label>
             <input type="text"
-                  class="form-control"
-                  name="items[{{ $i }}][description]">
+              class="form-control"
+              name="items[{{ $i }}][description]">
           </div>
 
           <div class="col-md-1">
             <label class="form-label">Qty</label>
             <input type="number"
-                  class="form-control qty"
-                  name="items[{{ $i }}][qty]"
-                  value="{{ $izin->pivot->tipe_harga === 'gabungan' ? '' : ($izin->pivot->qty ?? 1) }}"
-                  {{ $izin->pivot->tipe_harga === 'gabungan' ? 'readonly' : '' }}>
+              class="form-control qty"
+              name="items[{{ $i }}][qty]"
+              value="{{ $izin->pivot->tipe_harga === 'gabungan' ? '' : ($izin->pivot->qty ?? 1) }}"
+              {{ $izin->pivot->tipe_harga === 'gabungan' ? 'readonly' : '' }}>
           </div>
 
           <div class="col-md-2">
             <label class="form-label">Harga</label>
             <input type="number"
-                  class="form-control price"
-                  name="items[{{ $i }}][price]"
-                  value="{{ $izin->pivot->tipe_harga === 'gabungan' ? '' : ($izin->pivot->harga_satuan ?? '') }}"
-                  {{ $izin->pivot->tipe_harga === 'gabungan' ? 'readonly' : '' }}>
+              class="form-control price"
+              name="items[{{ $i }}][price]"
+              value="{{ $izin->pivot->tipe_harga === 'gabungan' ? '' : ($izin->pivot->harga_satuan ?? '') }}"
+              {{ $izin->pivot->tipe_harga === 'gabungan' ? 'readonly' : '' }}>
           </div>
 
           <div class="col-md-2">
             <label class="form-label">Jumlah</label>
             <input type="text"
-                  class="form-control subtotal"
-                  value="{{ $izin->pivot->tipe_harga === 'gabungan'
+              class="form-control subtotal"
+              value="{{ $izin->pivot->tipe_harga === 'gabungan'
                               ? ''
                               : (($izin->pivot->qty ?? 1) * ($izin->pivot->harga_satuan ?? 0)) }}"
-                  readonly>
+              readonly>
           </div>
 
           <div class="col-md-1">
@@ -178,48 +178,163 @@
             <button type="button" class="btn btn-primary btn-sm add-item">+</button>
           </div>
         </div>
-      @endforeach
+        @endforeach
       </div>
 
       <hr>
 
-      {{-- TOTAL --}}
       <div class="row justify-content-end">
         <div class="col-md-4">
+
           <div class="mb-2 d-flex justify-content-between">
             <span>Subtotal</span>
             <strong>Rp <span id="subtotal">0</span></strong>
           </div>
 
+          <div class="mb-2 d-flex justify-content-between">
+            <span>Diskon</span>
+            <strong>Rp <span id="discountAmount">0</span></strong>
+          </div>
+
+          <div id="ppnRow" class="mb-2 d-flex justify-content-between" style="display:none;">
+            <span>PPN (<span id="ppnRate">0</span>%)</span>
+            <strong>Rp <span id="ppnAmount">0</span></strong>
+          </div>
+
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="includeTax">
+            <label class="form-check-label" for="includeTax">
+              Harga sudah termasuk PPN
+            </label>
+          </div>
+
           <div class="mb-2">
             <label>Diskon</label>
-            <input type="number" class="form-control" name="discount">
+
+            <div class="input-group">
+              <select class="form-select" id="discountType">
+                <option value="percent">%</option>
+                <option value="amount">Rp</option>
+              </select>
+
+              <input type="number"
+                class="form-control"
+                id="discountValue"
+                placeholder="Nilai diskon">
+            </div>
           </div>
 
           <div class="mb-2">
             <label>PPN</label>
             <select class="form-control" name="tax">
-              <option value="11">PPN 11%</option>
-              <option value="3">PPN 3%</option>
-              <option value="2">PPN 2%</option>
+              <option value="">-- Pilih PPN --</option>
+              @foreach ($ppnList as $ppn)
+              <option value="{{ $ppn->nilai_coa }}">
+                {{ $ppn->nama_akun }}
+              </option>
+              @endforeach
             </select>
           </div>
 
           <hr>
 
           <h5>Total: Rp <span id="finalTotal">0</span></h5>
-        </div>
-      </div>
-
-      {{-- ACTION --}}
-      <div class="text-end mt-4">
-        <button class="btn btn-success px-4">
-          Buat Invoice
-        </button>
-      </div>
-
     </form>
   </div>
 </div>
+
+<script>
+  function formatRupiah(number) {
+    return number.toLocaleString('id-ID');
+  }
+
+  function recalc() {
+    let grossSubtotal = 0;
+
+    document.querySelectorAll('.item-row').forEach(row => {
+      const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
+      const price = parseFloat(row.querySelector('.price')?.value) || 0;
+
+      const rowSubtotal = qty * price;
+      row.querySelector('.subtotal').value = formatRupiah(rowSubtotal);
+
+      grossSubtotal += rowSubtotal;
+    });
+
+    const discountType = document.getElementById('discountType').value;
+    const discountInput = parseFloat(document.getElementById('discountValue').value) || 0;
+
+    let discountAmount = 0;
+
+    if (discountType === 'percent') {
+      discountAmount = grossSubtotal * (discountInput / 100);
+    } else {
+      discountAmount = discountInput;
+    }
+
+    if (discountAmount > grossSubtotal) {
+      discountAmount = grossSubtotal;
+    }
+
+    let subtotalAfterDiscount = grossSubtotal - discountAmount;
+
+    // ===============================
+    // PPN
+    // ===============================
+    const taxRate = parseFloat(document.querySelector('[name="tax"]').value) || 0;
+    const includeTax = document.getElementById('includeTax').checked;
+
+    let dpp = subtotalAfterDiscount;
+    let ppn = 0;
+    let total = subtotalAfterDiscount;
+
+    if (taxRate > 0) {
+      document.getElementById('ppnRow').style.display = 'flex';
+      document.getElementById('ppnRate').innerText = taxRate;
+
+      if (includeTax) {
+        ppn = subtotalAfterDiscount - (subtotalAfterDiscount / (1 + taxRate / 100));
+        dpp = subtotalAfterDiscount - ppn;
+        total = subtotalAfterDiscount;
+      } else {
+        ppn = subtotalAfterDiscount * (taxRate / 100);
+        total = subtotalAfterDiscount + ppn;
+      }
+
+      document.getElementById('ppnAmount').innerText =
+        formatRupiah(Math.round(ppn));
+    } else {
+      document.getElementById('ppnRow').style.display = 'none';
+    }
+
+    // ===============================
+    // Render ke UI
+    // ===============================
+    document.getElementById('subtotal').innerText =
+      formatRupiah(Math.round(dpp));
+
+    document.getElementById('discountAmount').innerText =
+      formatRupiah(Math.round(discountAmount));
+
+    document.getElementById('finalTotal').innerText =
+      formatRupiah(Math.round(total));
+  }
+</script>
+<script>
+  document.addEventListener('input', function(e) {
+    if (
+      e.target.classList.contains('qty') ||
+      e.target.classList.contains('price') ||
+      e.target.name === 'tax' ||
+      e.target.id === 'discountValue' ||
+      e.target.id === 'discountType'
+    ) {
+      recalc();
+    }
+  });
+
+  document.getElementById('includeTax').addEventListener('change', recalc);
+</script>
+
 
 @endsection

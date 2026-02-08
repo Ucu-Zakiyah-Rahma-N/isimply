@@ -34,7 +34,7 @@
                 </thead>
 
                 <tbody>
-                    @forelse ($data as $po)
+                    @forelse ($po as $po)
                     <tr>
                         <td class="text-center">{{ $loop->iteration }}</td>
                         <td>{{ $po->no_po }}</td>
@@ -77,14 +77,14 @@
                         <td>{{ $po->kontak_pic_keuangan }}</td>
                         <td class="text-center">
                             @if ($po->sisa_termin > 0)
-                                <a href="{{ route('finance.create', $po->id) }}"
+                            <a href="{{ route('finance.create', $po->id) }}"
                                 class="btn btn-sm btn-primary">
-                                    Buat Invoice ({{ $po->invoice_terbuat + 1 }}/{{ $po->total_termin }})
-                                </a>
+                                Buat Invoice ({{ $po->invoice_terbuat + 1 }}/{{ $po->total_termin }})
+                            </a>
                             @else
-                                <button class="btn btn-sm btn-secondary" disabled>
-                                    Invoice Lengkap
-                                </button>
+                            <button class="btn btn-sm btn-secondary" disabled>
+                                Invoice Lengkap
+                            </button>
                             @endif
                         </td>
                     </tr>

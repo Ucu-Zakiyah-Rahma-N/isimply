@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PO;
 use App\Models\Wilayah;
 use App\Models\invoice;
+use App\Models\Coa;
 use Carbon\Carbon;
 
 class FinanceController extends Controller
@@ -84,11 +85,9 @@ class FinanceController extends Controller
             $item->jenis_perizinan = $quotation?->perizinan->isNotEmpty()
                 ? $quotation->perizinan->pluck('jenis')->implode(', ')
                 : '-';
-
-        
         }
 
-        return view('pages.finance.index', compact('data', 'title'));
+        return view('pages.finance.index', compact('po', 'title'));
     }
 
     public function create($po_id)
@@ -96,7 +95,7 @@ class FinanceController extends Controller
         $title = 'Create Invoice';
 
         $noInvoice = $this->generateInvoiceNumber();
-        
+
         $po = Po::with([
             'quotation.perizinan',
             'quotation.kawasan_industri',
@@ -107,6 +106,7 @@ class FinanceController extends Controller
 
         $quotation = $po->quotation;
         $perizinans = $quotation->perizinan;
+        $ppnList = Coa::select('id', 'nama_akun', 'nilai_coa')->get();
 
         // $totalTermin = $po->quotation->jumlah_termin ?? 0;
         // $invoiceTerbuat = $po->invoice->count();
@@ -122,8 +122,8 @@ class FinanceController extends Controller
         $po->kabupaten_name = $quotation->kabupaten->nama ?? '-';
         // Kawasan Industri
         $po->kawasan_name = $quotation && $quotation->kawasan_industri
-                ? $quotation->kawasan_industri->nama_kawasan
-                : '-';
+            ? $quotation->kawasan_industri->nama_kawasan
+            : '-';
         // Detail Alamat
         $po->detail_alamat = $quotation->detail_alamat ?? '-';
 
@@ -140,6 +140,7 @@ class FinanceController extends Controller
             // 'termin_ke' => $terminKe,
             // 'sisa_termin' => $sisaTermin,
             'invoice_sebelumnya' => $po->invoices,
+            'ppnList' => $ppnList,
         ]);
     }
 
