@@ -137,6 +137,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('/', [FinanceController::class, 'index'])->name('index');
         Route::get('/create/{po}', [FinanceController::class, 'create'])->name('create');
+        Route::post('/akun/coa/store', [FinanceController::class, 'store_akun_coa'])->name('akun.coa.store');
     });
 
 

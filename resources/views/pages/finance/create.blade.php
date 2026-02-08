@@ -226,13 +226,16 @@
 
           <div class="mb-2">
             <label>PPN</label>
-            <select class="form-control" name="tax">
+            <select class="form-control" name="tax" id="taxSelect">
               <option value="">-- Pilih PPN --</option>
+
               @foreach ($ppnList as $ppn)
               <option value="{{ $ppn->nilai_coa }}">
                 {{ $ppn->nama_akun }}
               </option>
               @endforeach
+
+              <option value="add_new">+ Tambah Pajak</option>
             </select>
           </div>
 
@@ -243,98 +246,6 @@
   </div>
 </div>
 
-<script>
-  function formatRupiah(number) {
-    return number.toLocaleString('id-ID');
-  }
-
-  function recalc() {
-    let grossSubtotal = 0;
-
-    document.querySelectorAll('.item-row').forEach(row => {
-      const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
-      const price = parseFloat(row.querySelector('.price')?.value) || 0;
-
-      const rowSubtotal = qty * price;
-      row.querySelector('.subtotal').value = formatRupiah(rowSubtotal);
-
-      grossSubtotal += rowSubtotal;
-    });
-
-    const discountType = document.getElementById('discountType').value;
-    const discountInput = parseFloat(document.getElementById('discountValue').value) || 0;
-
-    let discountAmount = 0;
-
-    if (discountType === 'percent') {
-      discountAmount = grossSubtotal * (discountInput / 100);
-    } else {
-      discountAmount = discountInput;
-    }
-
-    if (discountAmount > grossSubtotal) {
-      discountAmount = grossSubtotal;
-    }
-
-    let subtotalAfterDiscount = grossSubtotal - discountAmount;
-
-    // ===============================
-    // PPN
-    // ===============================
-    const taxRate = parseFloat(document.querySelector('[name="tax"]').value) || 0;
-    const includeTax = document.getElementById('includeTax').checked;
-
-    let dpp = subtotalAfterDiscount;
-    let ppn = 0;
-    let total = subtotalAfterDiscount;
-
-    if (taxRate > 0) {
-      document.getElementById('ppnRow').style.display = 'flex';
-      document.getElementById('ppnRate').innerText = taxRate;
-
-      if (includeTax) {
-        ppn = subtotalAfterDiscount - (subtotalAfterDiscount / (1 + taxRate / 100));
-        dpp = subtotalAfterDiscount - ppn;
-        total = subtotalAfterDiscount;
-      } else {
-        ppn = subtotalAfterDiscount * (taxRate / 100);
-        total = subtotalAfterDiscount + ppn;
-      }
-
-      document.getElementById('ppnAmount').innerText =
-        formatRupiah(Math.round(ppn));
-    } else {
-      document.getElementById('ppnRow').style.display = 'none';
-    }
-
-    // ===============================
-    // Render ke UI
-    // ===============================
-    document.getElementById('subtotal').innerText =
-      formatRupiah(Math.round(dpp));
-
-    document.getElementById('discountAmount').innerText =
-      formatRupiah(Math.round(discountAmount));
-
-    document.getElementById('finalTotal').innerText =
-      formatRupiah(Math.round(total));
-  }
-</script>
-<script>
-  document.addEventListener('input', function(e) {
-    if (
-      e.target.classList.contains('qty') ||
-      e.target.classList.contains('price') ||
-      e.target.name === 'tax' ||
-      e.target.id === 'discountValue' ||
-      e.target.id === 'discountType'
-    ) {
-      recalc();
-    }
-  });
-
-  document.getElementById('includeTax').addEventListener('change', recalc);
-</script>
-
-
+@include('pages.finance.modal-akun')
+@vite(['resources/js/invoice/invoice_script.js'])
 @endsection

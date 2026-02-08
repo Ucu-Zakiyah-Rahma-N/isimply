@@ -7,6 +7,8 @@ use App\Models\Wilayah;
 use App\Models\invoice;
 use App\Models\Coa;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+
 
 class FinanceController extends Controller
 {
@@ -89,6 +91,35 @@ class FinanceController extends Controller
 
         return view('pages.finance.index', compact('po', 'title'));
     }
+    public function store_akun_coa(Request $request)
+    {
+        $validated = $request->validate([
+            'nama'  => 'required|string|max:255',
+            'nilai' => 'required|numeric|min:0|max:100',
+        ]);
+
+        try {
+            $ppn = Coa::create([
+                'nama_akun' => $validated['nama'],
+                'nilai_coa' => $validated['nilai'],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id'    => $ppn,
+                    'nama'  => $validated['nama'],
+                    'nilai' => $validated['nilai'],
+                ],
+                'message' => 'PPN berhasil ditambahkan'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan PPN'
+            ], 500);
+        }
+    }
 
     public function create($po_id)
     {
@@ -143,7 +174,6 @@ class FinanceController extends Controller
             'ppnList' => $ppnList,
         ]);
     }
-
 
     private function generateInvoiceNumber()
     {
