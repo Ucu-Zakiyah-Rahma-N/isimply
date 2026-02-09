@@ -1,0 +1,124 @@
+@extends('app.template')
+
+@section('content')
+<style>
+.icon-wrapper {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-wrapper i {
+    font-size: 22px;
+    line-height: 1;
+}
+
+</style>
+<div class="card-body">
+
+{{-- Rekap Card --}}
+<div class="d-flex justify-content-center mb-3">
+    <div class="d-flex flex-nowrap gap-5" style="max-width: 1000px;">
+
+        {{-- Penagihan belum dibayar --}}
+        <a href="{{ route('projects.index', ['status' => 'Belum Mulai']) }}"
+           class="text-decoration-none text-dark">
+            <div class="card shadow border-0" style="width: 350px; height: 110px;">
+                <div class="card-body d-flex align-items-center">
+
+                    <div class="icon-wrapper bg-primary text-white flex-shrink-0">
+                        <i class="ti ti-clock"></i>
+                    </div>
+
+                    <div class="ms-3">
+                        <h6 class="text-muted mb-1">Penagihan belum dibayar</h6>
+                        <h4 class="fw-bold mb-0">{{ $rekap['belum_mulai'] ?? 0 }}</h4>
+                    </div>
+
+                </div>
+            </div>
+        </a>
+
+        {{-- Penagihan telat dibayar --}}
+        <a href="{{ route('projects.index', ['status' => 'On Progress']) }}"
+           class="text-decoration-none text-dark">
+            <div class="card shadow border-0" style="width: 350px; height: 110px;">
+                <div class="card-body d-flex align-items-center">
+
+                    <div class="icon-wrapper bg-warning text-dark flex-shrink-0">
+                        <i class="ti ti-loader"></i>
+                    </div>
+
+                    <div class="ms-3">
+                        <h6 class="text-muted mb-1">Penagihan telat dibayar</h6>
+                        <h4 class="fw-bold mb-0">{{ $rekap['on_progress'] ?? 0 }}</h4>
+                    </div>
+t
+                </div>
+            </div>
+        </a>
+
+    </div>
+</div>
+
+
+    {{-- Table --}}
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Data Sudah Invoice</h5>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th>No</th>
+                            <th>No Invoice</th>
+                            <th>Tgl Invoice</th>
+                            <th>Tgl Jatuh Tempo</th>
+                            <th>No PO</th>
+                            <th>Nama Perusahaan</th>
+                            <th>Nama Bangunan</th>
+                            <th>Alamat</th>
+                            <th>Jenis Perizinan</th>
+                            <th>Status</th>
+                            <th>Sisa Tagihan</th>
+                            <th>Total</th>
+                            <th>Upload Inv</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($invoice as $inv)
+                        <tr>
+                            <td class="text-center">{{ $loop->iteration }}</td>
+                                <td>{{ $inv->no_invoice }}</td>
+                                <td>{{ $inv->tgl_inv }}</td>
+                                <td>{{ $inv->tgl_jatuh_tempo }}</td>
+                                <td>{{ $inv->po->no_po ?? '-' }}</td>
+                                <td>{{ $inv->po->quotation->customer->nama_perusahaan ?? '-' }}</td>
+                                <td>{{ $inv->po->quotation->nama_bangunan ?? '-' }}</td>
+                                <td>{{ $inv->po->quotatiion->detail_alamat ?? '-' }}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        @endforeach
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@endsection

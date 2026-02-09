@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Invoice extends Model
+class TaxInvoice extends Model
 {
-    protected $table = 'invoice';
+    protected $table = 'tax_invoice';
     protected $guarded = ['id'];
 
     public function quotations()
@@ -19,15 +19,14 @@ class Invoice extends Model
     {
         return $this->belongsTo(Po::class, 'po_id');
     }
-    
-        public function produk()
+        public function invoice()
     {
-        return $this->hasMany(ProdukInvoice::class, 'invoice_id');
+        return $this->belongsTo(Invoice::class, 'invoice_id');
     }
 
-    public function pajak()
+    public function coa()
     {
-        return $this->hasMany(TaxInvoice::class, 'invoice_id');
+        return $this->belongsTo(Pajak::class, 'coa_id');
     }
 
 }

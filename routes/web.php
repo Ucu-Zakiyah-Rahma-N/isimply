@@ -138,6 +138,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [FinanceController::class, 'index'])->name('index');
         Route::get('/create/{po}', [FinanceController::class, 'create'])->name('create');
         Route::post('/akun/coa/store', [FinanceController::class, 'store_akun_coa'])->name('akun.coa.store');
+        Route::post('/invoice/store', [FinanceController::class, 'store'])->name('invoice.store');
+        Route::get('/invoice/index', [FinanceController::class, 'invoice_index'])->name('invoice_index');
+
     });
 
 

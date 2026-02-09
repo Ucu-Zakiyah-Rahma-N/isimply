@@ -362,8 +362,13 @@
                         <span class="hide-menu">Data BAST</span>
                     </a>
                 </li>
-
-            @endif  
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="{{ route('finance.invoice_index') }}" aria-expanded="false">
+                        <span><i class=""></i></span>
+                        <span class="hide-menu">Sudah Invoice</span>
+                    </a>
+                </li>
+            @endif      
 
 
 

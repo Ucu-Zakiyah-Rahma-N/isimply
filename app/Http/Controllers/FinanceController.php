@@ -8,7 +8,10 @@ use App\Models\invoice;
 use App\Models\Coa;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-
+use App\Models\ProdukInvoice;
+use App\Models\TaxInvoice;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class FinanceController extends Controller
 {
@@ -213,5 +216,127 @@ class FinanceController extends Controller
         $runningNumber = str_pad($startNumber, 3, '0', STR_PAD_LEFT);
 
         return "{$runningNumber}/{$bulanRomawi}/INV-SDI/{$tahun}";
+    }
+    
+    public function store(Request $request)
+    {
+
+        Log::info('=== START STORE INVOICE ===');
+
+        Log::info('Request All', $request->all());
+        $request->validate([
+            'no_invoice' => 'required',
+            'po_id' => 'required',
+            'jenis_invoice' => 'required',
+            'tgl_invoice' => 'required|date',
+            'tgl_jatuh_tempo' => 'required|date',
+            'items' => 'required|array|min:1',
+        ]);
+        Log::info('Validation passed');
+
+        DB::beginTransaction();
+
+        try {
+            Log::info('Invoice payload', [
+                'no_invoice' => $request->no_invoice,
+                'po_id' => $request->po_id,
+                'jenis_invoice' => $request->jenis_invoice,
+            ]);
+
+            /* =======================
+           SIMPAN INVOICE
+        ======================= */
+            $invoice = Invoice::create([
+                'no_invoice'      => $request->no_invoice,
+                'po_id'           => $request->po_id,
+                'customer_id'     => $request->customer_id ?? null,
+                'jenis_invoice'   => $request->jenis_invoice,
+                'termin_ke'       => $request->termin_ke ?? null,
+                'keterangan'      => $request->keterangan,
+                'tgl_inv'         => $request->tgl_invoice,
+                'tgl_jatuh_tempo' => $request->tgl_jatuh_tempo,
+                'tipe_diskon'     => $request->tipe_diskon ?? 'nominal',
+                'nilai_diskon'    => $request->nilai_diskon ?? 0,
+            ]);
+            Log::info('Invoice created', [
+                'invoice_id' => $invoice->id
+            ]);
+            /* =======================
+           SIMPAN PRODUK
+        ======================= */
+            foreach ($request->items as $index => $item) {
+
+                Log::info("Processing item {$index}", $item);
+
+                if (empty($item['qty']) || empty($item['harga_satuan'])) {
+                    Log::warning("Item skipped {$index}", $item);
+                    continue;
+                }
+
+                $produk = ProdukInvoice::create([
+                    'invoice_id'   => $invoice->id,
+                    'perizinan_id' => $item['perizinan_id'],
+                    'qty'          => $item['qty'],
+                    'harga_satuan' => $item['harga_satuan'],
+                ]);
+
+
+                Log::info("Item saved {$index}", [
+                    'produk_invoice_id' => $produk->id
+                ]);
+            }
+
+            /* =======================
+           SIMPAN PAJAK
+        ======================= */
+
+            Log::info('Selected taxes', [
+                'tax' => $request->tax ?? []
+            ]);
+            if ($request->filled('tax')) {
+                foreach ($request->tax as $coaId) {
+
+                    Log::info('Saving tax', [
+                        'coa_id' => $coaId
+                    ]);
+                    TaxInvoice::create([
+                        'invoice_id' => $invoice->id,
+                        'coa_id'     => $coaId,
+                    ]);
+                }
+            }
+
+            DB::commit();
+            Log::info('Invoice transaction committed', [
+                'invoice_id' => $invoice->id
+            ]);
+            return redirect()
+                ->route('finance.invoice_index')
+                ->with('success', 'Invoice berhasil dibuat');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('STORE INVOICE FAILED', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->withErrors([
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function invoice_index(){
+        $title = 'Data Invoice';
+        $invoice = Invoice::with([
+            'produk',   // ambil semua produk_invoice terkait
+            'pajak.coa', // ambil semua tax_invoice + nama pajak
+            'po.quotation.customer',
+        ])->orderBy('id', 'desc')->get();
+
+        return view('pages.finance.invoice_index', compact('title', 'invoice'));
     }
 }
