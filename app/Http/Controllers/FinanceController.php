@@ -217,7 +217,7 @@ class FinanceController extends Controller
 
         return "{$runningNumber}/{$bulanRomawi}/INV-SDI/{$tahun}";
     }
-    
+
     public function store(Request $request)
     {
 
@@ -235,6 +235,16 @@ class FinanceController extends Controller
         Log::info('Validation passed');
 
         DB::beginTransaction();
+        $lastTermin = Invoice::where('po_id', $request->po_id)
+            ->max('termin_ke');
+
+        $terminKe = $lastTermin ? $lastTermin + 1 : 1;
+
+        Log::info('Termin calculated', [
+            'po_id' => $request->po_id,
+            'last_termin' => $lastTermin,
+            'current_termin' => $terminKe
+        ]);
 
         try {
             Log::info('Invoice payload', [
@@ -251,7 +261,7 @@ class FinanceController extends Controller
                 'po_id'           => $request->po_id,
                 'customer_id'     => $request->customer_id ?? null,
                 'jenis_invoice'   => $request->jenis_invoice,
-                'termin_ke'       => $request->termin_ke ?? null,
+                'termin_ke'       => $terminKe,
                 'keterangan'      => $request->keterangan,
                 'tgl_inv'         => $request->tgl_invoice,
                 'tgl_jatuh_tempo' => $request->tgl_jatuh_tempo,
@@ -329,7 +339,8 @@ class FinanceController extends Controller
         }
     }
 
-    public function invoice_index(){
+    public function invoice_index()
+    {
         $title = 'Data Invoice';
         $invoice = Invoice::with([
             'produk',   // ambil semua produk_invoice terkait
