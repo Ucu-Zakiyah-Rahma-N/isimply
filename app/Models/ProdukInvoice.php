@@ -10,6 +10,10 @@ class ProdukInvoice extends Model
     protected $table = 'produk_invoice';
     protected $guarded = ['id'];
 
+    public function perizinan()
+    {
+        return $this->belongsTo(Perizinan::class, 'perizinan_id');
+    }
     public function quotations()
     {
         return $this->hasMany(Quotation::class);

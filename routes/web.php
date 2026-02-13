@@ -140,7 +140,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/akun/coa/store', [FinanceController::class, 'store_akun_coa'])->name('akun.coa.store');
         Route::post('/invoice/store', [FinanceController::class, 'store'])->name('invoice.store');
         Route::get('/invoice/index', [FinanceController::class, 'invoice_index'])->name('invoice_index');
-
+        Route::get('invoice/{invoice}', [FinanceController::class, 'show'])->name('invoice.show');
+        Route::get('invoice/edit/{invoice}', [FinanceController::class, 'edit'])->name('invoice.edit');
+        Route::put('invoice/update/{invoice}', [FinanceController::class, 'update'])->name('invoice.update');
+        Route::get('/invoice/{id}/print', [FinanceController::class, 'print'])->name('invoice.invoice_print');
+        Route::delete('/invoice/{id}', [FinanceController::class, 'destroy'])->name('invoice.invoice_destroy');
     });
 
 

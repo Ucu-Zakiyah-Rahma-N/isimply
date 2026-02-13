@@ -1,134 +1,161 @@
-console.log('invoice_script loaded');
+document.addEventListener('DOMContentLoaded', function () {
 
-/* =======================
-   FORMAT RUPIAH
-======================= */
-function rupiah(num) {
-  return Math.round(num).toLocaleString('id-ID');
-}
+  const itemsContainer = document.getElementById('items');
 
-/* =======================
-   RECALC
-======================= */
-function recalc() {
-  let grossSubtotal = 0;
+  const subtotalEl = document.getElementById('subtotal');
+  const subtotalInput = document.getElementById('subtotalInput');
 
-  // HITUNG ITEM
-  document.querySelectorAll('.item-row').forEach(row => {
+  const discountType = document.getElementById('discountType');
+  const discountValue = document.getElementById('discountValue');
+  const discountAmountEl = document.getElementById('discountAmount');
+  const discountTypeInput = document.getElementById('discountTypeInput');
+  const discountValueInput = document.getElementById('discountValueInput');
+
+  const taxSelect = document.getElementById('taxSelect');
+  const ppnRow = document.getElementById('ppnRow');
+  const ppnRateEl = document.getElementById('ppnRate');
+  const ppnAmountEl = document.getElementById('ppnAmount');
+
+  const includeTaxCheckbox = document.getElementById('includeTax');
+
+  const finalTotalEl = document.getElementById('finalTotal');
+  const totalInput = document.getElementById('totalInput');
+  const grandTotalEl = document.getElementById('grandTotal');
+
+  /* ===============================
+   * FORMAT RUPIAH
+   * =============================== */
+  const formatRupiah = (angka) =>
+    Math.round(angka).toLocaleString('id-ID');
+
+  /* ===============================
+   * HITUNG SUBTOTAL PER ITEM
+   * =============================== */
+  function calculateItemSubtotal(row) {
     const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
     const price = parseFloat(row.querySelector('.price')?.value) || 0;
+    const subtotal = qty * price;
 
-    const total = qty * price;
-    grossSubtotal += total;
+    const subtotalInputItem = row.querySelector('.subtotal');
+    if (subtotalInputItem) {
+      subtotalInputItem.value = formatRupiah(subtotal);
+      subtotalInputItem.dataset.raw = subtotal;
+    }
 
-    const subtotalInput = row.querySelector('.subtotal');
-    if (subtotalInput) subtotalInput.value = rupiah(total);
-  });
-
-  /* =======================
-     DISKON
-  ======================= */
-  const discountType = document.getElementById('discountType').value;
-  const discountValue = parseFloat(document.getElementById('discountValue').value) || 0;
-
-  let discountAmount = 0;
-  if (discountType === 'persen') {
-    discountAmount = grossSubtotal * (discountValue / 100);
-  } else {
-    discountAmount = discountValue;
+    return subtotal;
   }
 
-  if (discountAmount > grossSubtotal) {
-    discountAmount = grossSubtotal;
+  /* ===============================
+   * HITUNG SEMUA ITEM
+   * =============================== */
+  function calculateItemsSubtotal() {
+    let subtotal = 0;
+
+    document.querySelectorAll('.item-row').forEach(row => {
+      subtotal += calculateItemSubtotal(row);
+    });
+
+    subtotalEl.textContent = formatRupiah(subtotal);
+    subtotalInput.value = subtotal;
+
+    return subtotal;
   }
 
-  const netSubtotal = grossSubtotal - discountAmount;
+  /* ===============================
+   * HITUNG DISKON
+   * =============================== */
+  function calculateDiscount(subtotal) {
+    const type = discountType.value;
+    const value = parseFloat(discountValue.value) || 0;
+    let discount = 0;
 
-  /* =======================
-     PAJAK
-  ======================= */
-  const taxes = $('#taxSelect').select2('data') || [];
-
-  let totalPPN = 0;
-  let totalPPH = 0;
-
-  taxes.forEach(tax => {
-    const rate = parseFloat(tax.id) || 0;
-    const type = tax.element.dataset.type;
-
-    const amount = netSubtotal * (rate / 100);
-
-    if (type === 'pph') {
-      totalPPH += amount;
+    if (type === 'persen') {
+      discount = subtotal * (value / 100);
     } else {
-      totalPPN += amount;
+      discount = value;
+    }
+
+    discountTypeInput.value = type;
+    discountValueInput.value = value;
+
+    discountAmountEl.textContent = formatRupiah(discount);
+    return discount;
+  }
+
+  /* ===============================
+   * HITUNG PAJAK
+   * =============================== */
+  function calculateTax(baseAmount) {
+    let totalRate = 0;
+
+    Array.from(taxSelect.selectedOptions).forEach(opt => {
+      if (opt.value !== 'add_new') {
+        totalRate += parseFloat(opt.dataset.nilai) || 0;
+      }
+    });
+
+    if (totalRate > 0) {
+      ppnRow.style.display = 'flex';
+      ppnRateEl.textContent = totalRate;
+    } else {
+      ppnRow.style.display = 'none';
+    }
+
+    let taxAmount = 0;
+
+    if (includeTaxCheckbox.checked && totalRate > 0) {
+      taxAmount = baseAmount - (baseAmount / (1 + totalRate / 100));
+    } else {
+      taxAmount = baseAmount * (totalRate / 100);
+    }
+
+    ppnAmountEl.textContent = formatRupiah(taxAmount);
+    return taxAmount;
+  }
+
+  /* ===============================
+   * HITUNG GRAND TOTAL
+   * =============================== */
+  function calculateTotal() {
+    const subtotal = calculateItemsSubtotal();
+    const discount = calculateDiscount(subtotal);
+    const afterDiscount = subtotal - discount;
+
+    const tax = calculateTax(afterDiscount);
+
+    let finalTotal = 0;
+
+    if (includeTaxCheckbox.checked) {
+      finalTotal = afterDiscount;
+    } else {
+      finalTotal = afterDiscount + tax;
+    }
+
+    finalTotalEl.textContent = formatRupiah(finalTotal);
+    grandTotalEl.textContent = formatRupiah(finalTotal);
+    totalInput.value = finalTotal;
+  }
+
+  /* ===============================
+   * EVENT LISTENER
+   * =============================== */
+  itemsContainer.addEventListener('input', function (e) {
+    if (
+      e.target.classList.contains('qty') ||
+      e.target.classList.contains('price')
+    ) {
+      calculateTotal();
     }
   });
 
-  /* =======================
-     FINAL TOTAL
-     subtotal - diskon + ppn - pph
-  ======================= */
-  const finalTotal = netSubtotal + totalPPN - totalPPH;
+  discountType.addEventListener('change', calculateTotal);
+  discountValue.addEventListener('input', calculateTotal);
+  taxSelect.addEventListener('change', calculateTotal);
+  includeTaxCheckbox.addEventListener('change', calculateTotal);
 
-  /* =======================
-     RENDER UI
-  ======================= */
-  document.getElementById('subtotal').innerText = rupiah(netSubtotal);
-  document.getElementById('discountAmount').innerText = rupiah(discountAmount);
-  document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-  document.getElementById('grandTotal').innerText = rupiah(finalTotal);
+  /* ===============================
+   * INIT
+   * =============================== */
+  calculateTotal();
 
-  /* =======================
-     SET HIDDEN INPUT (INI PENTING!)
-  ======================= */
-  document.getElementById('subtotalInput').value = Math.round(netSubtotal);
-  document.getElementById('totalInput').value = Math.round(finalTotal);
-  document.getElementById('discountTypeInput').value = discountType;
-  document.getElementById('discountValueInput').value = discountValue;
-
-  console.log('SUBMIT DATA', {
-    subtotal: netSubtotal,
-    total: finalTotal,
-    diskon: discountAmount,
-    ppn: totalPPN,
-    pph: totalPPH
-  });
-}
-
-/* =======================
-   EVENTS
-======================= */
-document.addEventListener('input', e => {
-  if (
-    e.target.classList.contains('qty') ||
-    e.target.classList.contains('price') ||
-    e.target.id === 'discountValue' ||
-    e.target.id === 'discountType'
-  ) recalc();
-});
-
-$(document).ready(function () {
-  $('#taxSelect').select2({
-    placeholder: 'Pilih Pajak',
-    closeOnSelect: false,
-    width: '100%'
-  });
-
-  $('#taxSelect').on('change', recalc);
-  recalc();
-});
-document.getElementById('invoiceForm').addEventListener('submit', function () {
-  recalc();
-
-  console.log('SUBMIT FINAL', {
-    subtotal: document.getElementById('subtotalInput').value,
-    total: document.getElementById('totalInput').value,
-    tipe_diskon: document.getElementById('discountTypeInput').value,
-    nilai_diskon: document.getElementById('discountValueInput').value
-  });
-});
-
-$(document).ready(function () {
-  recalc();
 });

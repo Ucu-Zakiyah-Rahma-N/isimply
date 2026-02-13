@@ -55,11 +55,13 @@ class PO extends Model
             ->leftJoin('customers as customer', 'po.customer_id', '=', 'customer.id')
             ->where('po.id', $poId)
             ->select(
+                'customer.id',
                 'customer.nama_perusahaan',
                 'customer.detail_alamat',
                 'customer.npwp'
             )
             ->first();
+            return $customerRaw ? Customer::find($customerRaw->id) : null;
     }
 
     public function invoices()

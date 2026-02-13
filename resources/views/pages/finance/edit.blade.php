@@ -3,7 +3,7 @@
 @section('content')
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Form Create Invoice</h5>
+            <h5 class="mb-0">Form Edit Invoice</h5>
         </div>
 
         <div class="card-body">
@@ -17,58 +17,54 @@
                 </div>
             @endif
 
-            <form id="invoiceForm" action="{{ route('finance.invoice.store') }}" method="POST">
+            <form id="invoiceForm" action="{{ route('finance.invoice.update', $invoice->id) }}" method="POST">
                 @csrf
-                <input type="hidden" name="po_id" value="{{ $po_id }}">
+                @method('PUT')
+                <input type="hidden" name="po_id" value="{{ $invoice->po_id }}">
 
                 {{-- HEADER --}}
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label">No Invoice</label>
-                        <input type="text" name="no_invoice" class="form-control" value="{{ $no_invoice }}" required
-                            readonly>
+                        <input type="text" name="no_invoice" class="form-control"
+                            value="{{ old('no_invoice', $invoice->no_invoice) }}" required readonly>
                     </div>
-
-                    {{-- <div class="col-md-6 text-end">
-          <div class="border rounded p-3 bg-light">
-            <strong>Total:</strong>
-            <h4 class="mb-1">Rp. <span id="grandTotal">0</span></h4>
-            <small>Invoice sudah dibuat: 2</small><br>
-            <small>Total tagihan: Rp 40.000.000</small><br>
-            <small>Sisa tagihan: Rp 40.000.000</small>
-          </div>
-        </div> --}}
                 </div>
 
                 {{-- INFORMASI PERUSAHAAN --}}
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Nama Perusahaan</label>
-                        <input type="hidden" name="customer_id" value="{{ $customer->id }}">
+                        <input type="hidden" name="customer_id" value="{{ $invoice->customer_id }}">
                         <input type="text" class="form-control" name="nama_perusahaan"
-                            value="{{ $customer->nama_perusahaan }}" readonly>
+                            value="{{ old('nama_perusahaan', $invoice->customer->nama_perusahaan) }}" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Alamat Penagihan</label>
-                        <textarea class="form-control" rows="3" readonly>{{ collect([
-                            $quotation->detail_alamat,
-                            $quotation->kawasan_industri->nama_kawasan ?? null,
-                            isset($quotation->kabupaten->nama) ? \Illuminate\Support\Str::title(strtolower($quotation->kabupaten->nama)) : null,
-                            isset($quotation->provinsi->nama) ? \Illuminate\Support\Str::title(strtolower($quotation->provinsi->nama)) : null,
-                        ])->filter()->implode(', ') }}</textarea>
+                        <textarea class="form-control" rows="3" readonly>
+        {{ collect([
+            $invoice->detail_alamat,
+            $invoice->kawasan_name,
+            $invoice->kabupaten_name,
+            $invoice->provinsi->nama ?? '-',
+        ])->filter()->implode(', ') }}
+    </textarea>
                     </div>
 
                     <div class="col-md-3">
                         <label class="form-label">NPWP</label>
-                        <input type="text" class="form-control" name="npwp" value="{{ $customer->npwp ?? '-' }}">
+                        <input type="text" class="form-control" name="npwp"
+                            value="{{ old('npwp', $invoice->customer->npwp ?? '-') }}">
                     </div>
-
                     <div class="col-md-3">
                         <label class="form-label">Referensi Proyek (No PO)</label>
-                        <select class="form-control" name="no_po">
-                            <option value="{{ $no_po }}"> {{ $no_po }}</option>
+                        <select class="form-control" name="po_id">
+                            <option value="{{ $invoice->po_id }}">
+                                {{ $invoice->po->no_po ?? '-' }}
+                            </option>
                         </select>
                     </div>
+
                 </div>
 
                 {{-- JENIS & TANGGAL --}}
@@ -76,11 +72,13 @@
                     <div class="col-md-3">
                         <label class="form-label">Jenis Invoice</label><br>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="jenis_invoice" value="dp">
+                            <input class="form-check-input" type="radio" name="jenis_invoice" value="dp"
+                                {{ old('jenis_invoice', $invoice->jenis_invoice) === 'dp' ? 'checked' : '' }}>
                             <label class="form-check-label">DP</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="jenis_invoice" value="pelunasan">
+                            <input class="form-check-input" type="radio" name="jenis_invoice" value="pelunasan"
+                                {{ old('jenis_invoice', $invoice->jenis_invoice) === 'pelunasan' ? 'checked' : '' }}>
                             <label class="form-check-label">Pelunasan</label>
                         </div>
                     </div>
@@ -98,24 +96,27 @@
                     <div class="col-md-3">
                         <label class="form-label">Keterangan</label>
                         <input type="text" class="form-control" name="keterangan"
-                            value="Termin {{ $termin_ke }} ({{ $persentaseTermin }}%)" readonly>
-                        <input type="hidden" name="persentase_termin" value="{{ $persentaseTermin }}">
+                            value="{{ old('keterangan', $invoice->keterangan) }}">
+                        <input type="hidden" name="persentase_termin"
+                            value="{{ old('persentase_termin', $invoice->persentase_termin) }}">
                     </div>
-
 
                     <div class="col-md-3">
                         <label class="form-label">Catatan</label>
-                        <input type="text" class="form-control" name="catatan">
+                        <input type="text" class="form-control" name="catatan"
+                            value="{{ old('catatan', $invoice->catatan) }}">
                     </div>
 
                     <div class="col-md-3">
                         <label class="form-label">Tgl Invoice</label>
-                        <input type="date" class="form-control" name="tgl_invoice">
+                        <input type="date" class="form-control" name="tgl_inv"
+                            value="{{ old('tgl_inv', $invoice->tgl_inv ? \Carbon\Carbon::parse($invoice->tgl_inv)->format('Y-m-d') : '') }}">
                     </div>
 
                     <div class="col-md-3">
                         <label class="form-label">Tgl Jatuh Tempo</label>
-                        <input type="date" class="form-control" name="tgl_jatuh_tempo">
+                        <input type="date" class="form-control" name="tgl_jatuh_tempo"
+                            value="{{ old('tgl_jatuh_tempo', $invoice->tgl_jatuh_tempo ? \Carbon\Carbon::parse($invoice->tgl_jatuh_tempo)->format('Y-m-d') : '') }}">
                     </div>
                 </div>
 
@@ -123,99 +124,85 @@
 
                 {{-- PRODUK --}}
                 <h6 class="mb-3">Produk</h6>
-
                 <div id="items">
-                    @foreach ($perizinans as $i => $izin)
-                        <div class="row align-items-end mb-2 item-row" {{-- //cek tipe harga --}}
-                            data-tipe-harga="{{ $quotation->harga_tipe }}">
-
-                            {{-- WAJIB: tipe harga --}}
-                            <input type="hidden" name="items[{{ $i }}][harga_tipe]"
-                                value="{{ $quotation->harga_tipe }}">
-
+                    @foreach ($invoice->produk as $i => $item)
+                        <div class="row align-items-end mb-2 item-row" data-tipe-harga="{{ $item->tipe_harga }}">
                             <div class="col-md-3">
                                 <label class="form-label">Produk</label>
                                 <input type="hidden" name="items[{{ $i }}][perizinan_id]"
-                                    value="{{ $izin->id }}">
-                                <input type="text" class="form-control" value="{{ $izin->jenis }}" readonly>
+                                    value="{{ $item->perizinan_id }}">
+                                <input type="text" class="form-control" value="{{ $item->perizinan->jenis }}"
+                                    readonly>
                             </div>
-
                             <div class="col-md-3">
                                 <label class="form-label">Deskripsi</label>
-                                <input type="text" class="form-control" name="items[{{ $i }}][deskripsi]">
+                                <input type="text" class="form-control"
+                                    name="items[{{ $i }}][description]"
+                                    value="{{ old("items.$i.description", $item->description) }}">
                             </div>
-
                             <div class="col-md-2">
                                 <label class="form-label">Qty</label>
                                 <input type="number" class="form-control qty" name="items[{{ $i }}][qty]"
-                                    value="{{ $izin->pivot->qty ?? 1 }}" readonly>
-
-                                {{-- Harga: disabled + hidden fallback --}}
-                                <input type="hidden" name="items[{{ $i }}][harga_satuan]" value="">
+                                    value="{{ old("items.$i.qty", $item->qty) }}"
+                                    {{ $item->tipe_harga === 'gabungan' ? 'readonly' : '' }}>
                             </div>
-
                             <div class="col-md-2">
                                 <label class="form-label">Harga</label>
                                 <input type="number" class="form-control price"
                                     name="items[{{ $i }}][harga_satuan]"
-                                    value="{{ $quotation->harga_tipe === 'gabungan' ? '' : $izin->pivot->harga_satuan ?? '' }}"
-                                    {{ $quotation->harga_tipe === 'gabungan' ? 'disabled readonly' : '' }} disabled>
+                                    value="{{ old("items.$i.harga_satuan", $item->harga_satuan) }}"
+                                    {{ $item->tipe_harga === 'gabungan' ? 'disabled readonly' : '' }}>
                             </div>
-
                             <div class="col-md-2">
                                 <label class="form-label">Jumlah</label>
                                 <input type="text" class="form-control jumlah"
-                                    value="{{ $quotation->harga_tipe === 'gabungan' ? '' : ($izin->pivot->qty ?? 1) * ($izin->pivot->harga_satuan ?? 0) }}"
-                                    disabled>
-                            </div>
-
-                            <div class="col-md-1">
-                                <button type="button" class="btn btn-danger btn-sm remove-item">−</button>
-                                <button type="button" class="btn btn-primary btn-sm add-item">+</button>
+                                    value="{{ $item->qty * $item->harga_satuan }}" disabled>
                             </div>
                         </div>
                     @endforeach
-
                 </div>
 
                 <hr>
 
+                {{-- TOTAL --}}
                 <div class="row justify-content-end">
                     <div class="col-md-6">
-
                         <div class="mb-2 d-flex justify-content-between">
                             <span>Subtotal</span>
                             <strong id="subtotal"> Rp {{ number_format($subtotal, 0, ',', '.') }} </strong>
                             <input type="hidden" name="subtotal" id="subtotalInput" value="{{ $subtotal }}">
                         </div>
-                        <input type="hidden" id="hargaGabunganInput" value="{{ $quotation->harga_gabungan }}">
 
-                        {{-- Tambahkan nominal invoice termin --}}
+                        <input type="hidden" id="hargaGabunganInput"
+                            value="{{ old('harga_gabungan', $invoice->harga_gabungan ?? 0) }}">
+
                         <div class="mb-2 d-flex justify-content-between">
-                            <span>Nominal Invoice ({{ $persentaseTermin }}%)</span>
+                            <span>Nominal Invoice ({{ old('persentase_termin', $invoice->persentase_termin) }}%)</span>
                             <strong id="nominalInvoice"> Rp
-                                {{ number_format(($subtotal * $persentaseTermin) / 100, 0, ',', '.') }} </strong>
+                                {{ number_format(($subtotal * $persentase_termin) / 100, 0, ',', '.') }} </strong>
                             <input type="hidden" name="nominal_invoice" id="nominalInvoiceInput"
-                                value="{{ ($subtotal * $persentaseTermin) / 100 }}">
+                                value="{{ ($subtotal * $persentase_termin) / 100 }}">
                         </div>
 
                         <div class="mb-2 d-flex justify-content-between align-items-center">
                             <div>
                                 <label class="form-label mb-1">Diskon</label>
-
                                 <div class="input-group">
                                     <select class="form-select" id="tipe_diskon" style="max-width:70px">
-                                        <option value="persen">%</option>
-                                        <option value="nominal">Rp</option>
+                                        <option value="persen"
+                                            {{ old('tipe_diskon', $invoice->tipe_diskon) === 'persen' ? 'selected' : '' }}>
+                                            %</option>
+                                        <option value="nominal"
+                                            {{ old('tipe_diskon', $invoice->tipe_diskon) === 'nominal' ? 'selected' : '' }}>
+                                            Rp</option>
                                     </select>
-
                                     <input type="number" class="form-control" id="nilai_diskon"
-                                        placeholder="Nilai diskon">
+                                        placeholder="Nilai diskon"
+                                        value="{{ old('nilai_diskon', $invoice->nilai_diskon) }}">
                                 </div>
                             </div>
-
-                            <strong>Rp <span id="jumlah_diskon">0</span></strong>
-
+                            <strong>Rp <span
+                                    id="jumlah_diskon">{{ number_format(old('nilai_diskon', $invoice->nilai_diskon), 0, ',', '.') }}</span></strong>
                         </div>
 
                         <div class="mb-2 d-flex justify-content-between align-items-center">
@@ -223,22 +210,28 @@
                             <strong>Rp <span id="total_after_discount">0</span></strong>
                         </div>
 
-                        <input type="hidden" name="tipe_diskon" id="discountTypeInput">
-                        <input type="hidden" name="nilai_diskon" id="discountValueInput">
+                        <input type="hidden" name="tipe_diskon" id="discountTypeInput"
+                            value="{{ old('tipe_diskon', $invoice->tipe_diskon) }}">
+                        <input type="hidden" name="nilai_diskon" id="discountValueInput"
+                            value="{{ old('nilai_diskon', $invoice->nilai_diskon) }}">
                         <input type="hidden" name="total_after_discount" id="totalAfterDiscountInput">
 
+                        {{-- Pajak --}}
                         <div class="mb-2">
                             <label class="form-label">Pajak</label>
 
                             @foreach ($ppnList as $tax)
+                                @php
+                                    $isChecked = $invoice->pajak->contains('coa_id', $tax->id); // centang jika ada di invoice->pajak
+                                @endphp
                                 <div class="form-check">
                                     <input class="form-check-input tax-checkbox" type="checkbox" name="tax[]"
-                                        value="{{ $tax->id }}" data-rate="{{ $tax->nilai_coa }}"
-                                        data-name="{{ $tax->nama_akun }}"
+                                        id="tax-{{ $tax->id }}" data-name="{{ $tax->nama_akun }}"
                                         data-type="{{ str_contains(strtolower($tax->nama_akun), 'pph') ? 'pph' : 'ppn' }}"
-                                        id="tax_{{ $tax->id }}">
+                                        data-rate="{{ $tax->nilai_coa }}" value="{{ $tax->id }}"
+                                        {{ $isChecked ? 'checked' : '' }}>
 
-                                    <label class="form-check-label" for="tax_{{ $tax->id }}">
+                                    <label class="form-check-label" for="tax-{{ $tax->id }}">
                                         {{ $tax->nama_akun }}
                                     </label>
                                 </div>
@@ -255,28 +248,41 @@
                         <hr>
 
                         <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ url()->previous() }}" class="btn btn-secondary">
-                                Batal
-                            </a>
-
-                            <button type="submit" class="btn btn-primary">
-                                Simpan Invoice
-                            </button>
+                            <a href="{{ url()->previous() }}" class="btn btn-secondary">Batal</a>
+                            <button type="submit" class="btn btn-primary">Update Invoice</button>
                         </div>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
 
     @include('pages.finance.modal-akun')
-    {{-- @vite(['resources/js/invoice/invoice_script.js']) --}}
 
-
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {{-- Script untuk perhitungan sama seperti form create --}}
     <script>
         function rupiah(n) {
             return Math.round(n).toLocaleString('id-ID');
         }
+
+        // Bisa pakai script create, tapi jalankan updateNominalInvoice() saat load
+        document.addEventListener('DOMContentLoaded', function() {
+            // hitung ulang total, diskon, pajak, nominal
+            updateNominalInvoice();
+            hitungDiskon();
+            hitungPajak();
+            hitungTotalAkhir();
+
+            // jika user ubah qty/harga
+            document.querySelectorAll('.qty, .price').forEach(el => el.addEventListener('input',
+                hitungSubtotalDanDiskon));
+            document.getElementById('nilai_diskon').addEventListener('input', hitungDiskon);
+            document.getElementById('tipe_diskon').addEventListener('change', hitungDiskon);
+            document.querySelectorAll('.tax-checkbox').forEach(el => el.addEventListener('change', () => {
+                hitungPajak();
+                hitungTotalAkhir();
+            }));
+        });
 
         function getBaseSubtotal() {
             let subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
@@ -290,7 +296,7 @@
 
         function updateNominalInvoice() {
             const base = getBaseSubtotal();
-            const persenTermin = parseFloat("{{ $persentaseTermin }}") || 0;
+            const persenTermin = parseFloat("{{ $persentase_termin }}") || 0;
 
             const nominal = base * persenTermin / 100;
 
@@ -342,8 +348,9 @@
         // Pajak
         // =====================
         function hitungPajak() {
-            const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) || parseFloat(document
-                .getElementById('nominalInvoiceInput').value);
+            const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) ||
+                parseFloat(document.getElementById('nominalInvoiceInput').value) ||
+                0;
             const taxes = document.querySelectorAll('.tax-checkbox:checked');
             const container = document.getElementById('taxContainer');
 
@@ -435,195 +442,5 @@
             });
         });
     </script>
-
-
-    {{-- 
-    //     function hitungDiskon() {
-    //         const subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
-    //         const jenis = document.getElementById('tipe_diskon').value;
-    //         const nilai = parseFloat(document.getElementById('nilai_diskon').value) || 0;
-
-    //         let diskon = 0;
-
-    //         if (jenis === 'persen') {
-    //             diskon = subtotal * nilai / 100;
-    //         } else {
-    //             diskon = nilai;
-    //         }
-
-    //         // ❗ pengaman: diskon tidak boleh lebih besar dari subtotal
-    //         if (diskon > subtotal) diskon = subtotal;
-
-    //         const totalAfterDiscount = subtotal - diskon;
-
-    //         // tampilkan
-    //         document.getElementById('jumlah_diskon').innerText = rupiah(diskon);
-    //         document.getElementById('total_after_discount').innerText = rupiah(totalAfterDiscount);
-
-    //         // hidden input untuk submit
-    //         document.getElementById('discountTypeInput').value = jenis;
-    //         document.getElementById('discountValueInput').value = nilai;
-    //         document.getElementById('totalAfterDiscountInput').value = totalAfterDiscount;
-
-    //         hitungPajak();
-    //         hitungTotalAkhir();
-    //     }
-
-    //     document.getElementById('tipe_diskon').addEventListener('change', hitungDiskon);
-    //     document.getElementById('nilai_diskon').addEventListener('input', hitungDiskon);
-
-    //     let subtotal = 0;
-    //     let discountAmount = 0;
-    //     let dpp = 0; // dasar pengenaan pajak
-
-    //     function hitungSubtotalDanDiskon() {
-
-    //         subtotal = 0;
-    //         let hasNonGabungan = false;
-
-    //         document.querySelectorAll('.item-row').forEach(row => {
-    //             const tipeHarga = row.dataset.tipeHarga;
-    //             const qty = parseFloat(row.querySelector('.qty')?.value || 0);
-    //             const price = parseFloat(row.querySelector('.price')?.value || 0);
-    //             // subtotal += qty * price;
-
-    //             if (tipeHarga !== 'gabungan' && qty > 0 && price > 0) {
-    //               subtotal += qty * price;
-    //               hasNonGabungan = true;
-    //             }
-    //         });
-    //         // JIKA SEMUA ITEM GABUNGAN → PAKAI HARGA GABUNGAN
-    //         if (!hasNonGabungan) {
-    //           const hargaGabungan = parseFloat(
-    //             document.getElementById('hargaGabunganInput')?.value || 0
-    //           );
-              
-    //           console.log('PAKAI HARGA GABUNGAN:', hargaGabungan);
-
-    //           subtotal = hargaGabungan;
-    //         }
-
-    //         // tampil subtotal
-    //         document.getElementById('subtotal').innerText = rupiah(subtotal);
-    //         document.getElementById('subtotalInput').value = subtotal;
-
-    //         // =====================
-    //         // DISKON
-    //         // =====================
-    //         const tipeDiskon = document.getElementById('tipe_diskon').value;
-    //         const nilaiDiskon = parseFloat(document.getElementById('nilai_diskon').value || 0);
-
-    //         if (nilaiDiskon > 0) {
-    //             discountAmount = tipeDiskon === 'persen' ?
-    //                 subtotal * nilaiDiskon / 100 :
-    //                 nilaiDiskon;
-    //         } else {
-    //             discountAmount = 0;
-    //         }
-
-    //         document.getElementById('jumlah_diskon').innerText = rupiah(discountAmount);
-
-    //         // =====================
-    //         // DPP (INI KUNCI)
-    //         // =====================
-    //         dpp = subtotal - discountAmount;
-
-    //         hitungDiskon();
-    //         hitungTotalAkhir();
-    //     }
-
-
-    //     // pajak
-    //     function getTaxBase() {
-    //         const subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
-    //         const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
-
-    //         return afterDiscount > 0 ? afterDiscount : subtotal;
-    //     }
-
-    //     function hitungPajak() {
-    //         const taxBase = getTaxBase();
-    //         const taxes = document.querySelectorAll('.tax-checkbox:checked');
-    //         const container = document.getElementById('taxContainer');
-
-    //         container.innerHTML = '';
-
-    //         // let totalPPN = 0;
-    //         // let totalPPH = 0;
-
-    //         taxes.forEach(el => {
-    //             const rate = parseFloat(el.dataset.rate);
-    //             const name = el.dataset.name;
-    //             // const type = el.dataset.type;
-
-    //             const amount = taxBase * rate / 100;
-
-    //             // if (type === 'ppn') totalPPN += amount;
-    //             // if (type === 'pph') totalPPH += amount;
-
-    //             container.innerHTML += `
-    //   <div class="d-flex justify-content-between mb-1">
-    //     <span>${name}</span>
-    //     <strong>Rp ${rupiah(amount)}</strong>
-    //   </div>
-    // `;
-    //         });
-
-    //         // const finalTotal = taxBase + totalPPN - totalPPH;
-
-    //         // document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-    //         // document.getElementById('totalInput').value = finalTotal;
-    //     }
-
-    //     document.querySelectorAll('.tax-checkbox')
-    //         .forEach(el => el.addEventListener('change', () => {
-    //             hitungPajak();
-    //             hitungTotalAkhir();
-    //         }));
-
-    //     // total akhir
-    //     function getBaseAmount() {
-    //         const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
-    //         const subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
-
-    //         return afterDiscount > 0 ? afterDiscount : subtotal;
-    //     }
-
-    //     function hitungTotalAkhir() {
-    //         const dpp = parseFloat(document.getElementById('totalAfterDiscountInput').value) ||
-    //             parseFloat(document.getElementById('subtotalInput').value) ||
-    //             0;
-
-    //         const taxes = document.querySelectorAll('.tax-checkbox:checked');
-
-    //         let totalPPN = 0;
-    //         let totalPPH = 0;
-
-    //         taxes.forEach(tax => {
-    //             const rate = parseFloat(tax.dataset.rate) || 0;
-    //             const name = tax.dataset.name.toLowerCase();
-
-    //             const amount = dpp * rate / 100;
-
-    //             if (name.includes('pph')) {
-    //                 totalPPH += amount;
-    //             } else {
-    //                 totalPPN += amount;
-    //             }
-    //         });
-
-    //         const finalTotal = dpp + totalPPN - totalPPH;
-
-    //         document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-    //         document.getElementById('totalInput').value = finalTotal;
-    //     }
-
-    // document.addEventListener('DOMContentLoaded', function () {
-    // hitungSubtotalDanDiskon();
-    // }); --}}
-
-
-
-
 
 @endsection
