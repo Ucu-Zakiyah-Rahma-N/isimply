@@ -99,47 +99,45 @@
                         <thead class="table-light">
                             <tr class="text-center align-middle">
                                 <th>No</th>
-                                <th>No Invoice</th>
-                                <th>Tgl Invoice</th>
-                                <th>Tgl Jatuh Tempo</th>
-                                <th>No PO</th>
                                 <th>Nama Perusahaan</th>
+                                <th>No Invoice</th>
+                                <th>No PO</th>
+                                <th>Jenis Perizinan</th>
+                                <th>Termin</th>
+                                <th>Nominal PO</th>
+                                <th>DPP</th>
+                                <th>PPN</th>
+                                <th>PPh</th>
+                                <th>Total Tagihan</th>
+                                <th>Tgl Pembayaran</th>
+                                <th>Bulan</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+
+
+                                {{-- <th>Tgl Invoice</th>
+                                <th>Tgl Jatuh Tempo</th>
                                 <th>Nama Bangunan</th>
                                 <th>Alamat</th>
-                                <th>Jenis Perizinan</th>
                                 <th>Status</th>
                                 <th>Sisa Tagihan</th>
-                                <th>Total</th>
-                                <th>Upload Inv</th>
-                                <th>Aksi</th>
+                                <th>Upload Inv</th> --}}
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($invoice as $inv)
+                                @php
+                                    $terminData = \App\Helpers\TotalInvoiceHelper::calculateTerminBreakdown($inv);
+                                @endphp
                                 <tr>
                                     <td class="text-center">{{ $loop->iteration }}</td>
+                                    <td>{{ $inv->po->quotation->customer->nama_perusahaan ?? '-' }}</td>
                                     <td>
                                         <a href="{{ route('finance.invoice.show', $inv->id) }}" class="text-primary">
                                             {{ $inv->no_invoice }}
                                         </a>
                                     </td>
-                                    <td>{{ $inv->tgl_inv }}</td>
-                                    <td>{{ $inv->tgl_jatuh_tempo }}</td>
                                     <td>{{ $inv->po->no_po ?? '-' }}</td>
-                                    <td>{{ $inv->po->quotation->customer->nama_perusahaan ?? '-' }}</td>
-                                    <td>{{ $inv->po->quotation->nama_bangunan ?? '-' }}</td>
-                                    <td>
-                                        {{ collect([
-                                            $inv->po->quotation->detail_alamat,
-                                            $inv->po->quotation->kawasan_industri->nama_kawasan ?? null,
-                                            isset($inv->po->quotation->kabupaten->nama)
-                                                ? \Illuminate\Support\Str::title(strtolower($inv->po->quotation->kabupaten->nama))
-                                                : null,
-                                            isset($inv->po->quotation->provinsi->nama)
-                                                ? \Illuminate\Support\Str::title(strtolower($inv->po->quotation->provinsi->nama))
-                                                : null,
-                                        ])->filter()->implode(', ') }}
-                                    </td>
                                     <td>
                                         @php
                                             $perizinans = $inv->po->quotation->perizinan ?? collect();
@@ -155,16 +153,37 @@
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
+                                    <td>{{ $inv->keterangan ?? '-' }}</td>
+                                    <td class="text-end fw-bold">
+                                        Rp {{ number_format($terminData['nominal_termin'], 0, ',', '.') }}
+                                    </td>
+                                    <td class="text-end fw-bold">
+                                        Rp {{ number_format($terminData['dpp'], 0, ',', '.') }}
+                                    </td>
+                                    <td class="text-end fw-bold">
+                                        @if ($terminData['ppn'] > 0)
+                                            Rp {{ number_format($terminData['ppn'], 0, ',', '.') }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
 
+                                    <td class="text-end fw-bold">
+                                        @if ($terminData['pph'] > 0)
+                                            Rp {{ number_format($terminData['pph'], 0, ',', '.') }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
 
-
-
-                                    <td></td>
-                                    <td></td>
                                     <td>
                                         Rp
                                         {{ number_format(\App\Helpers\TotalInvoiceHelper::calculateTotal($inv), 0, ',', '.') }}
                                     </td>
+
+
+                                    <td></td>
+                                    <td></td>
                                     <td></td>
 
                                     <td class="text-center">
@@ -187,7 +206,21 @@
                                             </button>
                                         </form>
                                     </td>
-
+                                    {{-- <td>{{ $inv->tgl_inv }}</td>
+                                    <td>{{ $inv->tgl_jatuh_tempo }}</td>
+                                    <td>{{ $inv->po->quotation->nama_bangunan ?? '-' }}</td>
+                                    <td>
+                                        {{ collect([
+                                            $inv->po->quotation->detail_alamat,
+                                            $inv->po->quotation->kawasan_industri->nama_kawasan ?? null,
+                                            isset($inv->po->quotation->kabupaten->nama)
+                                                ? \Illuminate\Support\Str::title(strtolower($inv->po->quotation->kabupaten->nama))
+                                                : null,
+                                            isset($inv->po->quotation->provinsi->nama)
+                                                ? \Illuminate\Support\Str::title(strtolower($inv->po->quotation->provinsi->nama))
+                                                : null,
+                                        ])->filter()->implode(', ') }}
+                                    </td> --}}
                                 </tr>
                             @endforeach
 

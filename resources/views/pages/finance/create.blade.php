@@ -64,7 +64,7 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Referensi Proyek (No PO)</label>
+                        <label class="form-label">No PO</label>
                         <select class="form-control" name="no_po">
                             <option value="{{ $no_po }}"> {{ $no_po }}</option>
                         </select>
@@ -121,62 +121,34 @@
 
                 <hr>
 
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="sameWithPo" checked>
+                    <label class="form-check-label fw-semibold" for="sameWithPo">
+                        Sama dengan PO
+                    </label>
+                </div>
+
+
                 {{-- PRODUK --}}
                 <h6 class="mb-3">Produk</h6>
 
-                <div id="items">
-                    @foreach ($perizinans as $i => $izin)
-                        <div class="row align-items-end mb-2 item-row" {{-- //cek tipe harga --}}
-                            data-tipe-harga="{{ $quotation->harga_tipe }}">
-
-                            {{-- WAJIB: tipe harga --}}
-                            <input type="hidden" name="items[{{ $i }}][harga_tipe]"
-                                value="{{ $quotation->harga_tipe }}">
-
-                            <div class="col-md-3">
-                                <label class="form-label">Produk</label>
-                                <input type="hidden" name="items[{{ $i }}][perizinan_id]"
-                                    value="{{ $izin->id }}">
-                                <input type="text" class="form-control" value="{{ $izin->jenis }}" readonly>
-                            </div>
-
-                            <div class="col-md-3">
-                                <label class="form-label">Deskripsi</label>
-                                <input type="text" class="form-control" name="items[{{ $i }}][deskripsi]">
-                            </div>
-
-                            <div class="col-md-2">
-                                <label class="form-label">Qty</label>
-                                <input type="number" class="form-control qty" name="items[{{ $i }}][qty]"
-                                    value="{{ $izin->pivot->qty ?? 1 }}" readonly>
-
-                                {{-- Harga: disabled + hidden fallback --}}
-                                <input type="hidden" name="items[{{ $i }}][harga_satuan]" value="">
-                            </div>
-
-                            <div class="col-md-2">
-                                <label class="form-label">Harga</label>
-                                <input type="number" class="form-control price"
-                                    name="items[{{ $i }}][harga_satuan]"
-                                    value="{{ $quotation->harga_tipe === 'gabungan' ? '' : $izin->pivot->harga_satuan ?? '' }}"
-                                    {{ $quotation->harga_tipe === 'gabungan' ? 'disabled readonly' : '' }} disabled>
-                            </div>
-
-                            <div class="col-md-2">
-                                <label class="form-label">Jumlah</label>
-                                <input type="text" class="form-control jumlah"
-                                    value="{{ $quotation->harga_tipe === 'gabungan' ? '' : ($izin->pivot->qty ?? 1) * ($izin->pivot->harga_satuan ?? 0) }}"
-                                    disabled>
-                            </div>
-
-                            <div class="col-md-1">
-                                <button type="button" class="btn btn-danger btn-sm remove-item">−</button>
-                                <button type="button" class="btn btn-primary btn-sm add-item">+</button>
-                            </div>
-                        </div>
-                    @endforeach
-
+                <div class="row fw-bold border-bottom pb-2 mb-2">
+                    <div class="col-md-3">Produk</div>
+                    <div class="col-md-3">Deskripsi</div>
+                    <div class="col-md-2">Qty</div>
+                    <div class="col-md-2">Harga</div>
+                    <div class="col-md-1">Jumlah</div>
+                    <div class="col-md-1 text-center"></div>
                 </div>
+
+                <div id="items"></div>
+
+                <div class="mt-3">
+                    <button type="button" class="btn btn-primary btn-sm add-item">
+                        + Tambah Pekerjaan
+                    </button>
+                </div>
+
 
                 <hr>
 
@@ -190,14 +162,46 @@
                         </div>
                         <input type="hidden" id="hargaGabunganInput" value="{{ $quotation->harga_gabungan }}">
 
-                        {{-- Tambahkan nominal invoice termin --}}
+
+                        {{-- Diskon dari Quotation --}}
                         <div class="mb-2 d-flex justify-content-between">
+                            <span>Diskon PO</span>
+                            <strong>
+                                {{ $diskonQuotation > 0 ? 'Rp ' . number_format($diskonQuotation, 0, ',', '.') : '-' }}
+                            </strong>
+                        </div>
+
+                        {{-- Nominal PO --}}
+                        <div class="mb-2 d-flex justify-content-between">
+                            <span class="fw-semibold">Nominal PO</span>
+                            <strong>
+                                Rp {{ number_format($nominalPO, 0, ',', '.') }}
+                            </strong>
+                        </div>
+                        <hr>
+                        {{-- Nominal Invoice Termin --}}
+                        {{-- <div class="mb-2 d-flex justify-content-between">
+                            <span>Nominal Invoice ({{ $persentaseTermin }}%)</span>
+                            <strong>
+                                Rp {{ number_format($nominalInvoice, 0, ',', '.') }}
+                            </strong>
+                        </div> --}}
+                        <div class="mb-2 d-flex justify-content-between">
+                            <span>Nominal Invoice ({{ $persentaseTermin }}%)</span>
+                            <strong data-role="nominalInvoice">
+                                Rp {{ number_format($nominalInvoice, 0, ',', '.') }}
+                            </strong>
+                        </div>
+
+                        <input type="hidden" name="nominal_invoice" value="{{ $nominalInvoice }}">
+
+                        {{-- <div class="mb-2 d-flex justify-content-between">
                             <span>Nominal Invoice ({{ $persentaseTermin }}%)</span>
                             <strong id="nominalInvoice"> Rp
                                 {{ number_format(($subtotal * $persentaseTermin) / 100, 0, ',', '.') }} </strong>
                             <input type="hidden" name="nominal_invoice" id="nominalInvoiceInput"
                                 value="{{ ($subtotal * $persentaseTermin) / 100 }}">
-                        </div>
+                        </div> --}}
 
                         <div class="mb-2 d-flex justify-content-between align-items-center">
                             <div>
@@ -219,6 +223,7 @@
                         </div>
 
                         <div class="mb-2 d-flex justify-content-between align-items-center">
+
                             <span class="fw-semibold">Total After Diskon</span>
                             <strong>Rp <span id="total_after_discount">0</span></strong>
                         </div>
@@ -226,6 +231,8 @@
                         <input type="hidden" name="tipe_diskon" id="discountTypeInput">
                         <input type="hidden" name="nilai_diskon" id="discountValueInput">
                         <input type="hidden" name="total_after_discount" id="totalAfterDiscountInput">
+
+                        <div id="dppContainer" class="mb-2"></div>
 
                         <div class="mb-2">
                             <label class="form-label">Pajak</label>
@@ -274,63 +281,183 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+        const poItems = @json($perizinans);
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const checkbox = document.getElementById('sameWithPo');
+            const itemsContainer = document.getElementById('items');
+            const addButton = document.querySelector('.add-item');
+            const poItems = @json($perizinans);
+
+            function loadPoItems() {
+
+                itemsContainer.innerHTML = '';
+                addButton.style.display = 'none';
+
+                poItems.forEach((item, i) => {
+
+                    const qty = item.pivot?.qty ?? 1;
+                    const harga = item.pivot?.harga_satuan ?? 0;
+                    const jumlah = qty * harga;
+
+                    itemsContainer.insertAdjacentHTML('beforeend', `
+                <div class="row align-items-center mb-2 item-row">
+
+                    <input type="hidden" name="items[${i}][perizinan_id]" value="${item.id}">
+
+                    <div class="col-md-3">
+                        <input type="text" class="form-control"
+                            value="${item.jenis}" readonly>
+                    </div>
+
+                    <div class="col-md-3">
+                        <input type="text" class="form-control"
+                            name="items[${i}][deskripsi]">
+                    </div>
+
+                    <div class="col-md-2">
+                        <input type="number" class="form-control"
+                            name="items[${i}][qty]" value="${qty}" readonly>
+                    </div>
+
+                    <div class="col-md-2">
+                        <input type="number" class="form-control"
+                            name="items[${i}][harga_satuan]" value="${harga}" readonly>
+                    </div>
+
+                    <div class="col-md-1">
+                        <input type="text" class="form-control"
+                            value="${jumlah}" readonly>
+                    </div>
+
+                    <div class="col-md-1"></div>
+
+                </div>
+            `);
+                });
+            }
+
+            function loadManualForm() {
+                itemsContainer.innerHTML = '';
+                addButton.style.display = 'inline-block';
+                addManualRow();
+            }
+
+            function addManualRow() {
+
+                const index = itemsContainer.querySelectorAll('.item-row').length;
+
+                itemsContainer.insertAdjacentHTML('beforeend', `
+            <div class="row align-items-center mb-2 item-row">
+
+                <div class="col-md-3">
+                    <input type="text"
+                        class="form-control"
+                        name="items[${index}][produk]">
+                </div>
+
+                <div class="col-md-3">
+                    <input type="text"
+                        class="form-control"
+                        name="items[${index}][deskripsi]">
+                </div>
+
+                <div class="col-md-2">
+                    <input type="number"
+                        class="form-control qty"
+                        name="items[${index}][qty]"
+                        value="1">
+                </div>
+
+                <div class="col-md-2">
+                    <input type="number"
+                        class="form-control price"
+                        name="items[${index}][harga_satuan]">
+                </div>
+
+                <div class="col-md-1">
+                    <input type="text"
+                        class="form-control jumlah"
+                        readonly>
+                </div>
+
+                <div class="col-md-1 text-center">
+                    <button type="button"
+                        class="btn btn-sm btn-outline-danger remove-item">
+                        ✕
+                    </button>
+                </div>
+
+            </div>
+        `);
+            }
+
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    loadPoItems();
+                } else {
+                    loadManualForm();
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+
+                if (e.target.classList.contains('remove-item')) {
+                    e.target.closest('.item-row').remove();
+                }
+
+                if (e.target.classList.contains('add-item')) {
+                    addManualRow();
+                }
+            });
+
+            // Default: Sama dengan PO aktif
+            checkbox.checked = true;
+            loadPoItems();
+
+        });
+
         function rupiah(n) {
             return Math.round(n).toLocaleString('id-ID');
         }
 
-        function getBaseSubtotal() {
-            let subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
-            const hargaGabungan = parseFloat(document.getElementById('hargaGabunganInput')?.value || 0);
-
-            if (subtotal === 0 && hargaGabungan > 0) {
-                subtotal = hargaGabungan;
-            }
-            return subtotal;
-        }
-
-        function updateNominalInvoice() {
-            const base = getBaseSubtotal();
-            const persenTermin = parseFloat("{{ $persentaseTermin }}") || 0;
-
-            const nominal = base * persenTermin / 100;
-
-            document.getElementById('nominalInvoice').innerText = rupiah(nominal);
-            document.getElementById('nominalInvoiceInput').value = nominal;
-
-            hitungDiskon();
-            hitungPajak();
-            hitungTotalAkhir();
+        // =====================
+        // Ambil Base Nominal Invoice
+        // =====================
+        function getNominalInvoice() {
+            return parseFloat(document.querySelector('input[name="nominal_invoice"]').value) || 0;
         }
 
         // =====================
         // Diskon
         // =====================
         function hitungDiskon() {
-            const nominalInvoice = parseFloat(document.getElementById('nominalInvoiceInput').value) || 0;
-            const jenis = document.getElementById('tipe_diskon').value;
-            const nilai = parseFloat(document.getElementById('nilai_diskon').value); // jangan pakai || 0
 
-            // Hitung diskon seperti biasa
+            const nominalInvoice = getNominalInvoice();
+            const jenis = document.getElementById('tipe_diskon').value;
+            const nilai = parseFloat(document.getElementById('nilai_diskon').value) || 0;
+
             let diskon = 0;
-            if (!isNaN(nilai) && nilai > 0) {
-                if (jenis === 'persen') diskon = nominalInvoice * nilai / 100;
-                else diskon = nilai;
+
+            if (jenis === 'persen') {
+                diskon = nominalInvoice * nilai / 100;
+            } else {
+                diskon = nilai;
             }
 
             if (diskon > nominalInvoice) diskon = nominalInvoice;
 
             const totalAfterDiscount = nominalInvoice - diskon;
 
-            // Tampilkan di UI, default 0 jika user belum input
-            document.getElementById('jumlah_diskon').innerText = (!nilai || nilai <= 0) ? '0' : rupiah(diskon);
-            document.getElementById('total_after_discount').innerText = (!nilai || nilai <= 0) ? '0' : rupiah(
-                totalAfterDiscount);
+            document.getElementById('jumlah_diskon').innerText = rupiah(diskon);
+            document.getElementById('total_after_discount').innerText = rupiah(totalAfterDiscount);
 
-            // hidden input tetap pakai angka sebenarnya supaya submit dan pajak tetap benar
             document.getElementById('discountTypeInput').value = jenis;
-            document.getElementById('discountValueInput').value = nilai || 0;
+            document.getElementById('discountValueInput').value = nilai;
             document.getElementById('totalAfterDiscountInput').value = totalAfterDiscount;
 
+            hitungDPP();
             hitungPajak();
             hitungTotalAkhir();
         }
@@ -338,27 +465,72 @@
         document.getElementById('tipe_diskon').addEventListener('change', hitungDiskon);
         document.getElementById('nilai_diskon').addEventListener('input', hitungDiskon);
 
+        function hitungDPP() {
+
+            const nominalInvoice = getNominalInvoice();
+            const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
+
+            // Tentukan base
+            const base = afterDiscount > 0 && afterDiscount !== nominalInvoice ?
+                afterDiscount :
+                nominalInvoice;
+
+            // const dpp = base * 11 / 12; ini bilangan bulat
+            const dpp = Math.floor((base * 11) / 12); // ini nominal asli
+
+            const container = document.getElementById('dppContainer');
+
+            container.innerHTML = `
+        <div class="d-flex justify-content-between mb-1">
+            <span>DPP</span>
+            <strong>Rp ${rupiah(dpp)}</strong>
+        </div>
+    `;
+
+            return dpp;
+        }
+
         // =====================
         // Pajak
         // =====================
         function hitungPajak() {
-            const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) || parseFloat(document
-                .getElementById('nominalInvoiceInput').value);
+
+            const nominalInvoice = getNominalInvoice();
+            const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
+
+            const base = (afterDiscount > 0 && afterDiscount !== nominalInvoice) ?
+                afterDiscount :
+                nominalInvoice;
+
+            // DPP = base × 11/12 (truncate)
+            const dpp = Math.floor((base * 11) / 12);
+
             const taxes = document.querySelectorAll('.tax-checkbox:checked');
             const container = document.getElementById('taxContainer');
 
             container.innerHTML = '';
 
             taxes.forEach(el => {
+
                 const rate = parseFloat(el.dataset.rate) || 0;
                 const name = el.dataset.name;
-                const amount = base * rate / 100;
+                const type = el.dataset.type;
+
+                let amount = 0;
+
+                if (type === 'ppn') {
+                    // PPN = DPP × 12%
+                    amount = Math.floor((dpp * 12) / 100);
+                } else {
+                    // PPh = base × rate%
+                    amount = Math.floor((base * rate) / 100);
+                }
 
                 container.innerHTML += `
-            <div class="d-flex justify-content-between mb-1">
-                <span>${name}</span>
-                <strong>Rp ${rupiah(amount)}</strong>
-            </div>`;
+        <div class="d-flex justify-content-between mb-1">
+            <span>${name}</span>
+            <strong>Rp ${rupiah(amount)}</strong>
+        </div>`;
             });
         }
 
@@ -366,264 +538,151 @@
         // Total Akhir
         // =====================
         function hitungTotalAkhir() {
-            const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) || parseFloat(document
-                .getElementById('nominalInvoiceInput').value);
+
+            const nominalInvoice = getNominalInvoice();
+            const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
+
+            const base = (afterDiscount > 0 && afterDiscount !== nominalInvoice) ?
+                afterDiscount :
+                nominalInvoice;
+
+            // DPP truncate
+            const dpp = Math.floor((base * 11) / 12);
+
             const taxes = document.querySelectorAll('.tax-checkbox:checked');
 
-            let totalPPN = 0,
-                totalPPH = 0;
+            let totalPPN = 0;
+            let totalPPH = 0;
 
             taxes.forEach(tax => {
-                const rate = parseFloat(tax.dataset.rate) || 0;
-                const name = tax.dataset.name.toLowerCase();
-                const amount = base * rate / 100;
 
-                if (name.includes('pph')) totalPPH += amount;
-                else totalPPN += amount;
+                const rate = parseFloat(tax.dataset.rate) || 0;
+                const type = tax.dataset.type;
+
+                if (type === 'ppn') {
+                    totalPPN += Math.floor((dpp * 12) / 100);
+                } else {
+                    totalPPH += Math.floor((base * rate) / 100);
+                }
             });
 
+            // Total akhir
             const finalTotal = base + totalPPN - totalPPH;
 
             document.getElementById('finalTotal').innerText = rupiah(finalTotal);
             document.getElementById('totalInput').value = finalTotal;
         }
 
-        document.querySelectorAll('.tax-checkbox').forEach(el => el.addEventListener('change', () => {
+        document.querySelectorAll('.tax-checkbox').forEach(el =>
+            el.addEventListener('change', () => {
+                hitungDPP();
+                hitungPajak();
+                hitungTotalAkhir();
+            })
+        );
+
+        // =====================
+        // INIT
+        // =====================
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // set default after discount = nominal invoice
+            document.getElementById('totalAfterDiscountInput').value = getNominalInvoice();
+            document.getElementById('total_after_discount').innerText = rupiah(getNominalInvoice());
+            hitungDPP();
             hitungPajak();
             hitungTotalAkhir();
-        }));
+        });
 
-        // =====================
-        // Subtotal dinamis jika user ubah qty/harga
-        // =====================
-        function hitungSubtotalDanDiskon() {
-            let subtotal = 0;
-            let hasNonGabungan = false;
+        //resetzz ke manual
+        function resetNominal() {
 
-            document.querySelectorAll('.item-row').forEach(row => {
-                const tipeHarga = row.dataset.tipeHarga;
-                const qty = parseFloat(row.querySelector('.qty')?.value || 0);
-                const price = parseFloat(row.querySelector('.price')?.value || 0);
+            // Reset angka
+            document.getElementById('subtotal').innerText = 'Rp 0';
+            document.getElementById('subtotalInput').value = 0;
 
-                if (tipeHarga !== 'gabungan' && qty > 0 && price > 0) {
-                    subtotal += qty * price;
-                    hasNonGabungan = true;
-                }
+            document.querySelector('[name="nominal_invoice"]').value = 0;
+
+            document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el => {
+                el.innerText = 'Rp 0';
             });
 
-            // Jika semua gabungan → pakai harga gabungan
-            if (!hasNonGabungan) {
-                subtotal = parseFloat(document.getElementById('hargaGabunganInput')?.value || 0);
-            }
+            // Reset diskon invoice
+            const diskonInput = document.querySelector('[name="nilai_diskon"]');
+            if (diskonInput) diskonInput.value = 0;
 
-            // Update subtotal di UI
-            document.getElementById('subtotal').innerText = rupiah(subtotal);
-            document.getElementById('subtotalInput').value = subtotal;
+            // Reset tampilan total
+            document.querySelectorAll('[data-role="totalAfterDiskon"]').forEach(el => {
+                el.innerText = 'Rp 0';
+            });
 
-            //  Setelah subtotal di-update, baru hitung nominal invoice
-            updateNominalInvoice();
+            document.querySelectorAll('[data-role="dpp"]').forEach(el => {
+                el.innerText = 'Rp 0';
+            });
+
+            document.querySelectorAll('[data-role="grandTotal"]').forEach(el => {
+                el.innerText = 'Rp 0';
+            });
         }
 
-        // jalankan saat load
-        document.addEventListener('DOMContentLoaded', function() {
-            // 1️⃣ Hitung subtotal dulu (pakai harga gabungan jika semua item gabungan)
-            hitungSubtotalDanDiskon();
+        //kalo manual / ga sama dengan PO
+        function hitungSubtotalManual() {
 
-            // 2️⃣ Tambahkan listener untuk input qty/harga
-            document.querySelectorAll('.qty, .price').forEach(el => {
-                el.addEventListener('input', hitungSubtotalDanDiskon);
+            let subtotal = 0;
+
+            document.querySelectorAll('#items .item-row').forEach(row => {
+
+                const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
+                const harga = parseFloat(row.querySelector('.price')?.value) || 0;
+
+                const jumlah = qty * harga;
+
+                const jumlahField = row.querySelector('.jumlah');
+                if (jumlahField) jumlahField.value = jumlah;
+
+                subtotal += jumlah;
             });
+
+            document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
+            document.getElementById('subtotalInput').value = subtotal;
+
+            return subtotal;
+        }
+
+
+        function recalcNominal() {
+
+            const subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
+
+            const diskonPO = {{ $diskonQuotation ?? 0 }};
+            const persenTermin = {{ $persentaseTermin ?? 0 }};
+
+            // Nominal PO
+            const nominalPO = subtotal - diskonPO;
+
+            // Nominal Invoice
+            const nominalInvoice = nominalPO * persenTermin / 100;
+
+            // Update tampilan
+            document.querySelector('[name="nominal_invoice"]').value = nominalInvoice;
+
+            document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el => {
+                el.innerText = 'Rp ' + rupiah(nominalInvoice);
+            });
+
+            return nominalInvoice;
+        }
+        document.addEventListener('input', function(e) {
+
+            if (e.target.classList.contains('qty') ||
+                e.target.classList.contains('price')) {
+
+                hitungSubtotalManual();
+                recalcNominal();
+                hitungDiskon();
+            }
+
         });
     </script>
-
-
-    {{-- 
-    //     function hitungDiskon() {
-    //         const subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
-    //         const jenis = document.getElementById('tipe_diskon').value;
-    //         const nilai = parseFloat(document.getElementById('nilai_diskon').value) || 0;
-
-    //         let diskon = 0;
-
-    //         if (jenis === 'persen') {
-    //             diskon = subtotal * nilai / 100;
-    //         } else {
-    //             diskon = nilai;
-    //         }
-
-    //         // ❗ pengaman: diskon tidak boleh lebih besar dari subtotal
-    //         if (diskon > subtotal) diskon = subtotal;
-
-    //         const totalAfterDiscount = subtotal - diskon;
-
-    //         // tampilkan
-    //         document.getElementById('jumlah_diskon').innerText = rupiah(diskon);
-    //         document.getElementById('total_after_discount').innerText = rupiah(totalAfterDiscount);
-
-    //         // hidden input untuk submit
-    //         document.getElementById('discountTypeInput').value = jenis;
-    //         document.getElementById('discountValueInput').value = nilai;
-    //         document.getElementById('totalAfterDiscountInput').value = totalAfterDiscount;
-
-    //         hitungPajak();
-    //         hitungTotalAkhir();
-    //     }
-
-    //     document.getElementById('tipe_diskon').addEventListener('change', hitungDiskon);
-    //     document.getElementById('nilai_diskon').addEventListener('input', hitungDiskon);
-
-    //     let subtotal = 0;
-    //     let discountAmount = 0;
-    //     let dpp = 0; // dasar pengenaan pajak
-
-    //     function hitungSubtotalDanDiskon() {
-
-    //         subtotal = 0;
-    //         let hasNonGabungan = false;
-
-    //         document.querySelectorAll('.item-row').forEach(row => {
-    //             const tipeHarga = row.dataset.tipeHarga;
-    //             const qty = parseFloat(row.querySelector('.qty')?.value || 0);
-    //             const price = parseFloat(row.querySelector('.price')?.value || 0);
-    //             // subtotal += qty * price;
-
-    //             if (tipeHarga !== 'gabungan' && qty > 0 && price > 0) {
-    //               subtotal += qty * price;
-    //               hasNonGabungan = true;
-    //             }
-    //         });
-    //         // JIKA SEMUA ITEM GABUNGAN → PAKAI HARGA GABUNGAN
-    //         if (!hasNonGabungan) {
-    //           const hargaGabungan = parseFloat(
-    //             document.getElementById('hargaGabunganInput')?.value || 0
-    //           );
-              
-    //           console.log('PAKAI HARGA GABUNGAN:', hargaGabungan);
-
-    //           subtotal = hargaGabungan;
-    //         }
-
-    //         // tampil subtotal
-    //         document.getElementById('subtotal').innerText = rupiah(subtotal);
-    //         document.getElementById('subtotalInput').value = subtotal;
-
-    //         // =====================
-    //         // DISKON
-    //         // =====================
-    //         const tipeDiskon = document.getElementById('tipe_diskon').value;
-    //         const nilaiDiskon = parseFloat(document.getElementById('nilai_diskon').value || 0);
-
-    //         if (nilaiDiskon > 0) {
-    //             discountAmount = tipeDiskon === 'persen' ?
-    //                 subtotal * nilaiDiskon / 100 :
-    //                 nilaiDiskon;
-    //         } else {
-    //             discountAmount = 0;
-    //         }
-
-    //         document.getElementById('jumlah_diskon').innerText = rupiah(discountAmount);
-
-    //         // =====================
-    //         // DPP (INI KUNCI)
-    //         // =====================
-    //         dpp = subtotal - discountAmount;
-
-    //         hitungDiskon();
-    //         hitungTotalAkhir();
-    //     }
-
-
-    //     // pajak
-    //     function getTaxBase() {
-    //         const subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
-    //         const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
-
-    //         return afterDiscount > 0 ? afterDiscount : subtotal;
-    //     }
-
-    //     function hitungPajak() {
-    //         const taxBase = getTaxBase();
-    //         const taxes = document.querySelectorAll('.tax-checkbox:checked');
-    //         const container = document.getElementById('taxContainer');
-
-    //         container.innerHTML = '';
-
-    //         // let totalPPN = 0;
-    //         // let totalPPH = 0;
-
-    //         taxes.forEach(el => {
-    //             const rate = parseFloat(el.dataset.rate);
-    //             const name = el.dataset.name;
-    //             // const type = el.dataset.type;
-
-    //             const amount = taxBase * rate / 100;
-
-    //             // if (type === 'ppn') totalPPN += amount;
-    //             // if (type === 'pph') totalPPH += amount;
-
-    //             container.innerHTML += `
-    //   <div class="d-flex justify-content-between mb-1">
-    //     <span>${name}</span>
-    //     <strong>Rp ${rupiah(amount)}</strong>
-    //   </div>
-    // `;
-    //         });
-
-    //         // const finalTotal = taxBase + totalPPN - totalPPH;
-
-    //         // document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-    //         // document.getElementById('totalInput').value = finalTotal;
-    //     }
-
-    //     document.querySelectorAll('.tax-checkbox')
-    //         .forEach(el => el.addEventListener('change', () => {
-    //             hitungPajak();
-    //             hitungTotalAkhir();
-    //         }));
-
-    //     // total akhir
-    //     function getBaseAmount() {
-    //         const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
-    //         const subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
-
-    //         return afterDiscount > 0 ? afterDiscount : subtotal;
-    //     }
-
-    //     function hitungTotalAkhir() {
-    //         const dpp = parseFloat(document.getElementById('totalAfterDiscountInput').value) ||
-    //             parseFloat(document.getElementById('subtotalInput').value) ||
-    //             0;
-
-    //         const taxes = document.querySelectorAll('.tax-checkbox:checked');
-
-    //         let totalPPN = 0;
-    //         let totalPPH = 0;
-
-    //         taxes.forEach(tax => {
-    //             const rate = parseFloat(tax.dataset.rate) || 0;
-    //             const name = tax.dataset.name.toLowerCase();
-
-    //             const amount = dpp * rate / 100;
-
-    //             if (name.includes('pph')) {
-    //                 totalPPH += amount;
-    //             } else {
-    //                 totalPPN += amount;
-    //             }
-    //         });
-
-    //         const finalTotal = dpp + totalPPN - totalPPH;
-
-    //         document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-    //         document.getElementById('totalInput').value = finalTotal;
-    //     }
-
-    // document.addEventListener('DOMContentLoaded', function () {
-    // hitungSubtotalDanDiskon();
-    // }); --}}
-
-
-
-
 
 @endsection

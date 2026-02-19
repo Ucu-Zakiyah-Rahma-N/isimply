@@ -144,7 +144,8 @@ class FinanceController extends Controller
 
         $quotation = $po->quotation;
         $perizinans = $quotation->perizinan;
-        $ppnList = Coa::select('id', 'nama_akun', 'nilai_coa')->get();
+        //get PPN aja
+        $ppnList = Coa::where('id', 1)->get();
 
         $items = $quotation->perizinan; // contoh relasi
 
@@ -169,17 +170,6 @@ class FinanceController extends Controller
             'subtotal' => $subtotal
         ]);
 
-        // dd($subtotal);
-
-        // $totalTermin = $po->quotation->jumlah_termin ?? 0;
-        // $invoiceTerbuat = $po->invoice->count();
-
-        // if ($invoiceTerbuat >= $totalTermin) {
-        //     abort(403, 'Invoice sudah lengkap');
-        // }
-        // $terminKe = $invoiceTerbuat + 1;
-        // $sisaTermin = $totalTermin - $invoiceTerbuat;
-
         $po = PO::with('customer')->findOrFail($po_id);
 
         // Ambil customer dari relasi
@@ -199,6 +189,7 @@ class FinanceController extends Controller
 
         // Ambil schedule termin dari quotation
         $terminSchedule = json_decode($quotation->termin_persentase);
+
 
         // Tentukan invoice berikutnya
         $invoiceTerbuat = $po->invoice_terbuat ?? 0; // invoice yang sudah ada
@@ -233,7 +224,30 @@ class FinanceController extends Controller
             $subtotal = (float) $quotation->harga_gabungan;
         }
 
-        $nominalInvoice = $subtotal * $persentaseTermin / 100;
+        //diskon after subtotal
+        $tipeDiskonQuotation  = $quotation->diskon_tipe ?? null;
+        $nilaiDiskonQuotation = $quotation->diskon_nilai ?? 0;
+
+        // Hitung diskon dari subtotal
+        $diskonQuotation = 0;
+
+        if ($tipeDiskonQuotation && $nilaiDiskonQuotation > 0) {
+            if ($tipeDiskonQuotation === 'nominal') {
+                $diskonQuotation = $nilaiDiskonQuotation;
+            } else {
+                $diskonQuotation = $subtotal * $nilaiDiskonQuotation / 100;
+            }
+        }
+
+        // Pastikan diskon tidak melebihi subtotal
+        if ($diskonQuotation > $subtotal) {
+            $diskonQuotation = $subtotal;
+        }
+
+        // Nominal PO setelah diskon
+        $nominalPO = $subtotal - $diskonQuotation;
+
+        $nominalInvoice = $nominalPO * $persentaseTermin / 100;
         return view('pages.finance.create', [
             'title' => $title,
             'customer' => $customer,
@@ -250,6 +264,11 @@ class FinanceController extends Controller
             'invoice_sebelumnya' => $invoice_sebelumnya,
             'ppnList' => $ppnList,
             'subtotal' => $subtotal,
+            'diskonQuotation' => $diskonQuotation,
+            'nominalPO' => $nominalPO,
+            'nominalInvoice' => $nominalInvoice,
+            'tipeDiskonQuotation' => $tipeDiskonQuotation,
+            'nilaiDiskonQuotation' => $nilaiDiskonQuotation,
         ]);
     }
 
@@ -446,6 +465,7 @@ class FinanceController extends Controller
         foreach ($invoice as $inv) {
             $inv->total_hitung = TotalInvoiceHelper::calculateTotal($inv);
         }
+
         //cek debug total di index_inv
         // foreach ($invoice as $invoice) {
         //     dd(\App\Helpers\TotalInvoiceHelper::calculateTotalDebug($invoice));
@@ -770,5 +790,49 @@ class FinanceController extends Controller
         return redirect()
             ->route('finance.invoice_index')
             ->with('success', 'Invoice berhasil dihapus');
+    }
+
+    public function akun_index()
+    {
+        $title = 'Akun';
+
+        $akun = Coa::whereNull('parent_akun_id')
+            ->with('children')
+            ->orderBy('kode_akun')
+            ->get();
+        $akunHeader = Coa::where('is_header_akun', 1)
+            ->orderBy('kode_akun')
+            ->get();
+        return view(
+            'pages.finance.coa.akun_index',
+            compact('title', 'akun', 'akunHeader')
+        );
+    }
+
+
+    public function akun_store(Request $request)
+    {
+        $validated = $request->validate([
+            'kode_akun'     => 'required|string|max:20|unique:coa,kode_akun',
+            'nama_akun'     => 'required|string|max:50',
+            'kategori_akun' => 'required|in:Kas & Bank,Akun Piutang,Persediaan,Aktiva Lancar Lainnya,Aktiva Tetap,Depresiasi & Amortisasi,Akun Hutang,Kewajiban Lancar Lainnya,Ekuitas,Pendapatan,Harga Pokok Penjualan,Beban,Pendapatan Lainnya,Beban Lainnya',
+            'saldo'         => 'nullable|numeric|min:0',
+            'is_header_akun'  => 'nullable|boolean',
+            'is_sub_account'  => 'nullable|boolean',
+            'parent_akun_id'  => 'nullable|exists:coa,id'
+        ]);
+
+        Coa::create([
+            'kode_akun'     => $validated['kode_akun'],
+            'nama_akun'     => $validated['nama_akun'],
+            'nilai_coa'     => $validated['nilai_coa'] ?? 0,
+            'kategori_akun' => $validated['kategori_akun'],
+            'saldo'         => $validated['saldo'] ?? 0,
+            'is_header_akun' => $request->has('is_header_akun'),
+            'is_sub_account' => $request->has('is_sub_account'),
+            'parent_akun_id' => $validated['parent_akun_id'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', 'Akun berhasil ditambahkan');
     }
 }

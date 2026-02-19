@@ -85,11 +85,17 @@
     }
 
     .scroll-sidebar {
-        overflow: visible;
+        /* overflow: visible; */
         /* agar flyout tidak terpotong */
+
+        flex: 1;
+        overflow-y: auto;
+        /* aktifkan scroll vertikal */
+        overflow-x: visible;
+        /* supaya flyout tetap muncul */
     }
 
-    .page-wrapper,
+    /* .page-wrapper,
     .body-wrapper {
         overflow: visible;
     }
@@ -99,11 +105,8 @@
     .scroll-sidebar,
     #sidebarnav {
         overflow: visible !important;
-    }
+    } */
 </style>
-
-
-
 
 <aside class="left-sidebar">
 
@@ -303,7 +306,6 @@
                         <span class="hide-menu">Data Tahapan</span>
                     </a>
                 </li>
-                
             @endif
 
 
@@ -368,8 +370,45 @@
                         <span class="hide-menu">Sudah Invoice</span>
                     </a>
                 </li>
-            @endif      
 
+                <li class="nav-small-cap">
+                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                    <span class="hide-menu">Operasional</span>
+                </li>
+
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="{{ route('finance.biaya_index') }}" aria-expanded="false">
+                        <span><i class="bi bi-cash-stack"></i></span>
+                        <span class="hide-menu">Biaya & Pengadaan</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="#" aria-expanded="false">
+                        <span><i class="bi bi-bag"></i></span>
+                        <span class="hide-menu">Pembelian</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="#" aria-expanded="false">
+                        <span><i class="bi bi-bag"></i></span>
+                        <span class="hide-menu">Pihak Ketiga</span>
+                    </a>
+                </li>
+
+                <li class="nav-small-cap">
+                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                    <span class="hide-menu">AKUN</span>
+                </li>
+
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="{{ route('finance.akun_index') }}" aria-expanded="false">
+                        <span><i class="bi bi-credit-card"></i></span>
+                        <span class="hide-menu">Akun</span>
+                    </a>
+                </li>
+            @endif
 
 
             @if (auth()->user()->role === 'customer')

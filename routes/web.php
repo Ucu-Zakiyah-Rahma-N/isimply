@@ -15,6 +15,7 @@ use App\Http\Controllers\PerizinanController;
 use App\Http\Controllers\TahapanController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\OperasionalController;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
 
@@ -136,6 +137,8 @@ Route::middleware('auth')->group(function () {
     // finance
     Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('/', [FinanceController::class, 'index'])->name('index');
+        Route::get('/akun', [FinanceController::class, 'akun_index'])->name('akun_index');
+        Route::post('/akun/store', [FinanceController::class, 'akun_store'])->name('akun.store');
         Route::get('/create/{po}', [FinanceController::class, 'create'])->name('create');
         Route::post('/akun/coa/store', [FinanceController::class, 'store_akun_coa'])->name('akun.coa.store');
         Route::post('/invoice/store', [FinanceController::class, 'store'])->name('invoice.store');
@@ -145,6 +148,16 @@ Route::middleware('auth')->group(function () {
         Route::put('invoice/update/{invoice}', [FinanceController::class, 'update'])->name('invoice.update');
         Route::get('/invoice/{id}/print', [FinanceController::class, 'print'])->name('invoice.invoice_print');
         Route::delete('/invoice/{id}', [FinanceController::class, 'destroy'])->name('invoice.invoice_destroy');
+
+        // Operasional (Biaya)
+        Route::get('/biaya', [OperasionalController::class, 'biayaIndex'])->name('biaya_index');
+        Route::get('/pembelian', [OperasionalController::class, 'pembelianIndex'])->name('pembelian_index');
+        Route::post('/kontak/store', [OperasionalController::class, 'store'])->name('kontak.store');
+        Route::get('/get/coa-pajak', [OperasionalController::class, 'getPajakCoa'])->name('get.coa-pajak');
+        Route::get('/get/kontak', [OperasionalController::class, 'getKontak'])
+            ->name('get.kontak');
+        Route::post('/pengajuan-biaya/store', [OperasionalController::class, 'store_pengajuan_biaya'])->name('pengajuan-biaya.store');
+        Route::get('/pengajuan-biaya/detail/{id}', [OperasionalController::class, 'show_pengajuan_biaya'])->name('pengajuan-biaya.detail');
     });
 
 

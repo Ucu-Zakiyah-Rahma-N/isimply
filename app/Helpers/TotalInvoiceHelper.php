@@ -135,6 +135,45 @@ public static function calculateTotalDebug(Invoice $invoice)
 
     return $debug;
 }
+public static function calculateTerminBreakdown(Invoice $invoice)
+{
+    // 1️⃣ Subtotal PO
+    $subtotal = $invoice->produk->sum(function ($item) {
+        return ($item->qty ?? 0) * ($item->harga_satuan ?? 0);
+    });
+
+    if ($subtotal == 0 && isset($invoice->po->quotation->harga_gabungan)) {
+        $subtotal = $invoice->po->quotation->harga_gabungan;
+    }
+
+    // 2️⃣ Nominal Termin
+    $persentaseTermin = $invoice->persentase_termin ?? 100;
+    $nominalTermin = $subtotal * ($persentaseTermin / 100);
+
+    // 3️⃣ DPP (karena harga include PPN 12%)
+    $dpp = $nominalTermin * 11 / 12;
+
+    // 4️⃣ PPN = 12% dari DPP
+    $ppn = $dpp * 12 / 100;
+
+    // 5️⃣ PPh tetap dari DPP (ambil dari COA)
+    $pph = 0;
+    foreach ($invoice->pajak as $tax) {
+        $name = strtolower($tax->coa->nama_akun ?? '');
+        $rate = $tax->coa->nilai_coa ?? 0;
+
+        if (str_contains($name, 'pph')) {
+            $pph += $nominalTermin * $rate / 100;
+        }
+    }
+
+    return [
+        'nominal_termin' => $nominalTermin,
+        'dpp' => $dpp,
+        'ppn' => $ppn,
+        'pph' => $pph,
+    ];
+}
 
 
 }

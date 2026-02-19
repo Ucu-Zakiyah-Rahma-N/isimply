@@ -13,7 +13,24 @@ class Coa extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
+        'kode_akun',
         'nama_akun',
         'nilai_coa',
+        'kategori_akun',
+        'is_header_akun',
+        'is_sub_akun',
+        'saldo',
+        'saldo',
+        'parent_akun_id'
     ];
+
+    public function children()
+    {
+        return $this->hasMany(Coa::class, 'parent_akun_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(Coa::class, 'parent_akun_id');
+    }
 }

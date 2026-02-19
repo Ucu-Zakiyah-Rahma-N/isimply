@@ -153,7 +153,8 @@
 
             <div class="mt-4">
                 <a href="{{ url()->previous() }}" class="btn btn-secondary">Kembali</a>
-                <a href="{{ route('finance.invoice.edit', $invoice->id) }}" class="btn btn-success">Edit</a>
+                <a href="{{ route('finance.invoice.edit', $invoice->id) }}" class="btn btn-warning">Edit</a>
+                <a href="" class="btn btn-success">Terima Pembayaran</a>
 
             </div>
         </div>
