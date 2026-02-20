@@ -128,102 +128,102 @@
         <ul id="sidebarnav">
 
             @if (auth()->user()->role !== 'customer')
-                <!-- HOME -->
-                <li class="nav-small-cap">
-                    {{-- <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+            <!-- HOME -->
+            <li class="nav-small-cap">
+                {{-- <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
                     <span class="hide-menu">Home</span> --}}
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ url('dashboard') }}" aria-expanded="false">
-                        <span><i class="ti ti-layout-dashboard"></i></span>
-                        <span class="hide-menu">Dashboard</span>
-                    </a>
-                </li>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ url('dashboard') }}" aria-expanded="false">
+                    <span><i class="ti ti-layout-dashboard"></i></span>
+                    <span class="hide-menu">Dashboard</span>
+                </a>
+            </li>
             @endif
 
 
 
             {{-- super admin --}}
             @if (in_array(auth()->user()->role, ['superadmin']))
-                <li class="sidebar-item position-relative">
-                    <a class="sidebar-link d-flex align-items-center justify-content-between" href="javascript:void(0)">
-                        <span class="d-flex align-items-center">
-                            <i class="bi bi-grid"></i>
-                            <span class="hide-menu ms-2">Marketing</span>
-                        </span>
-                        <i class="ti ti-chevron-right arrow-icon"></i>
-                    </a>
+            <li class="sidebar-item position-relative">
+                <a class="sidebar-link d-flex align-items-center justify-content-between" href="javascript:void(0)">
+                    <span class="d-flex align-items-center">
+                        <i class="bi bi-grid"></i>
+                        <span class="hide-menu ms-2">Marketing</span>
+                    </span>
+                    <i class="ti ti-chevron-right arrow-icon"></i>
+                </a>
 
-                    <ul class="sidebar-submenu">
-                        <li class="sidebar-item">
-                            <a href="{{ url('customer') }}" class="sidebar-link">
-                                <i class="bi bi-person-lines-fill"></i>
-                                <span class="hide-menu">Customer</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-item">
-                            <a href="{{ route('quotation.index') }}" class="sidebar-link">
-                                <i class="bi bi-file-text"></i>
-                                <span class="hide-menu">Quotation</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-item">
-                            <a href="{{ url('PO') }}" class="sidebar-link">
-                                <i class="bi bi-file-spreadsheet"></i>
-                                <span class="hide-menu">PO / SPK</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-item">
-                            <a href="{{ url('rekap_marketing') }}" class="sidebar-link">
-                                <i class="bi bi-clipboard-data"></i>
-                                <span class="hide-menu">Rekap</span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="sidebar-item">
-                    <a href="{{ route('projects.timeline') }}" class="sidebar-link">
-                        <i class="bi bi-clock-history"></i>
-                        <span class="hide-menu">Timeline</span>
-                    </a>
-                </li>
+                <ul class="sidebar-submenu">
+                    <li class="sidebar-item">
+                        <a href="{{ url('customer') }}" class="sidebar-link">
+                            <i class="bi bi-person-lines-fill"></i>
+                            <span class="hide-menu">Customer</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="{{ route('quotation.index') }}" class="sidebar-link">
+                            <i class="bi bi-file-text"></i>
+                            <span class="hide-menu">Quotation</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="{{ url('PO') }}" class="sidebar-link">
+                            <i class="bi bi-file-spreadsheet"></i>
+                            <span class="hide-menu">PO / SPK</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="{{ url('rekap_marketing') }}" class="sidebar-link">
+                            <i class="bi bi-clipboard-data"></i>
+                            <span class="hide-menu">Rekap</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ route('projects.timeline') }}" class="sidebar-link">
+                    <i class="bi bi-clock-history"></i>
+                    <span class="hide-menu">Timeline</span>
+                </a>
+            </li>
 
-                <li class="nav-small-cap">
-                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                    <span class="hide-menu">DATA MASTER</span>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ url('marketing') }}" aria-expanded="false">
-                        <span><i class="bi bi-bar-chart-line"></i></span>
-                        <span class="hide-menu">Marketing</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ url('users') }}" aria-expanded="false">
-                        <span><i class="ti ti-user"></i></span>
-                        <span class="hide-menu">Users</span>
-                    </a>
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">DATA MASTER</span>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ url('marketing') }}" aria-expanded="false">
+                    <span><i class="bi bi-bar-chart-line"></i></span>
+                    <span class="hide-menu">Marketing</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ url('users') }}" aria-expanded="false">
+                    <span><i class="ti ti-user"></i></span>
+                    <span class="hide-menu">Users</span>
+                </a>
 
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ url('perizinan') }}" aria-expanded="false">
-                        <span><i class="bi bi-card-list"></i></span>
-                        <span class="hide-menu">Jenis Perizinan</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ url('tahapan') }}" aria-expanded="false">
-                        <span><i class="bi bi-card-list"></i></span>
-                        <span class="hide-menu">Data Tahapan</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ route('template.index') }}" aria-expanded="false">
-                        <span><i class="bi bi-card-list"></i></span>
-                        <span class="hide-menu">Template SPH</span>
-                    </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ url('perizinan') }}" aria-expanded="false">
+                    <span><i class="bi bi-card-list"></i></span>
+                    <span class="hide-menu">Jenis Perizinan</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ url('tahapan') }}" aria-expanded="false">
+                    <span><i class="bi bi-card-list"></i></span>
+                    <span class="hide-menu">Data Tahapan</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('template.index') }}" aria-expanded="false">
+                    <span><i class="bi bi-card-list"></i></span>
+                    <span class="hide-menu">Template SPH</span>
+                </a>
 
-                </li>
+            </li>
             @endif
 
 
@@ -232,212 +232,212 @@
 
             {{-- admin  marketing --}}
             @if (in_array(auth()->user()->role, ['admin marketing']))
-                <li class="sidebar-item position-relative">
-                    <a class="sidebar-link d-flex align-items-center justify-content-between" href="javascript:void(0)">
-                        <span class="d-flex align-items-center">
-                            <i class="bi bi-grid"></i>
-                            <span class="hide-menu ms-2">Marketing</span>
-                        </span>
-                        <i class="ti ti-chevron-right arrow-icon"></i>
-                    </a>
+            <li class="sidebar-item position-relative">
+                <a class="sidebar-link d-flex align-items-center justify-content-between" href="javascript:void(0)">
+                    <span class="d-flex align-items-center">
+                        <i class="bi bi-grid"></i>
+                        <span class="hide-menu ms-2">Marketing</span>
+                    </span>
+                    <i class="ti ti-chevron-right arrow-icon"></i>
+                </a>
 
-                    <ul class="sidebar-submenu">
-                        <li class="sidebar-item">
-                            <a href="{{ url('customer') }}" class="sidebar-link">
-                                <i class="bi bi-person-lines-fill"></i>
-                                <span class="hide-menu">Customer</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-item">
-                            <a href="{{ route('quotation.index') }}" class="sidebar-link">
-                                <i class="bi bi-file-text"></i>
-                                <span class="hide-menu">Quotation</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-item">
-                            <a href="{{ url('PO') }}" class="sidebar-link">
-                                <i class="bi bi-file-spreadsheet"></i>
-                                <span class="hide-menu">PO / SPK</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-item">
-                            <a href="{{ url('rekap_marketing') }}" class="sidebar-link">
-                                <i class="bi bi-clipboard-data"></i>
-                                <span class="hide-menu">Rekap</span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="sidebar-item">
-                    <a href="{{ route('projects.timeline') }}" class="sidebar-link">
-                        <i class="bi bi-clock-history"></i>
-                        <span class="hide-menu">Timeline</span>
-                    </a>
-                </li>
-            @endif
-
-            @if (in_array(auth()->user()->role, ['admin 1', 'admin 2']))
-                <!-- PROJEK -->
-                <li class="nav-small-cap mt-3">
-                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                    <span class="hide-menu">Projek</span>
-                </li>
-
-                <li class="sidebar-item">
-                    <a href="{{ url('projects') }}" class="sidebar-link">
-                        <i class="bi bi-kanban"></i>
-                        <span class="hide-menu">Data Projek</span>
-                    </a>
-                </li>
-
-                <li class="sidebar-item">
-                    <a href="{{ route('projects.timeline') }}" class="sidebar-link">
-                        <i class="bi bi-clock-history"></i>
-                        <span class="hide-menu">Timeline</span>
-                    </a>
-                </li>
-                <li class="nav-small-cap mt-3">
-                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                    <span class="hide-menu">Data Master</span>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ url('tahapan') }}" aria-expanded="false">
-                        <span><i class="bi bi-card-list"></i></span>
-                        <span class="hide-menu">Data Tahapan</span>
-                    </a>
-                </li>
-            @endif
-
-
-            @if (in_array(auth()->user()->role, ['CEO', 'direktur', 'manager projek', 'manager marketing', 'manager finance']))
-
-                @if (auth()->user()->role === 'manager marketing')
+                <ul class="sidebar-submenu">
+                    <li class="sidebar-item">
+                        <a href="{{ url('customer') }}" class="sidebar-link">
+                            <i class="bi bi-person-lines-fill"></i>
+                            <span class="hide-menu">Customer</span>
+                        </a>
+                    </li>
                     <li class="sidebar-item">
                         <a href="{{ route('quotation.index') }}" class="sidebar-link">
                             <i class="bi bi-file-text"></i>
                             <span class="hide-menu">Quotation</span>
                         </a>
                     </li>
-                @endif
+                    <li class="sidebar-item">
+                        <a href="{{ url('PO') }}" class="sidebar-link">
+                            <i class="bi bi-file-spreadsheet"></i>
+                            <span class="hide-menu">PO / SPK</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="{{ url('rekap_marketing') }}" class="sidebar-link">
+                            <i class="bi bi-clipboard-data"></i>
+                            <span class="hide-menu">Rekap</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ route('projects.timeline') }}" class="sidebar-link">
+                    <i class="bi bi-clock-history"></i>
+                    <span class="hide-menu">Timeline</span>
+                </a>
+            </li>
+            @endif
+
+            @if (in_array(auth()->user()->role, ['admin 1', 'admin 2']))
+            <!-- PROJEK -->
+            <li class="nav-small-cap mt-3">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Projek</span>
+            </li>
+
+            <li class="sidebar-item">
+                <a href="{{ url('projects') }}" class="sidebar-link">
+                    <i class="bi bi-kanban"></i>
+                    <span class="hide-menu">Data Projek</span>
+                </a>
+            </li>
+
+            <li class="sidebar-item">
+                <a href="{{ route('projects.timeline') }}" class="sidebar-link">
+                    <i class="bi bi-clock-history"></i>
+                    <span class="hide-menu">Timeline</span>
+                </a>
+            </li>
+            <li class="nav-small-cap mt-3">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Data Master</span>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ url('tahapan') }}" aria-expanded="false">
+                    <span><i class="bi bi-card-list"></i></span>
+                    <span class="hide-menu">Data Tahapan</span>
+                </a>
+            </li>
+            @endif
 
 
-                <li class="sidebar-item">
-                    <a href="{{ url('PO') }}" class="sidebar-link">
-                        <i class="bi bi-file-spreadsheet"></i>
-                        <span class="hide-menu">PO / SPK</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a href="{{ url('rekap_marketing') }}" class="sidebar-link">
-                        <i class="bi bi-clipboard-data"></i>
-                        <span class="hide-menu">Rekap Marketing</span>
-                    </a>
-                </li>
+            @if (in_array(auth()->user()->role, ['CEO', 'direktur', 'manager projek', 'manager marketing', 'manager finance']))
 
-                <li class="sidebar-item">
-                    <a href="{{ url('projects') }}" class="sidebar-link">
-                        <i class="bi bi-kanban"></i>
-                        <span class="hide-menu">Data Projek</span>
-                    </a>
-                </li>
+            @if (auth()->user()->role === 'manager marketing')
+            <li class="sidebar-item">
+                <a href="{{ route('quotation.index') }}" class="sidebar-link">
+                    <i class="bi bi-file-text"></i>
+                    <span class="hide-menu">Quotation</span>
+                </a>
+            </li>
+            @endif
 
 
-                <li class="sidebar-item">
-                    <a href="{{ route('projects.timeline') }}" class="sidebar-link">
-                        <i class="bi bi-clock-history"></i>
-                        <span class="hide-menu">Timeline Projek</span>
-                    </a>
-                </li>
+            <li class="sidebar-item">
+                <a href="{{ url('PO') }}" class="sidebar-link">
+                    <i class="bi bi-file-spreadsheet"></i>
+                    <span class="hide-menu">PO / SPK</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url('rekap_marketing') }}" class="sidebar-link">
+                    <i class="bi bi-clipboard-data"></i>
+                    <span class="hide-menu">Rekap Marketing</span>
+                </a>
+            </li>
+
+            <li class="sidebar-item">
+                <a href="{{ url('projects') }}" class="sidebar-link">
+                    <i class="bi bi-kanban"></i>
+                    <span class="hide-menu">Data Projek</span>
+                </a>
+            </li>
+
+
+            <li class="sidebar-item">
+                <a href="{{ route('projects.timeline') }}" class="sidebar-link">
+                    <i class="bi bi-clock-history"></i>
+                    <span class="hide-menu">Timeline Projek</span>
+                </a>
+            </li>
 
             @endif
 
 
 
             @if (in_array(auth()->user()->role, ['manager finance', 'admin finance']))
-                <li class="nav-small-cap">
-                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                    <span class="hide-menu">Finance</span>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ url('finance') }}" aria-expanded="false">
-                        <span><i class="bi bi-search"></i></span>
-                        <span class="hide-menu">Data BAST</span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ route('finance.invoice_index') }}" aria-expanded="false">
-                        <span><i class=""></i></span>
-                        <span class="hide-menu">Sudah Invoice</span>
-                    </a>
-                </li>
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Finance</span>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ url('finance') }}" aria-expanded="false">
+                    <span><i class="bi bi-search"></i></span>
+                    <span class="hide-menu">Data BAST</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('finance.invoice_index') }}" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Sudah Invoice</span>
+                </a>
+            </li>
 
-                <li class="nav-small-cap">
-                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                    <span class="hide-menu">Operasional</span>
-                </li>
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Operasional</span>
+            </li>
 
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ route('finance.biaya_index') }}" aria-expanded="false">
-                        <span><i class="bi bi-cash-stack"></i></span>
-                        <span class="hide-menu">Biaya & Pengadaan</span>
-                    </a>
-                </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('finance.biaya_index') }}" aria-expanded="false">
+                    <span><i class="bi bi-cash-stack"></i></span>
+                    <span class="hide-menu">Biaya & Pengadaan</span>
+                </a>
+            </li>
 
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="#" aria-expanded="false">
-                        <span><i class="bi bi-bag"></i></span>
-                        <span class="hide-menu">Pembelian</span>
-                    </a>
-                </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('finance.pembelian_index') }}" aria-expanded="false">
+                    <span><i class="bi bi-bag"></i></span>
+                    <span class="hide-menu">Pembelian</span>
+                </a>
+            </li>
 
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="#" aria-expanded="false">
-                        <span><i class="bi bi-bag"></i></span>
-                        <span class="hide-menu">Pihak Ketiga</span>
-                    </a>
-                </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="#" aria-expanded="false">
+                    <span><i class="bi bi-bag"></i></span>
+                    <span class="hide-menu">Pihak Ketiga</span>
+                </a>
+            </li>
 
-                <li class="nav-small-cap">
-                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                    <span class="hide-menu">AKUN</span>
-                </li>
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">AKUN</span>
+            </li>
 
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ route('finance.akun_index') }}" aria-expanded="false">
-                        <span><i class="bi bi-credit-card"></i></span>
-                        <span class="hide-menu">Akun</span>
-                    </a>
-                </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('finance.akun_index') }}" aria-expanded="false">
+                    <span><i class="bi bi-credit-card"></i></span>
+                    <span class="hide-menu">Akun</span>
+                </a>
+            </li>
             @endif
 
 
             @if (auth()->user()->role === 'customer')
-                <li class="nav-small-cap">
-                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                    <span class="hide-menu">Menu Tracking</span>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link" href="{{ url('tracking') }}" aria-expanded="false">
-                        <span><i class="bi bi-search"></i></span>
-                        <span class="hide-menu">Tracking </span>
-                    </a>
-                </li>
-                <li class="sidebar-item">
-                    <a href="{{ route('customer.timeline') }}" class="sidebar-link">
-                        <i class="bi bi-clock-history"></i>
-                        <span class="hide-menu">Timeline</span>
-                    </a>
-                </li>
-                <li class="nav-small-cap">
-                    <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                    <span class="hide-menu">Other</span>
-                </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link contact-admin-link" href="javascript:void(0)" aria-expanded="false">
-                        <span><i class="ti ti-alert-circle"></i></span>
-                        <span class="hide-menu">Bantuan</span>
-                    </a>
-                </li>
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Menu Tracking</span>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ url('tracking') }}" aria-expanded="false">
+                    <span><i class="bi bi-search"></i></span>
+                    <span class="hide-menu">Tracking </span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ route('customer.timeline') }}" class="sidebar-link">
+                    <i class="bi bi-clock-history"></i>
+                    <span class="hide-menu">Timeline</span>
+                </a>
+            </li>
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Other</span>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link contact-admin-link" href="javascript:void(0)" aria-expanded="false">
+                    <span><i class="ti ti-alert-circle"></i></span>
+                    <span class="hide-menu">Bantuan</span>
+                </a>
+            </li>
             @endif
         </ul>
     </nav>

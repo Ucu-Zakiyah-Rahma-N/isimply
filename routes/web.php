@@ -16,6 +16,7 @@ use App\Http\Controllers\TahapanController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\OperasionalController;
+use App\Http\Controllers\PembelianController;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
 
@@ -151,13 +152,15 @@ Route::middleware('auth')->group(function () {
 
         // Operasional (Biaya)
         Route::get('/biaya', [OperasionalController::class, 'biayaIndex'])->name('biaya_index');
-        Route::get('/pembelian', [OperasionalController::class, 'pembelianIndex'])->name('pembelian_index');
         Route::post('/kontak/store', [OperasionalController::class, 'store'])->name('kontak.store');
         Route::get('/get/coa-pajak', [OperasionalController::class, 'getPajakCoa'])->name('get.coa-pajak');
         Route::get('/get/kontak', [OperasionalController::class, 'getKontak'])
             ->name('get.kontak');
         Route::post('/pengajuan-biaya/store', [OperasionalController::class, 'store_pengajuan_biaya'])->name('pengajuan-biaya.store');
         Route::get('/pengajuan-biaya/detail/{id}', [OperasionalController::class, 'show_pengajuan_biaya'])->name('pengajuan-biaya.detail');
+
+        // Operasional (Pembelian)
+        Route::get('/pembelian', [PembelianController::class, 'pembelianIndex'])->name('pembelian_index');
     });
 
 
