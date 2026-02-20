@@ -107,7 +107,6 @@
                                 <th>Nominal PO</th>
                                 <th>DPP</th>
                                 <th>PPN</th>
-                                <th>PPh</th>
                                 <th>Total Tagihan</th>
                                 <th>Tgl Pembayaran</th>
                                 <th>Bulan</th>
@@ -155,30 +154,18 @@
                                     </td>
                                     <td>{{ $inv->keterangan ?? '-' }}</td>
                                     <td class="text-end fw-bold">
-                                        Rp {{ number_format($terminData['nominal_termin'], 0, ',', '.') }}
-                                    </td>
-                                    <td class="text-end fw-bold">
-                                        Rp {{ number_format($terminData['dpp'], 0, ',', '.') }}
-                                    </td>
-                                    <td class="text-end fw-bold">
-                                        @if ($terminData['ppn'] > 0)
-                                            Rp {{ number_format($terminData['ppn'], 0, ',', '.') }}
-                                        @else
-                                            -
-                                        @endif
+                                        Rp {{ number_format($inv->nominal_invoice, 0, ',', '.') }}
                                     </td>
 
                                     <td class="text-end fw-bold">
-                                        @if ($terminData['pph'] > 0)
-                                            Rp {{ number_format($terminData['pph'], 0, ',', '.') }}
-                                        @else
-                                            -
-                                        @endif
+                                        {{ $inv->dpp > 0 ? 'Rp ' . number_format($inv->dpp, 0, ',', '.') : '-' }}
+                                    </td>
+                                    <td class="text-end fw-bold">
+                                        {{ $inv->ppn > 0 ? 'Rp ' . number_format($inv->ppn, 0, ',', '.') : '-' }}
                                     </td>
 
-                                    <td>
-                                        Rp
-                                        {{ number_format(\App\Helpers\TotalInvoiceHelper::calculateTotal($inv), 0, ',', '.') }}
+                                    <td class="text-end fw-bold">
+                                        Rp {{ number_format($inv->grand_total, 0, ',', '.') ?? '-' }}
                                     </td>
 
 

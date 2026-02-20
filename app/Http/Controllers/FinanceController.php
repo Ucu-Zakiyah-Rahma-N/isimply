@@ -135,12 +135,14 @@ class FinanceController extends Controller
         $noInvoice = $this->generateInvoiceNumber();
 
         $po = Po::with([
+            'customer',
             'quotation.perizinan',
             'quotation.kawasan_industri',
             'quotation.kabupaten',
             'quotation.provinsi',
             'invoices'
         ])->findOrFail($po_id);
+
 
         $quotation = $po->quotation;
         $perizinans = $quotation->perizinan;
@@ -149,28 +151,6 @@ class FinanceController extends Controller
 
         $items = $quotation->perizinan; // contoh relasi
 
-        $subtotal = 0;
-        $hasNonGabungan = false;
-
-        foreach ($items as $item) {
-            if ($item->pivot->harga_tipe !== 'gabungan') {
-                $qty   = $item->pivot->qty ?? 0;
-                $harga = $item->pivot->harga_satuan ?? 0;
-                $subtotal += $qty * $harga;
-                $hasNonGabungan = true;
-            }
-        }
-
-        // JIKA SEMUA ITEM GABUNGAN
-        if (!$hasNonGabungan) {
-            $subtotal = (float) $quotation->harga_gabungan;
-        }
-
-        Log::info('DEBUG SUBTOTAL', [
-            'subtotal' => $subtotal
-        ]);
-
-        $po = PO::with('customer')->findOrFail($po_id);
 
         // Ambil customer dari relasi
         $customer = $po->customer;
@@ -187,43 +167,25 @@ class FinanceController extends Controller
         // Detail Alamat
         $po->detail_alamat = $quotation->detail_alamat ?? '-';
 
-        // Ambil schedule termin dari quotation
-        $terminSchedule = json_decode($quotation->termin_persentase);
-
-
-        // Tentukan invoice berikutnya
-        $invoiceTerbuat = $po->invoice_terbuat ?? 0; // invoice yang sudah ada
-        $terminKe = $invoiceTerbuat;                 // index berikutnya
-
-        $persentaseTermin = $terminSchedule[$terminKe]->persen ?? 0; // default 0% jika tidak ada
-
-        // Ambil invoice sebelumnya
+        // // Ambil schedule termin dari quotation & Ambil invoice sebelumnya
         $invoice_sebelumnya = $po->invoices()->orderBy('termin_ke', 'desc')->first();
         $invoiceTerbuat = $po->invoices->count(); // jumlah invoice yang sudah dibuat           
         $terminKe = $invoiceTerbuat + 1;          // termin berikutnya
         // Ambil schedule termin dari quotation (misal [50,50] atau [30,40,30])
         $terminSchedule = json_decode($quotation->termin_persentase, true);
-
         $persentaseTermin = $terminSchedule[$invoiceTerbuat]['persen'] ?? 0;
 
         // Hitung nominal invoice
-        $subtotal = 0;
-        $hasNonGabungan = false;
 
-        foreach ($quotation->perizinan as $item) {
-            if ($item->pivot->harga_tipe !== 'gabungan') {
-                $qty   = $item->pivot->qty ?? 0;
-                $harga = $item->pivot->harga_satuan ?? 0;
-                $subtotal += $qty * $harga;
-                $hasNonGabungan = true;
-            }
-        }
+        if ($quotation->harga_tipe === 'gabungan') {
 
-        // Jika semua gabungan
-        if (!$hasNonGabungan) {
             $subtotal = (float) $quotation->harga_gabungan;
-        }
+        } else {
 
+            $subtotal = $quotation->perizinan->sum(function ($item) {
+                return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
+            });
+        }
         //diskon after subtotal
         $tipeDiskonQuotation  = $quotation->diskon_tipe ?? null;
         $nilaiDiskonQuotation = $quotation->diskon_nilai ?? 0;
@@ -257,7 +219,6 @@ class FinanceController extends Controller
             'quotation' => $quotation,
             'perizinans'  => $perizinans,
             'no_invoice' => $noInvoice,
-            'customer' => $customer,
             'termin_ke' => $terminKe,
             'persentaseTermin' => $persentaseTermin,
             // 'sisa_termin' => $sisaTermin,
@@ -337,15 +298,77 @@ class FinanceController extends Controller
         $customer = Customer::findOrFail($request->customer_id);
 
         // 3️⃣ Hitung nominal invoice
-        $nominalInvoice = $request->subtotal * $request->persentase_termin / 100;
+        // Ambil PO dulu
+        $po        = PO::with('quotation')->findOrFail($request->po_id);
+        $quotation = $po->quotation;
+
+        // Ambil subtotal dari request
+        $subtotal = $request->subtotal ?? 0;
+
+        // Diskon PO dari quotation
+        $diskonPo = $quotation->diskon_nilai ?? 0;
+
+        // Hitung nominal PO
+        $nominalPo = max($subtotal - $diskonPo, 0);
+
+        // Hitung nominal invoice
+        $nominalInvoice = $nominalPo * $request->persentase_termin / 100;
+
+        $nilaiDiskon = $request->nilai_diskon ?? 0;
+
+        if ($nilaiDiskon > 0) {
+
+            $diskonInvoice = $request->tipe_diskon === 'persen'
+                ? $nominalInvoice * $nilaiDiskon / 100
+                : $nilaiDiskon;
+
+            $totalAfterDiscountInv = max($nominalInvoice - $diskonInvoice, 0);
+        } else {
+
+            $diskonInvoice = 0;
+            $totalAfterDiscountInv = null; // 🔥 tidak disimpan
+        }
+
+        $base = ($totalAfterDiscountInv > 0 && $totalAfterDiscountInv != $nominalInvoice)
+            ? $totalAfterDiscountInv
+            : $nominalInvoice;
+        // // DPP
+        // $dpp = round(($base * 11) / 12);
+        // $ppn = round(($dpp * 12) / 100);
+
+        // // Grand total
+        // $grandTotal = $base + $ppn;
+
+
+        // =====================
+        // DEFAULT (tanpa pajak)
+        // =====================
+        $dpp = 0;
+        $ppn = 0;
+        $grandTotal = $base; // default = base
+
+        // =====================
+        // CEK PAJAK
+        // =====================
+        if ($request->filled('tax')) {
+
+            $selectedTaxes = $request->tax;
+
+            // misal ID COA PPN kamu
+            $ppnCoaId = 1; // ganti sesuai ID PPN kamu
+
+            if (in_array($ppnCoaId, $selectedTaxes)) {
+
+                $dpp = round(($base * 11) / 12);
+                $ppn = round(($dpp * 12) / 100);
+
+                $grandTotal = $base + $ppn;
+            }
+        }
 
         // 4️⃣ Hitung termin
         $lastTermin = Invoice::where('po_id', $request->po_id)->max('termin_ke');
         $terminKe   = $lastTermin ? $lastTermin + 1 : 1;
-
-        // 5️⃣ Ambil PO + Quotation (INI PENTING)
-        $po        = PO::with('quotation')->findOrFail($request->po_id);
-        $quotation = $po->quotation;
 
         $tipeHarga     = $quotation->harga_tipe; // satuan / gabungan
         $hargaGabungan = null;
@@ -373,10 +396,17 @@ class FinanceController extends Controller
                 'catatan'           => $request->catatan,
                 'tgl_inv'           => $request->tgl_invoice,
                 'tgl_jatuh_tempo'   => $request->tgl_jatuh_tempo,
-                'tipe_diskon'       => $request->tipe_diskon ?? 'nominal',
-                'nilai_diskon'      => $request->nilai_diskon ?? 0,
+                'subtotal'             => $subtotal,
+                'diskon_po'            => $diskonPo,
+                'nominal_po'           => $nominalPo,
                 'persentase_termin' => $request->persentase_termin,
                 'nominal_invoice'   => $nominalInvoice,
+                'tipe_diskon'       => $request->tipe_diskon ?? NULL,
+                'nilai_diskon'      => $request->nilai_diskon ?? 0,
+                'total_after_diskon_inv' => $totalAfterDiscountInv,
+                'dpp'                  => $dpp ?? NULL,
+                'ppn'                   => $ppn ?? NULL,
+                'grand_total'          => $grandTotal,
 
                 // 🔥 KUNCI
                 'harga_gabungan'    => $hargaGabungan,
@@ -475,88 +505,44 @@ class FinanceController extends Controller
 
     public function show($id)
     {
-        $title = 'detail invoice';
+        $title = 'Detail Invoice';
+
         $invoice = Invoice::with([
             'produk.perizinan',
             'customer',
-            'po',
             'po.quotation',
             'pajak.coa'
         ])->findOrFail($id);
-        $poList = Po::all();
+
 
         // ======================
-        // 1️⃣ Subtotal
+        // Ambil langsung dari DB
         // ======================
-        $subtotal = $invoice->produk->sum(function ($item) {
-            return ($item->qty ?? 0) * ($item->harga_satuan ?? 0);
-        });
-
-        // Jika semua gabungan -> pakai harga_gabungan
-        if ($subtotal == 0 && isset($invoice->po->quotation->harga_gabungan)) {
-            $subtotal = $invoice->po->quotation->harga_gabungan;
-        }
-
-        // ======================
-        // 2️⃣ Nominal sesuai termin
-        // ======================
-        $nominalTermin = $subtotal * ($invoice->persentase_termin / 100);
-
-        // ======================
-        // 3️⃣ Diskon
-        // ======================
-        $diskon = 0;
-        if ($invoice->tipe_diskon && $invoice->nilai_diskon) {
-            if ($invoice->tipe_diskon === 'nominal') {
-                $diskon = $invoice->nilai_diskon;
-            } else {
-                $diskon = $nominalTermin * $invoice->nilai_diskon / 100;
-            }
-
-            if ($diskon > $nominalTermin) $diskon = $nominalTermin;
-        }
-
-        $afterDiscount = $nominalTermin - $diskon;
-
-        // ======================
-        // 4️⃣ Pajak
-        // ======================
-        $totalPPN = 0;
-        $totalPPH = 0;
-        $taxes_detail = [];
-        foreach ($invoice->pajak as $tax) {
-            $rate = $tax->coa->nilai_coa ?? 0;
-            $name = strtolower($tax->coa->nama_akun ?? '');
-            $amount = $afterDiscount * $rate / 100;
-
-            if (str_contains($name, 'pph')) $totalPPH += $amount;
-            else $totalPPN += $amount;
-
-            $taxes_detail[] = [
-                'name' => $tax->coa->nama_akun,
-                'rate' => $rate,
-                'amount' => $amount
-            ];
-        }
-
-        // ======================
-        // 5️⃣ Total akhir
-        // ======================
-        $totalAkhir = $afterDiscount + $totalPPN - $totalPPH;
+        $subtotal           = $invoice->subtotal;
+        $diskonPO           = $invoice->diskon_po;
+        $nominalPO          = $invoice->nominal_po;
+        $nominalTermin      = $invoice->nominal_invoice;
+        $diskonInvoice      = $invoice->nilai_diskon ?? 0;
+        $afterDiscount      = $invoice->total_after_diskon_inv ?? $nominalTermin;
+        $dpp                = $invoice->dpp;
+        $ppn                = $invoice->ppn;
+        $grandTotal         = $invoice->grand_total;
 
         return view('pages.finance.show', compact(
             'title',
             'invoice',
             'subtotal',
+            'diskonPO',
+            'nominalPO',
             'nominalTermin',
-            'diskon',
+            'diskonInvoice',
             'afterDiscount',
-            'totalPPN',
-            'totalPPH',
-            'totalAkhir',
-            'taxes_detail'
+            'dpp',
+            'ppn',
+            'grandTotal'
         ));
     }
+
 
     public function edit($id)
     {
@@ -571,6 +557,7 @@ class FinanceController extends Controller
             'pajak',
             'po.quotation'
         ])->findOrFail($id);
+
         $subtotal = 0;
         foreach ($invoice->produk as $item) {
             if ($item->harga_tipe !== 'gabungan') {
@@ -580,27 +567,66 @@ class FinanceController extends Controller
         if ($subtotal === 0) {
             $subtotal = $invoice->harga_gabungan ?? 0;
         }
+
         $persentase_termin = $invoice->persentase_termin;
 
         // Ambil quotation utama yang ingin digunakan
         $quotation = $invoice->po ? $invoice->po->quotation : null;
+
         $poList = Po::all();
         $invoice->kabupaten_name = $quotation->kabupaten->nama ?? '-';
         $invoice->kawasan_name = $quotation && $quotation->kawasan_industri
             ? $quotation->kawasan_industri->nama_kawasan
             : '-';
         $invoice->detail_alamat = $quotation->detail_alamat ?? '-';
+
         $invoice->harga_gabungan = $quotation->harga_gabungan ?? 0;
+
         $invoice_sebelumnya = Invoice::where('po_id', $invoice->po_id)
             ->where('id', '<', $invoice->id)
             ->orderBy('id', 'desc')
             ->first();
 
         $perizinans = $quotation ? $quotation->perizinan : collect();
-        $ppnList = COA::all(); // list pajak untuk checkbox
 
+        $ppnList = Coa::where('id', 1)->get();
+        if ($quotation->harga_tipe === 'gabungan') {
+
+            $subtotal = (float) $quotation->harga_gabungan;
+        } else {
+
+            $subtotal = $quotation->perizinan->sum(function ($item) {
+                return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
+            });
+        }
+        //diskon after subtotal
+        $tipeDiskonQuotation  = $quotation->diskon_tipe ?? null;
+        $nilaiDiskonQuotation = $quotation->diskon_nilai ?? 0;
+
+        // Hitung diskon dari subtotal
+        $diskonQuotation = 0;
+
+        if ($tipeDiskonQuotation && $nilaiDiskonQuotation > 0) {
+            if ($tipeDiskonQuotation === 'nominal') {
+                $diskonQuotation = $nilaiDiskonQuotation;
+            } else {
+                $diskonQuotation = $subtotal * $nilaiDiskonQuotation / 100;
+            }
+        }
+
+        // Pastikan diskon tidak melebihi subtotal
+        if ($diskonQuotation > $subtotal) {
+            $diskonQuotation = $subtotal;
+        }
+
+        // Nominal PO setelah diskon
+        $nominalPO = $subtotal - $diskonQuotation;
         $invoiceData = InvoiceCalculatorHelper::from($invoice)->calculate();
-
+        $dppOld = $invoice->dpp ?? 0;
+        // dd([
+        //     'invoice_id' => $invoice->id,
+        //     'dpp_lama' => $invoice->dpp,
+        // ]);
         return view('pages.finance.edit', compact(
             'title',
             'invoice',
@@ -610,6 +636,9 @@ class FinanceController extends Controller
             'invoiceData',
             'subtotal',
             'persentase_termin',
+            'diskonQuotation',
+            'nominalPO',
+            'dppOld'
         ));
     }
 

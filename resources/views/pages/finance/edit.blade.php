@@ -42,13 +42,13 @@
                     <div class="col-md-3">
                         <label class="form-label">Alamat Penagihan</label>
                         <textarea class="form-control" rows="3" readonly>
-        {{ collect([
-            $invoice->detail_alamat,
-            $invoice->kawasan_name,
-            $invoice->kabupaten_name,
-            $invoice->provinsi->nama ?? '-',
-        ])->filter()->implode(', ') }}
-    </textarea>
+                            {{ collect([
+                                $invoice->detail_alamat,
+                                $invoice->kawasan_name,
+                                $invoice->kabupaten_name,
+                                $invoice->provinsi->nama ?? '-',
+                            ])->filter()->implode(', ') }}
+                        </textarea>
                     </div>
 
                     <div class="col-md-3">
@@ -121,6 +121,13 @@
                 </div>
 
                 <hr>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="sameWithPo" checked>
+                    <label class="form-check-label fw-semibold" for="sameWithPo">
+                        Sama dengan PO
+                    </label>
+                </div>
+
 
                 {{-- PRODUK --}}
                 <h6 class="mb-3">Produk</h6>
@@ -167,23 +174,51 @@
                 {{-- TOTAL --}}
                 <div class="row justify-content-end">
                     <div class="col-md-6">
+
+                        {{-- Subtotal --}}
                         <div class="mb-2 d-flex justify-content-between">
                             <span>Subtotal</span>
-                            <strong id="subtotal"> Rp {{ number_format($subtotal, 0, ',', '.') }} </strong>
-                            <input type="hidden" name="subtotal" id="subtotalInput" value="{{ $subtotal }}">
+                            <strong id="subtotal"> Rp
+                                {{ number_format(old('subtotal', $invoice->subtotal), 0, ',', '.') }} </strong>
+                            <input type="hidden" name="subtotal" id="subtotalInput"
+                                value="{{ old('subtotal', $invoice->subtotal) }}">
                         </div>
 
+                        {{-- Harga Gabungan --}}
                         <input type="hidden" id="hargaGabunganInput"
                             value="{{ old('harga_gabungan', $invoice->harga_gabungan ?? 0) }}">
 
                         <div class="mb-2 d-flex justify-content-between">
+                            <span>Diskon PO</span>
+                            <strong>
+                                {{ old('diskon_po', $diskonQuotation) > 0 ? 'Rp ' . number_format(old('diskon_po', $diskonQuotation), 0, ',', '.') : '-' }}
+                            </strong>
+                        </div>
+                        <input type="hidden" id="diskonPoInput" name="diskon_po"
+                            value="{{ old('diskon_po', $diskonQuotation) }}">
+
+                        <div class="mb-2 d-flex justify-content-between">
+                            <span class="fw-semibold">Nominal PO</span>
+                            <strong id="nominalPoDisplay">
+                                Rp {{ number_format(old('nominal_po', $nominalPO), 0, ',', '.') }}
+                            </strong>
+                        </div>
+                        <input type="hidden" name="nominal_po" id="nominalPoInput"
+                            value="{{ old('nominal_po', $nominalPO) }}">
+
+                        <hr>
+
+                        {{-- Nominal Invoice (Persentase Termin) --}}
+                        <div class="mb-2 d-flex justify-content-between">
                             <span>Nominal Invoice ({{ old('persentase_termin', $invoice->persentase_termin) }}%)</span>
                             <strong id="nominalInvoice"> Rp
-                                {{ number_format(($subtotal * $persentase_termin) / 100, 0, ',', '.') }} </strong>
+                                {{ number_format(old('nominal_invoice', $invoice->nominal_invoice), 0, ',', '.') }}
+                            </strong>
                             <input type="hidden" name="nominal_invoice" id="nominalInvoiceInput"
-                                value="{{ ($subtotal * $persentase_termin) / 100 }}">
+                                value="{{ old('nominal_invoice', $invoice->nominal_invoice) }}">
                         </div>
 
+                        {{-- Diskon Invoice --}}
                         <div class="mb-2 d-flex justify-content-between align-items-center">
                             <div>
                                 <label class="form-label mb-1">Diskon</label>
@@ -191,10 +226,12 @@
                                     <select class="form-select" id="tipe_diskon" style="max-width:70px">
                                         <option value="persen"
                                             {{ old('tipe_diskon', $invoice->tipe_diskon) === 'persen' ? 'selected' : '' }}>
-                                            %</option>
+                                            %
+                                        </option>
                                         <option value="nominal"
                                             {{ old('tipe_diskon', $invoice->tipe_diskon) === 'nominal' ? 'selected' : '' }}>
-                                            Rp</option>
+                                            Rp
+                                        </option>
                                     </select>
                                     <input type="number" class="form-control" id="nilai_diskon"
                                         placeholder="Nilai diskon"
@@ -205,16 +242,30 @@
                                     id="jumlah_diskon">{{ number_format(old('nilai_diskon', $invoice->nilai_diskon), 0, ',', '.') }}</span></strong>
                         </div>
 
+                        {{-- Total After Diskon --}}
                         <div class="mb-2 d-flex justify-content-between align-items-center">
                             <span class="fw-semibold">Total After Diskon</span>
-                            <strong>Rp <span id="total_after_discount">0</span></strong>
+                            <strong>Rp <span
+                                    id="total_after_discount">{{ number_format(old('total_after_discount', $invoice->total_after_diskon_inv ?? 0), 0, ',', '.') }}</span></strong>
                         </div>
 
                         <input type="hidden" name="tipe_diskon" id="discountTypeInput"
                             value="{{ old('tipe_diskon', $invoice->tipe_diskon) }}">
                         <input type="hidden" name="nilai_diskon" id="discountValueInput"
                             value="{{ old('nilai_diskon', $invoice->nilai_diskon) }}">
-                        <input type="hidden" name="total_after_discount" id="totalAfterDiscountInput">
+                        <input type="hidden" name="total_after_discount" id="totalAfterDiscountInput"
+                            value="{{ old('total_after_discount', $invoice->total_after_diskon_inv ?? 0) }}">
+
+                        <div id="dppContainer" class="mb-2">
+                            @if ($dppOld > 0)
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>DPP</span>
+                                    <strong>Rp {{ number_format($dppOld, 0, ',', '.') }}</strong>
+                                </div>
+                            @endif
+                        </div>
+
+                        <input type="hidden" id="oldDpp" value="{{ $dppOld }}">
 
                         {{-- Pajak --}}
                         <div class="mb-2">
@@ -222,7 +273,7 @@
 
                             @foreach ($ppnList as $tax)
                                 @php
-                                    $isChecked = $invoice->pajak->contains('coa_id', $tax->id); // centang jika ada di invoice->pajak
+                                    $isChecked = $invoice->pajak->contains('coa_id', $tax->id);
                                 @endphp
                                 <div class="form-check">
                                     <input class="form-check-input tax-checkbox" type="checkbox" name="tax[]"
@@ -230,7 +281,6 @@
                                         data-type="{{ str_contains(strtolower($tax->nama_akun), 'pph') ? 'pph' : 'ppn' }}"
                                         data-rate="{{ $tax->nilai_coa }}" value="{{ $tax->id }}"
                                         {{ $isChecked ? 'checked' : '' }}>
-
                                     <label class="form-check-label" for="tax-{{ $tax->id }}">
                                         {{ $tax->nama_akun }}
                                     </label>
@@ -242,8 +292,11 @@
 
                         <hr>
 
-                        <h5>Total: Rp <span id="finalTotal">0</span></h5>
-                        <input type="hidden" name="total" id="totalInput">
+                        <h5>Total: Rp <span
+                                id="finalTotal">{{ number_format(old('total', $invoice->grand_total ?? 0), 0, ',', '.') }}</span>
+                        </h5>
+                        <input type="hidden" name="total" id="totalInput"
+                            value="{{ old('total', $invoice->grand_total ?? 0) }}">
 
                         <hr>
 
@@ -259,135 +312,253 @@
 
     @include('pages.finance.modal-akun')
 
-    {{-- Script untuk perhitungan sama seperti form create --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
+        const poItems = @json($perizinans);
+        const oldItems = @json($invoice->produk);
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const checkbox = document.getElementById('sameWithPo');
+            const itemsContainer = document.getElementById('items');
+            const addButton = document.querySelector('.add-item');
+
+            function rupiah(num) {
+                return Math.round(num).toLocaleString('id-ID');
+            }
+
+            // =====================
+            // Load PO Items
+            // =====================
+            function loadPoItems() {
+                itemsContainer.innerHTML = '';
+                addButton.style.display = 'none';
+
+                poItems.forEach((item, i) => {
+                    const qty = item.pivot?.qty ?? 1;
+                    const harga = item.pivot?.harga_satuan ?? 0;
+                    const jumlah = qty * harga;
+
+                    itemsContainer.insertAdjacentHTML('beforeend', `
+                <div class="row align-items-end mb-2 item-row">
+                    <div class="col-md-3">
+                        <input type="hidden" name="items[${i}][perizinan_id]" value="${item.id}">
+                        <input type="text" class="form-control" value="${item.jenis}" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="items[${i}][description]" value="">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control qty" name="items[${i}][qty]" value="${qty}" readonly>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control price" name="items[${i}][harga_satuan]" value="${harga}" readonly>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control jumlah" value="${jumlah}" readonly>
+                    </div>
+                </div>
+            `);
+                });
+
+                updateSubtotal();
+            }
+
+            // =====================
+            // Load Manual Items (untuk edit)
+            // =====================
+            function loadManualForm() {
+                itemsContainer.innerHTML = '';
+                addButton.style.display = 'inline-block';
+
+                oldItems.forEach((item, i) => {
+                    const jumlah = item.qty * item.harga_satuan;
+                    itemsContainer.insertAdjacentHTML('beforeend', `
+                <div class="row align-items-end mb-2 item-row">
+                    <div class="col-md-3">
+                        <input type="hidden" name="items[${i}][perizinan_id]" value="${item.perizinan_id}">
+                        <input type="text" class="form-control" value="${item.perizinan.jenis}" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="items[${i}][description]" value="${item.description}">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control qty" name="items[${i}][qty]" value="${item.qty}">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control price" name="items[${i}][harga_satuan]" value="${item.harga_satuan}">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control jumlah" value="${jumlah}" readonly>
+                    </div>
+                </div>
+            `);
+                });
+
+                updateSubtotal();
+            }
+
+            // =====================
+            // Tambah manual row kosong
+            // =====================
+            function addManualRow() {
+                const index = itemsContainer.querySelectorAll('.item-row').length;
+                itemsContainer.insertAdjacentHTML('beforeend', `
+            <div class="row align-items-end mb-2 item-row">
+                <div class="col-md-3"><input type="text" class="form-control" name="items[${index}][produk]" placeholder="Produk"></div>
+                <div class="col-md-3"><input type="text" class="form-control" name="items[${index}][description]" placeholder="Deskripsi"></div>
+                <div class="col-md-2"><input type="number" class="form-control qty" name="items[${index}][qty]" value="1"></div>
+                <div class="col-md-2"><input type="number" class="form-control price" name="items[${index}][harga_satuan]" value="0"></div>
+                <div class="col-md-2"><input type="text" class="form-control jumlah" value="0" readonly></div>
+            </div>
+        `);
+            }
+
+            // =====================
+            // Update subtotal, nominal invoice, dll
+            // =====================
+            function updateSubtotal() {
+                let subtotal = 0;
+                document.querySelectorAll('#items .item-row').forEach(row => {
+                    const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
+                    const harga = parseFloat(row.querySelector('.price')?.value) || 0;
+                    const jumlah = qty * harga;
+                    row.querySelector('.jumlah').value = jumlah;
+                    subtotal += jumlah;
+                });
+
+                document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
+                document.getElementById('subtotalInput').value = subtotal;
+
+                // Hitung nominal invoice
+                const diskonPO = parseFloat(document.getElementById('diskonPoInput')?.value) || 0;
+                const terminPersen = {{ $persentaseTermin ?? 0 }};
+                let nominal = subtotal - diskonPO;
+                if (nominal < 0) nominal = 0;
+                nominal = nominal * terminPersen / 100;
+
+                document.querySelector('input[name="nominal_invoice"]').value = nominal;
+                document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el => el.innerText = 'Rp ' +
+                    rupiah(nominal));
+            }
+
+            // =====================
+            // Event listeners
+            // =====================
+            checkbox.addEventListener('change', function() {
+                if (this.checked) loadPoItems();
+                else loadManualForm();
+            });
+
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('qty') || e.target.classList.contains('price'))
+                    updateSubtotal();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('add-item')) addManualRow();
+            });
+
+            // Load default
+            if (checkbox.checked) loadPoItems();
+            else loadManualForm();
+        });
+
         function rupiah(n) {
             return Math.round(n).toLocaleString('id-ID');
         }
 
-        // Bisa pakai script create, tapi jalankan updateNominalInvoice() saat load
-        document.addEventListener('DOMContentLoaded', function() {
-            // hitung ulang total, diskon, pajak, nominal
-            updateNominalInvoice();
-            hitungDiskon();
-            hitungPajak();
-            hitungTotalAkhir();
 
-            // jika user ubah qty/harga
-            document.querySelectorAll('.qty, .price').forEach(el => el.addEventListener('input',
-                hitungSubtotalDanDiskon));
-            document.getElementById('nilai_diskon').addEventListener('input', hitungDiskon);
-            document.getElementById('tipe_diskon').addEventListener('change', hitungDiskon);
-            document.querySelectorAll('.tax-checkbox').forEach(el => el.addEventListener('change', () => {
-                hitungPajak();
-                hitungTotalAkhir();
-            }));
-        });
+        let firstLoadDpp = true;
 
-        function getBaseSubtotal() {
-            let subtotal = parseFloat(document.getElementById('subtotalInput').value) || 0;
-            const hargaGabungan = parseFloat(document.getElementById('hargaGabunganInput')?.value || 0);
-
-            if (subtotal === 0 && hargaGabungan > 0) {
-                subtotal = hargaGabungan;
-            }
-            return subtotal;
-        }
-
-        function updateNominalInvoice() {
-            const base = getBaseSubtotal();
-            const persenTermin = parseFloat("{{ $persentase_termin }}") || 0;
-
-            const nominal = base * persenTermin / 100;
-
-            document.getElementById('nominalInvoice').innerText = rupiah(nominal);
-            document.getElementById('nominalInvoiceInput').value = nominal;
-
-            hitungDiskon();
-            hitungPajak();
-            hitungTotalAkhir();
-        }
-
-        // =====================
-        // Diskon
-        // =====================
-        function hitungDiskon() {
-            const nominalInvoice = parseFloat(document.getElementById('nominalInvoiceInput').value) || 0;
-            const jenis = document.getElementById('tipe_diskon').value;
-            const nilai = parseFloat(document.getElementById('nilai_diskon').value); // jangan pakai || 0
-
-            // Hitung diskon seperti biasa
-            let diskon = 0;
-            if (!isNaN(nilai) && nilai > 0) {
-                if (jenis === 'persen') diskon = nominalInvoice * nilai / 100;
-                else diskon = nilai;
-            }
-
-            if (diskon > nominalInvoice) diskon = nominalInvoice;
-
-            const totalAfterDiscount = nominalInvoice - diskon;
-
-            // Tampilkan di UI, default 0 jika user belum input
-            document.getElementById('jumlah_diskon').innerText = (!nilai || nilai <= 0) ? '0' : rupiah(diskon);
-            document.getElementById('total_after_discount').innerText = (!nilai || nilai <= 0) ? '0' : rupiah(
-                totalAfterDiscount);
-
-            // hidden input tetap pakai angka sebenarnya supaya submit dan pajak tetap benar
-            document.getElementById('discountTypeInput').value = jenis;
-            document.getElementById('discountValueInput').value = nilai || 0;
-            document.getElementById('totalAfterDiscountInput').value = totalAfterDiscount;
-
-            hitungPajak();
-            hitungTotalAkhir();
-        }
-
-        document.getElementById('tipe_diskon').addEventListener('change', hitungDiskon);
-        document.getElementById('nilai_diskon').addEventListener('input', hitungDiskon);
-
-        // =====================
-        // Pajak
-        // =====================
         function hitungPajak() {
             const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) ||
-                parseFloat(document.getElementById('nominalInvoiceInput').value) ||
-                0;
-            const taxes = document.querySelectorAll('.tax-checkbox:checked');
+                parseFloat(document.getElementById('nominalInvoiceInput').value) || 0;
+
+            const taxes = document.querySelectorAll('.tax-checkbox');
             const container = document.getElementById('taxContainer');
+            const dppContainer = document.getElementById('dppContainer');
 
             container.innerHTML = '';
+
+            let totalPPN = 0;
+            let totalPPH = 0;
 
             taxes.forEach(el => {
                 const rate = parseFloat(el.dataset.rate) || 0;
                 const name = el.dataset.name;
-                const amount = base * rate / 100;
+                const checked = el.checked;
+                const amount = checked ? base * rate / 100 : 0;
 
-                container.innerHTML += `
-            <div class="d-flex justify-content-between mb-1">
-                <span>${name}</span>
-                <strong>Rp ${rupiah(amount)}</strong>
-            </div>`;
+                if (checked) {
+                    container.innerHTML += `
+                <div class="d-flex justify-content-between mb-1">
+                    <span>${name}</span>
+                    <strong>Rp ${rupiah(amount)}</strong>
+                </div>
+            `;
+                }
+
+                if (checked) {
+                    if (name.toLowerCase().includes('pph')) totalPPH += amount;
+                    else totalPPN += amount;
+                }
             });
+
+            // --- tampilkan DPP ---
+            if (firstLoadDpp && totalPPN > 0) {
+                const oldDpp = parseFloat(document.getElementById('oldDpp').value) || 0;
+                if (oldDpp > 0) {
+                    dppContainer.innerHTML = `
+                <div class="d-flex justify-content-between mb-1">
+                    <span>DPP</span>
+                    <strong>Rp ${rupiah(oldDpp)}</strong>
+                </div>
+            `;
+                } else {
+                    const dpp = Math.round((base * 11) / 12);
+                    dppContainer.innerHTML = `
+                <div class="d-flex justify-content-between mb-1">
+                    <span>DPP</span>
+                    <strong>Rp ${rupiah(dpp)}</strong>
+                </div>
+            `;
+                }
+                firstLoadDpp = false; // sudah dipakai
+            } else if (!firstLoadDpp && totalPPN > 0) {
+                const dpp = Math.round((base * 11) / 12);
+                dppContainer.innerHTML = `
+            <div class="d-flex justify-content-between mb-1">
+                <span>DPP</span>
+                <strong>Rp ${rupiah(dpp)}</strong>
+            </div>
+        `;
+            }
         }
 
         // =====================
         // Total Akhir
         // =====================
         function hitungTotalAkhir() {
-            const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) || parseFloat(document
+            const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) || parseFloat(
+                document
                 .getElementById('nominalInvoiceInput').value);
             const taxes = document.querySelectorAll('.tax-checkbox:checked');
 
             let totalPPN = 0,
-                totalPPH = 0;
 
-            taxes.forEach(tax => {
-                const rate = parseFloat(tax.dataset.rate) || 0;
-                const name = tax.dataset.name.toLowerCase();
-                const amount = base * rate / 100;
+                taxes.forEach(tax => {
+                    const rate = parseFloat(tax.dataset.rate) || 0;
+                    const name = tax.dataset.name.toLowerCase();
 
-                if (name.includes('pph')) totalPPH += amount;
-                else totalPPN += amount;
-            });
+                    if (type === 'ppn') {
+                        totalPPN += Math.round((dpp * 12) / 100);
+                    } else {
+                        totalPPH += Math.round((base * rate) / 100);
+                    }
+                });
 
             const finalTotal = base + totalPPN - totalPPH;
 

@@ -108,48 +108,77 @@
             {{-- TOTAL & DISKON --}}
             <div class="row justify-content-end mt-3">
                 <div class="col-md-4">
+
+                    {{-- SUBTOTAL --}}
                     <div class="d-flex justify-content-between">
                         <span>Subtotal</span>
                         <strong>Rp {{ number_format($subtotal, 0, ',', '.') }}</strong>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <span>Nominal Invoice ({{ $invoice->persentase_termin }}%)</span>
-                        <strong>Rp {{ number_format($nominalTermin, 0, ',', '.') }}</strong>
-                    </div>
-                    @if ($diskon > 0)
+
+                    {{-- DISKON PO --}}
+                    @if ($diskonPO > 0)
+                        <div class="d-flex justify-content-between">
+                            {{-- diskon PO --}}
+                            <span>Diskon</span>
+                            <strong>- Rp {{ number_format($diskonPO, 0, ',', '.') }}</strong>
+                        </div>
+
+                        {{-- AFTER DISKON PO --}}
+                        <div class="d-flex justify-content-between">
+                            <span>Total setelah Diskon</span>
+                            <strong>Rp {{ number_format($nominalPO, 0, ',', '.') }}</strong>
+                        </div>
+
+                        {{-- NOMINAL TERMIN --}}
+                        <div class="d-flex justify-content-between">
+                            <span>Nominal Invoice ({{ $invoice->persentase_termin }}%)</span>
+                            <strong>Rp {{ number_format($nominalTermin, 0, ',', '.') }}</strong>
+                        </div>
+                    @else
+                        {{-- TIDAK ADA DISKON PO --}}
+                        <div class="d-flex justify-content-between">
+                            <span>Nominal Invoice ({{ $invoice->persentase_termin }}%)</span>
+                            <strong>Rp {{ number_format($nominalTermin, 0, ',', '.') }}</strong>
+                        </div>
+                    @endif
+
+                    {{-- DISKON INVOICE --}}
+                    @if ($diskonInvoice > 0)
                         <div class="d-flex justify-content-between">
                             <span>Diskon</span>
-                            <strong>Rp {{ number_format($diskon, 0, ',', '.') }}</strong>
+                            <strong>- Rp {{ number_format($diskonInvoice, 0, ',', '.') }}</strong>
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <span>Total After Diskon</span>
+                            <span>Total setelah Diskon</span>
                             <strong>Rp {{ number_format($afterDiscount, 0, ',', '.') }}</strong>
                         </div>
                     @endif
 
-                    @if ($totalPPN > 0)
+                    {{-- PAJAK --}}
+                    @if ($ppn > 0)
                         <div class="d-flex justify-content-between">
-                            <span>Total PPN</span>
-                            <strong>Rp {{ number_format($totalPPN, 0, ',', '.') }}</strong>
+                            <span>DPP</span>
+                            <strong>Rp {{ number_format($dpp, 0, ',', '.') }}</strong>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <span>PPN 11%</span>
+                            <strong>Rp {{ number_format($ppn, 0, ',', '.') }}</strong>
                         </div>
                     @endif
 
-                    @if ($totalPPH > 0)
-                        <div class="d-flex justify-content-between">
-                            <span>Total PPH</span>
-                            <strong>Rp {{ number_format($totalPPH, 0, ',', '.') }}</strong>
-                        </div>
-                    @endif
                     <hr>
-                    <div class="d-flex justify-content-between">
-                        <span>Total Akhir</span>
-                        <strong>Rp {{ number_format($totalAkhir, 0, ',', '.') }}</strong>
-                    </div>
 
+                    {{-- GRAND TOTAL --}}
+                    <div class="d-flex justify-content-between">
+                        <span>Total</span>
+                        <strong>Rp {{ number_format($grandTotal, 0, ',', '.') }}</strong>
+                    </div>
 
                 </div>
             </div>
+
 
             <div class="mt-4">
                 <a href="{{ url()->previous() }}" class="btn btn-secondary">Kembali</a>
