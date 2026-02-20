@@ -17,6 +17,7 @@ use App\Http\Controllers\RekapController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\OperasionalController;
 use App\Http\Controllers\PembelianController;
+use App\Http\Controllers\KontakController;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
 
@@ -98,7 +99,6 @@ Route::middleware('auth')->group(function () {
     Route::get('quotation/{id}/show', [QuotationController::class, 'show'])->name('quotation.show');
     Route::get('/quotation/download/{id}', [QuotationController::class, 'download'])->name('quotation.download');
 
-
     Route::get('quotation/edit/{id}', [QuotationController::class, 'edit'])->name('quotation.edit');
     Route::put('quotation/update/{id}', [QuotationController::class, 'update'])->name('quotation.update');
     Route::delete('quotation/{id}', [QuotationController::class, 'destroy'])->name('quotation.destroy');
@@ -124,7 +124,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/achievement', [RekapController::class, 'achievement'])->name('achievement');
     Route::post('/achievement/save', [RekapController::class, 'saveTarget'])->name('achievement.save');
 
-
     // projek
     Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
     Route::get('projects/create/{id}', [ProjectController::class, 'create'])->name('projects.create');
@@ -138,10 +137,23 @@ Route::middleware('auth')->group(function () {
     // finance
     Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('/', [FinanceController::class, 'index'])->name('index');
+
+        // akun
         Route::get('/akun', [FinanceController::class, 'akun_index'])->name('akun_index');
         Route::post('/akun/store', [FinanceController::class, 'akun_store'])->name('akun.store');
         Route::get('/create/{po}', [FinanceController::class, 'create'])->name('create');
         Route::post('/akun/coa/store', [FinanceController::class, 'store_akun_coa'])->name('akun.coa.store');
+
+        // Kontak
+        Route::get('/kontak', [KontakController::class, 'kontak_index'])->name('kontak_index');
+        Route::post('/kontak/store-modal', [KontakController::class, 'store'])->name('kontak.store-modal');
+        Route::delete('/kontak/{id}', [KontakController::class, 'destroy'])->name('kontak.destroy');
+        Route::put(
+            '/kontak/{id}',
+            [KontakController::class, 'update']
+        )->name('kontak.update');
+
+        // Invoice
         Route::post('/invoice/store', [FinanceController::class, 'store'])->name('invoice.store');
         Route::get('/invoice/index', [FinanceController::class, 'invoice_index'])->name('invoice_index');
         Route::get('invoice/{invoice}', [FinanceController::class, 'show'])->name('invoice.show');
