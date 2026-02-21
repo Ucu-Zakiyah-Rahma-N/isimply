@@ -121,17 +121,42 @@
                 </div>
 
                 <hr>
+
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="sameWithPo" checked>
+                    <input class="form-check-input" type="checkbox" id="sameWithPo" {{ $isSameWithPo ? 'checked' : '' }}>
                     <label class="form-check-label fw-semibold" for="sameWithPo">
                         Sama dengan PO
                     </label>
                 </div>
 
-
                 {{-- PRODUK --}}
                 <h6 class="mb-3">Produk</h6>
+
+                <div class="table-responsive" style="overflow-x:auto;">
+                    <table class="table table-bordered mb-0">
+                        <thead class="fw-bold">
+                            <tr>
+                                <th style="min-width: 150px;">Produk</th>
+                                <th style="min-width: 150px;">Deskripsi</th>
+                                <th style="min-width: 100px;">Qty</th>
+                                <th style="min-width: 120px;">Harga</th>
+                                <th style="min-width: 120px;">Jumlah</th>
+                                <th style="width: 50px;" class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="items"></tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button" class="btn btn-primary btn-sm add-item">
+                        + Tambah Pekerjaan
+                    </button>
+                </div>
+
+                {{-- <h6 class="mb-3">Produk</h6>
                 <div id="items">
+                    {{-- {{ dd($invoice->produk) }}
                     @foreach ($invoice->produk as $i => $item)
                         <div class="row align-items-end mb-2 item-row" data-tipe-harga="{{ $item->tipe_harga }}">
                             <div class="col-md-3">
@@ -167,7 +192,7 @@
                             </div>
                         </div>
                     @endforeach
-                </div>
+                </div> --}}
 
                 <hr>
 
@@ -315,303 +340,310 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    <script>
-        const poItems = @json($perizinans);
-        const oldItems = @json($invoice->produk);
+<script>
+document.addEventListener('DOMContentLoaded', function() {
 
-        document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('sameWithPo');
+    const itemsContainer = document.getElementById('items');
+    const addButton = document.querySelector('.add-item');
 
-            const checkbox = document.getElementById('sameWithPo');
-            const itemsContainer = document.getElementById('items');
-            const addButton = document.querySelector('.add-item');
+    const poItems = @json($perizinans ?? []);
+    const invoiceItems = @json($invoice->produk ?? []);
+    const isSameWithPo = @json($isSameWithPo ?? false);
 
-            function rupiah(num) {
-                return Math.round(num).toLocaleString('id-ID');
-            }
+    function rupiah(number) {
+        return new Intl.NumberFormat('id-ID').format(number);
+    }
 
-            // =====================
-            // Load PO Items
-            // =====================
-            function loadPoItems() {
-                itemsContainer.innerHTML = '';
-                addButton.style.display = 'none';
+    /* ===============================
+       LOAD PO ITEMS
+    =============================== */
+    function loadPoItems() {
 
-                poItems.forEach((item, i) => {
-                    const qty = item.pivot?.qty ?? 1;
-                    const harga = item.pivot?.harga_satuan ?? 0;
-                    const jumlah = qty * harga;
+        itemsContainer.innerHTML = '';
+        if (addButton) addButton.style.display = 'none';
 
-                    itemsContainer.insertAdjacentHTML('beforeend', `
-                <div class="row align-items-end mb-2 item-row">
-                    <div class="col-md-3">
+        poItems.forEach((item, i) => {
+
+            const qty = item.pivot?.qty ?? 1;
+            const harga = item.pivot?.harga_satuan ?? 0;
+
+            itemsContainer.insertAdjacentHTML('beforeend', `
+                <tr class="item-row">
+                    <td>
                         <input type="hidden" name="items[${i}][perizinan_id]" value="${item.id}">
                         <input type="text" class="form-control" value="${item.jenis}" readonly>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="text" class="form-control" name="items[${i}][description]" value="">
-                    </div>
-                    <div class="col-md-2">
-                        <input type="number" class="form-control qty" name="items[${i}][qty]" value="${qty}" readonly>
-                    </div>
-                    <div class="col-md-2">
-                        <input type="number" class="form-control price" name="items[${i}][harga_satuan]" value="${harga}" readonly>
-                    </div>
-                    <div class="col-md-2">
-                        <input type="text" class="form-control jumlah" value="${jumlah}" readonly>
-                    </div>
-                </div>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control" name="items[${i}][description]">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control qty" value="${qty}" readonly>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control price" value="${harga}" readonly>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control jumlah" readonly>
+                    </td>
+                    <td></td>
+                </tr>
             `);
-                });
+        });
 
-                updateSubtotal();
-            }
+        recalculateAll();
+    }
 
-            // =====================
-            // Load Manual Items (untuk edit)
-            // =====================
-            function loadManualForm() {
-                itemsContainer.innerHTML = '';
-                addButton.style.display = 'inline-block';
+    /* ===============================
+       LOAD INVOICE ITEMS
+    =============================== */
+    function loadInvoiceItems() {
 
-                oldItems.forEach((item, i) => {
-                    const jumlah = item.qty * item.harga_satuan;
-                    itemsContainer.insertAdjacentHTML('beforeend', `
-                <div class="row align-items-end mb-2 item-row">
-                    <div class="col-md-3">
+        itemsContainer.innerHTML = '';
+        if (addButton) addButton.style.display = 'inline-block';
+
+        invoiceItems.forEach((item, i) => {
+
+            itemsContainer.insertAdjacentHTML('beforeend', `
+                <tr class="item-row">
+                    <td>
                         <input type="hidden" name="items[${i}][perizinan_id]" value="${item.perizinan_id}">
                         <input type="text" class="form-control" value="${item.perizinan.jenis}" readonly>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="text" class="form-control" name="items[${i}][description]" value="${item.description}">
-                    </div>
-                    <div class="col-md-2">
-                        <input type="number" class="form-control qty" name="items[${i}][qty]" value="${item.qty}">
-                    </div>
-                    <div class="col-md-2">
-                        <input type="number" class="form-control price" name="items[${i}][harga_satuan]" value="${item.harga_satuan}">
-                    </div>
-                    <div class="col-md-2">
-                        <input type="text" class="form-control jumlah" value="${jumlah}" readonly>
-                    </div>
-                </div>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control"
+                               name="items[${i}][description]"
+                               value="${item.description ?? ''}">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control qty"
+                               name="items[${i}][qty]"
+                               value="${item.qty}">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control price"
+                               name="items[${i}][harga_satuan]"
+                               value="${item.harga_satuan}">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control jumlah" readonly>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-item">✕</button>
+                    </td>
+                </tr>
             `);
-                });
-
-                updateSubtotal();
-            }
-
-            // =====================
-            // Tambah manual row kosong
-            // =====================
-            function addManualRow() {
-                const index = itemsContainer.querySelectorAll('.item-row').length;
-                itemsContainer.insertAdjacentHTML('beforeend', `
-            <div class="row align-items-end mb-2 item-row">
-                <div class="col-md-3"><input type="text" class="form-control" name="items[${index}][produk]" placeholder="Produk"></div>
-                <div class="col-md-3"><input type="text" class="form-control" name="items[${index}][description]" placeholder="Deskripsi"></div>
-                <div class="col-md-2"><input type="number" class="form-control qty" name="items[${index}][qty]" value="1"></div>
-                <div class="col-md-2"><input type="number" class="form-control price" name="items[${index}][harga_satuan]" value="0"></div>
-                <div class="col-md-2"><input type="text" class="form-control jumlah" value="0" readonly></div>
-            </div>
-        `);
-            }
-
-            // =====================
-            // Update subtotal, nominal invoice, dll
-            // =====================
-            function updateSubtotal() {
-                let subtotal = 0;
-                document.querySelectorAll('#items .item-row').forEach(row => {
-                    const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
-                    const harga = parseFloat(row.querySelector('.price')?.value) || 0;
-                    const jumlah = qty * harga;
-                    row.querySelector('.jumlah').value = jumlah;
-                    subtotal += jumlah;
-                });
-
-                document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
-                document.getElementById('subtotalInput').value = subtotal;
-
-                // Hitung nominal invoice
-                const diskonPO = parseFloat(document.getElementById('diskonPoInput')?.value) || 0;
-                const terminPersen = {{ $persentaseTermin ?? 0 }};
-                let nominal = subtotal - diskonPO;
-                if (nominal < 0) nominal = 0;
-                nominal = nominal * terminPersen / 100;
-
-                document.querySelector('input[name="nominal_invoice"]').value = nominal;
-                document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el => el.innerText = 'Rp ' +
-                    rupiah(nominal));
-            }
-
-            // =====================
-            // Event listeners
-            // =====================
-            checkbox.addEventListener('change', function() {
-                if (this.checked) loadPoItems();
-                else loadManualForm();
-            });
-
-            document.addEventListener('input', function(e) {
-                if (e.target.classList.contains('qty') || e.target.classList.contains('price'))
-                    updateSubtotal();
-            });
-
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('add-item')) addManualRow();
-            });
-
-            // Load default
-            if (checkbox.checked) loadPoItems();
-            else loadManualForm();
         });
 
-        function rupiah(n) {
-            return Math.round(n).toLocaleString('id-ID');
+        recalculateAll();
+    }
+
+    /* ===============================
+       ADD MANUAL ROW
+    =============================== */
+    function addManualRow() {
+
+        const index = document.querySelectorAll('#items .item-row').length;
+
+        itemsContainer.insertAdjacentHTML('beforeend', `
+            <tr class="item-row">
+                <td>
+                    <input type="text" class="form-control" name="items[${index}][produk]" placeholder="Produk">
+                </td>
+                <td>
+                    <input type="text" class="form-control" name="items[${index}][deskripsi]" placeholder="Deskripsi">
+                </td>
+                <td>
+                    <input type="number" class="form-control qty" name="items[${index}][qty]" value="1">
+                </td>
+                <td>
+                    <input type="number" class="form-control price" name="items[${index}][harga_satuan]" placeholder="Harga">
+                </td>
+                <td>
+                    <input type="text" class="form-control jumlah" readonly>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-item">✕</button>
+                </td>
+            </tr>
+        `);
+    }
+
+    /* ===============================
+       EVENT DELEGATION
+    =============================== */
+    document.addEventListener('input', function(e) {
+        if (
+            e.target.classList.contains('qty') ||
+            e.target.classList.contains('price') ||
+            e.target.id === 'nilai_diskon' ||
+            e.target.id === 'diskonPoInput'
+        ) {
+            recalculateAll();
+        }
+    });
+
+    document.addEventListener('change', function(e) {
+        if (
+            e.target.id === 'tipe_diskon' ||
+            e.target.classList.contains('tax-checkbox')
+        ) {
+            recalculateAll();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+
+        if (e.target.classList.contains('remove-item')) {
+            e.target.closest('.item-row').remove();
+            recalculateAll();
         }
 
+        if (e.target.classList.contains('add-item')) {
+            addManualRow();
+        }
+    });
 
-        let firstLoadDpp = true;
+    if (checkbox) {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                loadPoItems();
+            } else {
+                loadInvoiceItems();
+            }
+        });
+    }
 
-        function hitungPajak() {
-            const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) ||
-                parseFloat(document.getElementById('nominalInvoiceInput').value) || 0;
+    /* ===============================
+       INIT
+    =============================== */
+    if (isSameWithPo) {
+        if (checkbox) checkbox.checked = true;
+        loadPoItems();
+    } else {
+        if (checkbox) checkbox.checked = false;
+        loadInvoiceItems();
+    }
 
-            const taxes = document.querySelectorAll('.tax-checkbox');
-            const container = document.getElementById('taxContainer');
-            const dppContainer = document.getElementById('dppContainer');
+    /* ===============================
+       HITUNG PAJAK
+    =============================== */
+    function hitungPajak() {
 
-            container.innerHTML = '';
+        const base = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
+        const taxes = document.querySelectorAll('.tax-checkbox');
+        const container = document.getElementById('taxContainer');
+        const dppContainer = document.getElementById('dppContainer');
 
-            let totalPPN = 0;
-            let totalPPH = 0;
+        if (container) container.innerHTML = '';
 
-            taxes.forEach(el => {
+        let totalPPN = 0;
+        let totalPPH = 0;
+
+        taxes.forEach(el => {
+
+            if (el.checked) {
+
                 const rate = parseFloat(el.dataset.rate) || 0;
                 const name = el.dataset.name;
-                const checked = el.checked;
-                const amount = checked ? base * rate / 100 : 0;
+                const type = el.dataset.type;
 
-                if (checked) {
+                const amount = Math.round(base * rate / 100);
+
+                if (container) {
                     container.innerHTML += `
-                <div class="d-flex justify-content-between mb-1">
-                    <span>${name}</span>
-                    <strong>Rp ${rupiah(amount)}</strong>
-                </div>
-            `;
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>${name}</span>
+                            <strong>Rp ${rupiah(amount)}</strong>
+                        </div>
+                    `;
                 }
 
-                if (checked) {
-                    if (name.toLowerCase().includes('pph')) totalPPH += amount;
-                    else totalPPN += amount;
-                }
-            });
+                if (type === 'pph') totalPPH += amount;
+                else totalPPN += amount;
+            }
+        });
 
-            // --- tampilkan DPP ---
-            if (firstLoadDpp && totalPPN > 0) {
-                const oldDpp = parseFloat(document.getElementById('oldDpp').value) || 0;
-                if (oldDpp > 0) {
-                    dppContainer.innerHTML = `
-                <div class="d-flex justify-content-between mb-1">
-                    <span>DPP</span>
-                    <strong>Rp ${rupiah(oldDpp)}</strong>
-                </div>
-            `;
-                } else {
-                    const dpp = Math.round((base * 11) / 12);
-                    dppContainer.innerHTML = `
-                <div class="d-flex justify-content-between mb-1">
-                    <span>DPP</span>
-                    <strong>Rp ${rupiah(dpp)}</strong>
-                </div>
-            `;
-                }
-                firstLoadDpp = false; // sudah dipakai
-            } else if (!firstLoadDpp && totalPPN > 0) {
+        if (dppContainer) {
+            if (totalPPN > 0) {
                 const dpp = Math.round((base * 11) / 12);
                 dppContainer.innerHTML = `
-            <div class="d-flex justify-content-between mb-1">
-                <span>DPP</span>
-                <strong>Rp ${rupiah(dpp)}</strong>
-            </div>
-        `;
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>DPP</span>
+                        <strong>Rp ${rupiah(dpp)}</strong>
+                    </div>
+                `;
+            } else {
+                dppContainer.innerHTML = '';
             }
         }
 
-        // =====================
-        // Total Akhir
-        // =====================
-        function hitungTotalAkhir() {
-            const base = parseFloat(document.getElementById('totalAfterDiscountInput').value) || parseFloat(
-                document
-                .getElementById('nominalInvoiceInput').value);
-            const taxes = document.querySelectorAll('.tax-checkbox:checked');
+        const finalTotal = base + totalPPN - totalPPH;
 
-            let totalPPN = 0,
+        document.getElementById('finalTotal').innerText = rupiah(finalTotal);
+        document.getElementById('totalInput').value = finalTotal;
+    }
 
-                taxes.forEach(tax => {
-                    const rate = parseFloat(tax.dataset.rate) || 0;
-                    const name = tax.dataset.name.toLowerCase();
+    /* ===============================
+       RECALCULATE ALL
+    =============================== */
+    function recalculateAll() {
 
-                    if (type === 'ppn') {
-                        totalPPN += Math.round((dpp * 12) / 100);
-                    } else {
-                        totalPPH += Math.round((base * rate) / 100);
-                    }
-                });
+        let subtotal = 0;
 
-            const finalTotal = base + totalPPN - totalPPH;
+        document.querySelectorAll('.item-row').forEach(row => {
 
-            document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-            document.getElementById('totalInput').value = finalTotal;
-        }
+            const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
+            const price = parseFloat(row.querySelector('.price')?.value) || 0;
 
-        document.querySelectorAll('.tax-checkbox').forEach(el => el.addEventListener('change', () => {
-            hitungPajak();
-            hitungTotalAkhir();
-        }));
+            const jumlah = qty * price;
 
-        // =====================
-        // Subtotal dinamis jika user ubah qty/harga
-        // =====================
-        function hitungSubtotalDanDiskon() {
-            let subtotal = 0;
-            let hasNonGabungan = false;
+            const jumlahInput = row.querySelector('.jumlah');
+            if (jumlahInput) jumlahInput.value = jumlah;
 
-            document.querySelectorAll('.item-row').forEach(row => {
-                const tipeHarga = row.dataset.tipeHarga;
-                const qty = parseFloat(row.querySelector('.qty')?.value || 0);
-                const price = parseFloat(row.querySelector('.price')?.value || 0);
-
-                if (tipeHarga !== 'gabungan' && qty > 0 && price > 0) {
-                    subtotal += qty * price;
-                    hasNonGabungan = true;
-                }
-            });
-
-            // Jika semua gabungan → pakai harga gabungan
-            if (!hasNonGabungan) {
-                subtotal = parseFloat(document.getElementById('hargaGabunganInput')?.value || 0);
-            }
-
-            // Update subtotal di UI
-            document.getElementById('subtotal').innerText = rupiah(subtotal);
-            document.getElementById('subtotalInput').value = subtotal;
-
-            //  Setelah subtotal di-update, baru hitung nominal invoice
-            updateNominalInvoice();
-        }
-
-        // jalankan saat load
-        document.addEventListener('DOMContentLoaded', function() {
-            // 1️⃣ Hitung subtotal dulu (pakai harga gabungan jika semua item gabungan)
-            hitungSubtotalDanDiskon();
-
-            // 2️⃣ Tambahkan listener untuk input qty/harga
-            document.querySelectorAll('.qty, .price').forEach(el => {
-                el.addEventListener('input', hitungSubtotalDanDiskon);
-            });
+            subtotal += jumlah;
         });
-    </script>
+
+        document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
+        document.getElementById('subtotalInput').value = subtotal;
+
+        const diskonPO = parseFloat(document.getElementById('diskonPoInput')?.value) || 0;
+        let nominalPO = subtotal - diskonPO;
+        if (nominalPO < 0) nominalPO = 0;
+
+        document.getElementById('nominalPoDisplay').innerText = 'Rp ' + rupiah(nominalPO);
+        document.getElementById('nominalPoInput').value = nominalPO;
+
+        const termin = {{ $invoice->persentase_termin ?? 0 }};
+        let nominalInvoice = nominalPO * termin / 100;
+
+        document.getElementById('nominalInvoice').innerText = 'Rp ' + rupiah(nominalInvoice);
+        document.getElementById('nominalInvoiceInput').value = nominalInvoice;
+
+        const tipeDiskon = document.getElementById('tipe_diskon')?.value;
+        const nilaiDiskonInput = parseFloat(document.getElementById('nilai_diskon')?.value) || 0;
+
+        let jumlahDiskon = 0;
+
+        if (tipeDiskon === 'persen') {
+            jumlahDiskon = nominalInvoice * nilaiDiskonInput / 100;
+        } else {
+            jumlahDiskon = nilaiDiskonInput;
+        }
+
+        document.getElementById('jumlah_diskon').innerText = rupiah(jumlahDiskon);
+
+        let totalAfter = nominalInvoice - jumlahDiskon;
+        if (totalAfter < 0) totalAfter = 0;
+
+        document.getElementById('total_after_discount').innerText = rupiah(totalAfter);
+        document.getElementById('totalAfterDiscountInput').value = totalAfter;
+
+        hitungPajak();
+    }
+
+});
+</script>
+
 
 @endsection

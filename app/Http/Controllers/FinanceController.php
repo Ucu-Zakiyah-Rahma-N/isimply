@@ -574,6 +574,7 @@ class FinanceController extends Controller
         $quotation = $invoice->po ? $invoice->po->quotation : null;
 
         $poList = Po::all();
+
         $invoice->kabupaten_name = $quotation->kabupaten->nama ?? '-';
         $invoice->kawasan_name = $quotation && $quotation->kawasan_industri
             ? $quotation->kawasan_industri->nama_kawasan
@@ -586,6 +587,9 @@ class FinanceController extends Controller
             ->where('id', '<', $invoice->id)
             ->orderBy('id', 'desc')
             ->first();
+
+
+        $isSameWithPo = $invoice->is_same_with_po;
 
         $perizinans = $quotation ? $quotation->perizinan : collect();
 
@@ -638,7 +642,8 @@ class FinanceController extends Controller
             'persentase_termin',
             'diskonQuotation',
             'nominalPO',
-            'dppOld'
+            'dppOld',
+            'isSameWithPo'
         ));
     }
 
