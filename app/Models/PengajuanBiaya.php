@@ -12,6 +12,10 @@ class PengajuanBiaya extends Model
     protected $table = 'pengajuan_biaya';
 
     protected $fillable = [
+        'jenis_pengajuan',
+        'tgl_pengajuan',
+        'project_id',
+        'jenis_project',
         'nomor_pengajuan',
         'tgl_pengajuan',
         'metode_pembayaran',

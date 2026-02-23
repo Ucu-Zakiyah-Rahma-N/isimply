@@ -68,8 +68,11 @@ class OperasionalController extends Controller
     public function store_pengajuan_biaya(Request $request)
     {
         $request->validate([
-            'tgl_pengajuan'       => 'required|date',
+            'jenis_pengajuan' => 'required|in:biaya,pengeluaran',
+            'tanggal_pengajuan'       => 'required|date',
             'metode_pembayaran'   => 'required|in:cash,transfer',
+            'project_id' => 'nullable',
+            'jenisProject' => 'nullable|string',
             'kontak_id'         => 'required|integer',
             'deskripsi.*'         => 'required|string',
             'qty.*'               => 'required|numeric|min:1',
@@ -134,11 +137,14 @@ class OperasionalController extends Controller
 
             /** ================== HEADER ================== */
             $pengajuan = PengajuanBiaya::create([
+                'jenis_pengajuan'        => $request->jenis_pengajuan,
+                'project_id'             => $request->project_id,
+                'jenis_project'          => $request->jenisProject,
                 'nomor_pengajuan'        => $nomorPengajuan,
-                'tgl_pengajuan'          => $request->tgl_pengajuan,
+                'tgl_pengajuan'          => $request->tanggal_pengajuan,
                 'metode_pembayaran'      => $request->metode_pembayaran,
                 'kontak_id'              => $request->kontak_id,
-                'referensi_proyek_id'    => $request->referensi_proyek_id,
+                // 'referensi_proyek_id'    => $request->referensi_proyek_id,
                 'is_urgent'              => $request->boolean('is_urgent'),
                 'subtotal'               => $subtotal,
                 'total_diskon'           => $totalDiskon,
@@ -275,9 +281,8 @@ class OperasionalController extends Controller
 
     public function getPajakCoa()
     {
-        $pajak = Coa::where('is_sub_akun', 1)
-            ->where('kategori_akun', 'PAJAK')
-            ->select('id', 'nama_akun', 'nilai_coa')
+        $pajak = Coa::where('kategori_akun', 'Kewajiban Lancar Lainnya')
+            ->select('id', 'nama_akun', 'nilai_coa', 'kategori_pajak')
             ->orderBy('nama_akun')
             ->get();
 

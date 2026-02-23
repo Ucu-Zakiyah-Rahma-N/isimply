@@ -127,7 +127,7 @@
                 <hr>
 
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="sameWithPo" checked>
+                    <input class="form-check-input" type="checkbox" id="sameWithPo" name="is_same_with_po" value="1" checked>
                     <label class="form-check-label fw-semibold" for="sameWithPo">
                         Sama dengan PO
                     </label>
@@ -170,7 +170,6 @@
                             <input type="hidden" name="subtotal" id="subtotalInput" value="{{ $subtotal }}">
                         </div>
                         <input type="hidden" id="hargaGabunganInput" value="{{ $quotation->harga_gabungan }}">
-
 
                         {{-- Diskon dari Quotation --}}
                         <div class="mb-2 d-flex justify-content-between">
@@ -297,6 +296,8 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+
+        
         const poItems = @json($perizinans);
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -314,16 +315,22 @@
                 poItems.forEach((item, i) => {
 
                     const qty = item.pivot?.qty ?? 1;
-                    const harga = item.pivot?.harga_satuan ?? 0;
+                    const harga = item.pivot?.harga_satuan ?? '';
                     const jumlah = qty * harga;
-
+                    const isGabungan = Boolean(document.getElementById('hargaGabunganInput')?.value);
                     itemsContainer.insertAdjacentHTML('beforeend', `
                     <tr class="item-row">
                         <input type="hidden" name="items[${i}][perizinan_id]" value="${item.id}">
                         <td><input type="text" class="form-control" value="${item.jenis}" readonly></td>
                         <td><input type="text" class="form-control" name="items[${i}][deskripsi]"></td>
                         <td><input type="number" class="form-control" name="items[${i}][qty]" value="${qty}" readonly></td>
-                        <td><input type="number" class="form-control" name="items[${i}][harga_satuan]" value="${harga}" readonly></td>
+                        <td>
+                            ${
+                                isGabungan
+                                ? `<input type="number" class="form-control" value="${harga}" readonly>`
+                                : `<input type="number" class="form-control" name="items[${i}][harga_satuan]" value="${harga}" readonly>`
+                            }
+                        </td>                       
                         <td><input type="text" class="form-control" value="${jumlah}" readonly></td>
                         <td class="text-center"></td>
                     </tr>
@@ -418,7 +425,14 @@
                 // untuk item manual
                 itemsContainer.insertAdjacentHTML('beforeend', `
                 <tr class="item-row">
-                    <td><input type="text" class="form-control" name="items[${index}][produk]" placeholder="Produk"></td>
+                    <td>
+                        <select name="items[${index}][perizinan_input]" class="form-control perizinan-select">
+                            <option value="">-- pilih / ketik perizinan --</option>
+                            @foreach($perizinan as $p)
+                                <option value="id:{{ $p->id }}">{{ $p->jenis }}</option>
+                            @endforeach
+                        </select>
+                    </td>
                     <td><input type="text" class="form-control" name="items[${index}][deskripsi]" placeholder="Deskripsi"></td>
                     <td><input type="number" class="form-control qty" name="items[${index}][qty]" value="1"></td>
                     <td><input type="number" class="form-control price" name="items[${index}][harga_satuan]" placeholder="Harga Satuan"></td>
@@ -429,6 +443,16 @@
                 </tr>
                 `);
             }
+
+            $(document).on('focus', '.perizinan-select', function () {
+                if (!$(this).hasClass("select2-hidden-accessible")) {
+                    $(this).select2({
+                        tags: true,
+                        width: '100%',
+                        placeholder: "Pilih atau ketik",
+                    });
+                }
+            });
 
             function resetManualValues() {
                 // Reset subtotal, nominal invoice, diskon, DPP, pajak, total
