@@ -127,6 +127,13 @@
 @include('pages.finance.operasional.biaya.modal-tambah-biaya')
 @include('pages.finance.operasional.biaya.modal-tambah-penerima')
 @include('pages.finance.operasional.biaya.modal-detail-biaya')
+<script>
+    window.appRoutes = {
+        storeKontak: "{{ route('finance.kontak.store') }}",
+        storePengajuan: "{{ route('finance.pengajuan-biaya.store') }}"
+    };
+</script>
+@vite(['resources/js/operasional/pengajuan.js'])
 
 <script>
     function rupiah(value) {

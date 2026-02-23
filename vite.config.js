@@ -9,6 +9,7 @@ export default defineConfig({
                 'resources/css/app.css', 
                 'resources/js/app.js',
                 'resources/js/invoice/invoice_script.js',
+                'resources/js/operasional/operasional.js',
             ],
             refresh: true,
         }),

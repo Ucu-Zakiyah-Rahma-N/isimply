@@ -168,6 +168,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/get/coa-pajak', [OperasionalController::class, 'getPajakCoa'])->name('get.coa-pajak');
         Route::get('/get/kontak', [OperasionalController::class, 'getKontak'])
             ->name('get.kontak');
+        Route::get('/get/project-gabungan', [OperasionalController::class, 'getProjectGabungan'])
+            ->name('get.project-gabungan');
         Route::post('/pengajuan-biaya/store', [OperasionalController::class, 'store_pengajuan_biaya'])->name('pengajuan-biaya.store');
         Route::get('/pengajuan-biaya/detail/{id}', [OperasionalController::class, 'show_pengajuan_biaya'])->name('pengajuan-biaya.detail');
 

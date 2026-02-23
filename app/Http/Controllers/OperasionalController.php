@@ -29,38 +29,42 @@ class OperasionalController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'nama'        => 'required|string|max:150',
-            'tipe_kontak' => 'nullable|string|max:30',
-            'alamat'      => 'nullable|string',
-            'email'       => 'nullable|email|max:100',
-            'no_hp'       => 'nullable|string|max:30',
-            'no_rekening' => 'nullable|string|max:50',
-        ]);
+        try {
 
-        if ($validator->fails()) {
+            $validator = Validator::make($request->all(), [
+                'nama'        => 'required|string|max:100',
+                'tipe_kontak' => 'required|in:customer,supplier,karyawan,lainnya',
+                'email'       => 'nullable|email|max:100',
+                'no_hp'       => 'nullable|string|max:20',
+                'alamat'      => 'nullable|string',
+                'nama_bank'   => 'nullable|string|max:100',
+                'no_rekening' => 'nullable|string|max:50',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors'  => $validator->errors(),
+                ], 422);
+            }
+
+            $kontak = Kontak::create($request->all());
+
+            return response()->json([
+                'success' => true,
+                'id'      => $kontak->id,
+                'nama'    => $kontak->nama,
+            ]);
+        } catch (\Throwable $e) {
+
             return response()->json([
                 'success' => false,
-                'errors'  => $validator->errors(),
-            ], 422);
+                'message' => $e->getMessage(),
+                'line'    => $e->getLine(),
+                'file'    => $e->getFile(),
+            ], 500);
         }
-
-        $kontak = Kontak::create([
-            'nama'        => $request->nama,
-            'tipe_kontak' => $request->tipe_kontak,
-            'alamat'      => $request->alamat,
-            'email'       => $request->email,
-            'no_hp'       => $request->no_hp,
-            'no_rekening' => $request->no_rekening,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'id'      => $kontak->id,
-            'nama'    => $kontak->nama,
-        ]);
     }
-
     public function store_pengajuan_biaya(Request $request)
     {
         $request->validate([
@@ -292,5 +296,27 @@ class OperasionalController extends Controller
             ->get();
 
         return response()->json($kontak);
+    }
+
+    public function getProjectGabungan()
+    {
+        $marketing = DB::table('marketing')
+            ->select(
+                DB::raw("CONCAT('M-', id) as id"),
+                DB::raw("nama COLLATE utf8mb4_unicode_ci as label"),
+                DB::raw("'MARKETING' as jenis_project")
+            );
+
+        $po = DB::table('po')
+            ->leftJoin('customers', 'po.customer_id', '=', 'customers.id')
+            ->select(
+                DB::raw("CONCAT('P-', po.id) as id"),
+                DB::raw("CONCAT(po.no_po,' - ', customers.nama_perusahaan) COLLATE utf8mb4_unicode_ci as label"),
+                DB::raw("'PO' as jenis_project")
+            );
+
+        $data = $marketing->unionAll($po)->get();
+
+        return response()->json($data);
     }
 }

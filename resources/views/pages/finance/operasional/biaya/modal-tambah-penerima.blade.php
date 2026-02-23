@@ -1,170 +1,159 @@
-<!-- MODAL TAMBAH PENERIMA -->
-<div class="modal fade"
-    id="modalTambahKontak"
-    tabindex="-1"
-    data-bs-backdrop="static"
-    data-bs-keyboard="false">
-
+<div class="modal fade" id="modalTambahKontak">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h5 class="modal-title">Tambah Penerima</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+        <div class="modal-content border-0 shadow">
 
             <form id="formTambahKontak">
-                <div class="modal-body">
+                @csrf
+
+                <!-- HEADER -->
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">
+                        Tambah Kontak
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body pt-2">
 
                     <div class="row g-3">
 
-                        <!-- Nama -->
-                        <div class="col-md-6">
-                            <label class="form-label">
-                                Nama Supplier / PIC <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                name="nama"
-                                class="form-control"
-                                placeholder="Contoh: PT Sumber Makmur / Andi"
-                                required>
+                        <!-- INFORMASI UMUM -->
+                        <div class="col-md-7">
+                            <div class="p-3 rounded-3 bg-white border">
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold text-muted">
+                                        Nama
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-person"></i>
+                                        </span>
+                                        <input type="text" name="nama"
+                                            class="form-control"
+                                            placeholder="Nama lengkap"
+                                            required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold text-muted">
+                                        Tipe Kontak
+                                    </label>
+                                    <select name="tipe_kontak"
+                                        class="form-select form-select-sm"
+                                        required>
+                                        <option value="">-- Pilih Tipe --</option>
+                                        <option value="customer">Customer</option>
+                                        <option value="supplier">Supplier</option>
+                                        <option value="karyawan">Karyawan</option>
+                                        <option value="lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold text-muted">
+                                            Email
+                                        </label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">
+                                                <i class="bi bi-envelope"></i>
+                                            </span>
+                                            <input type="email" name="email"
+                                                class="form-control"
+                                                placeholder="email@example.com">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold text-muted">
+                                            No HP
+                                        </label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">
+                                                <i class="bi bi-telephone"></i>
+                                            </span>
+                                            <input type="text" name="no_hp"
+                                                class="form-control"
+                                                placeholder="08xxxxxxxxxx">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <label class="form-label small fw-semibold text-muted">
+                                        Alamat
+                                    </label>
+                                    <textarea name="alamat"
+                                        class="form-control form-control-sm"
+                                        rows="2"
+                                        placeholder="Alamat lengkap"></textarea>
+                                </div>
+
+                            </div>
                         </div>
 
-                        <!-- Tipe Kontak -->
-                        <div class="col-md-6">
-                            <label class="form-label">Tipe Kontak</label>
-                            <select name="tipe_kontak" class="form-select">
-                                <option value="">Pilih Tipe Kontak</option>
-                                <option value="supplier">Supplier</option>
-                                <option value="karyawan">Karyawan</option>
-                                <option value="vendor">Vendor</option>
-                            </select>
-                        </div>
+                        <!-- INFORMASI BANK -->
+                        <div class="col-md-5">
+                            <div class="p-3 rounded-3 border">
 
-                        <!-- Email -->
-                        <div class="col-md-6">
-                            <label class="form-label">Email</label>
-                            <input type="email"
-                                name="email"
-                                class="form-control"
-                                placeholder="email@contoh.com">
-                        </div>
+                                <h6 class="fw-bold small mb-3">
+                                    Informasi Bank
+                                </h6>
 
-                        <!-- No HP -->
-                        <div class="col-md-6">
-                            <label class="form-label">No HP</label>
-                            <input type="text"
-                                name="no_hp"
-                                class="form-control"
-                                placeholder="08xxxxxxxxxx">
-                        </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold text-muted">
+                                        Nama Bank
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-bank"></i>
+                                        </span>
+                                        <input type="text" name="nama_bank"
+                                            class="form-control"
+                                            placeholder="Contoh: BCA">
+                                    </div>
+                                </div>
 
-                        <!-- No Rekening -->
-                        <div class="col-md-6">
-                            <label class="form-label">No Rekening</label>
-                            <input type="text"
-                                name="no_rekening"
-                                class="form-control"
-                                placeholder="1234567890">
-                        </div>
+                                <div>
+                                    <label class="form-label small fw-semibold text-muted">
+                                        No Rekening
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-credit-card"></i>
+                                        </span>
+                                        <input type="text" name="no_rekening"
+                                            class="form-control"
+                                            placeholder="Nomor rekening">
+                                    </div>
+                                </div>
 
-                        <!-- Alamat -->
-                        <div class="col-md-6">
-                            <label class="form-label">Alamat</label>
-                            <textarea name="alamat"
-                                class="form-control"
-                                rows="2"
-                                placeholder="Alamat singkat penerima"></textarea>
+                            </div>
                         </div>
 
                     </div>
 
                 </div>
 
-                <div class="modal-footer">
+                <!-- FOOTER -->
+                <div class="modal-footer border-0 pt-0">
                     <button type="button"
-                        class="btn btn-secondary"
+                        class="btn btn-light btn-sm"
                         data-bs-dismiss="modal">
                         Batal
                     </button>
+
                     <button type="submit"
-                        class="btn btn-success">
+                        class="btn btn-primary btn-sm px-4"
+                        id="btnSimpanKontak">
                         Simpan
                     </button>
                 </div>
+
             </form>
 
         </div>
     </div>
 </div>
-
-<script>
-    document.getElementById("formTambahKontak")
-        .addEventListener("submit", function(e) {
-
-            e.preventDefault();
-
-            let form = this;
-            let formData = new FormData(form);
-
-            Swal.fire({
-                title: 'Menyimpan...',
-                text: 'Mohon tunggu',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-
-            fetch("/finance/kontak/store", {
-                    method: "POST",
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: formData
-                })
-                .then(async res => {
-                    const data = await res.json();
-                    if (!res.ok) throw data;
-                    return data;
-                })
-                .then(data => {
-
-                    if (data.success) {
-
-                        // ✅ reload dropdown penerima + auto select
-                        loadKontak(data.id);
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil',
-                            text: 'Penerima berhasil ditambahkan',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-
-                        // tutup modal
-                        bootstrap.Modal
-                            .getInstance(document.getElementById('modalTambahKontak'))
-                            .hide();
-
-                        form.reset();
-                    }
-                })
-                .catch(err => {
-
-                    let message = 'Terjadi kesalahan';
-
-                    if (err.errors) {
-                        message = Object.values(err.errors).join('<br>');
-                    } else if (err.message) {
-                        message = err.message;
-                    }
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal',
-                        html: message
-                    });
-                });
-
-        });
-</script>
