@@ -155,6 +155,7 @@
                 </div>
 
                 {{-- <h6 class="mb-3">Produk</h6>
+                
                 <div id="items">
                     {{-- {{ dd($invoice->produk) }}
                     @foreach ($invoice->produk as $i => $item)
@@ -164,13 +165,13 @@
                                 <input type="hidden" name="items[{{ $i }}][perizinan_id]"
                                     value="{{ $item->perizinan_id }}">
                                 <input type="text" class="form-control" value="{{ $item->perizinan->jenis }}"
-                                    readonly>
+                                    >
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Deskripsi</label>
                                 <input type="text" class="form-control"
-                                    name="items[{{ $i }}][description]"
-                                    value="{{ old("items.$i.description", $item->description) }}">
+                                    name="items[{{ $i }}][deskripsi]"
+                                    value="{{ old("items.$i.deskripsi", $item->deskripsi) }}">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Qty</label>
@@ -248,7 +249,7 @@
                             <div>
                                 <label class="form-label mb-1">Diskon</label>
                                 <div class="input-group">
-                                    <select class="form-select" id="tipe_diskon" style="max-width:70px">
+                                    <select class="form-select" id="tipe_diskon" name="tipe_diskon" style="max-width:70px">
                                         <option value="persen"
                                             {{ old('tipe_diskon', $invoice->tipe_diskon) === 'persen' ? 'selected' : '' }}>
                                             %
@@ -258,8 +259,8 @@
                                             Rp
                                         </option>
                                     </select>
-                                    <input type="number" class="form-control" id="nilai_diskon"
-                                        placeholder="Nilai diskon"
+                                    <input type="number" class="form-control" id="nilai_diskon" name="nilai_diskon"
+                                        placeholder="Nilai diskon" 
                                         value="{{ old('nilai_diskon', $invoice->nilai_diskon) }}">
                                 </div>
                             </div>
@@ -270,16 +271,16 @@
                         {{-- Total After Diskon --}}
                         <div class="mb-2 d-flex justify-content-between align-items-center">
                             <span class="fw-semibold">Total After Diskon</span>
-                            <strong>Rp <span
-                                    id="total_after_discount">{{ number_format(old('total_after_discount', $invoice->total_after_diskon_inv ?? 0), 0, ',', '.') }}</span></strong>
-                        </div>
+                            <strong>
+                                Rp <span id="total_after_diskon_inv">
+                                    {{ number_format(old('total_after_diskon_inv', $invoice->total_after_diskon_inv ?? 0), 0, ',', '.') }}
+                                </span>
+                            </strong>     
+                   </div>
 
-                        <input type="hidden" name="tipe_diskon" id="discountTypeInput"
-                            value="{{ old('tipe_diskon', $invoice->tipe_diskon) }}">
-                        <input type="hidden" name="nilai_diskon" id="discountValueInput"
-                            value="{{ old('nilai_diskon', $invoice->nilai_diskon) }}">
-                        <input type="hidden" name="total_after_discount" id="totalAfterDiscountInput"
-                            value="{{ old('total_after_discount', $invoice->total_after_diskon_inv ?? 0) }}">
+                        <input type="hidden" id="discountTypeInput" value="{{ old('tipe_diskon', $invoice->tipe_diskon) }}">
+                        <input type="hidden" id="discountValueInput" value="{{ old('nilai_diskon', $invoice->nilai_diskon) }}">
+                        <input type="hidden" name="total_after_diskon_inv" id="totalAfterDiscountInput" value="{{ old('total_after_diskon_inv', $invoice->total_after_diskon_inv ?? 0) }}">
 
                         <div id="dppContainer" class="mb-2">
                             @if ($dppOld > 0)
@@ -314,13 +315,15 @@
                         </div>
 
                         <div id="taxContainer" class="mb-3"></div>
-
+                        
+                        <input type="hidden" name="dpp" id="dppInput">
+                        <input type="hidden" name="ppn" id="ppnInput">
                         <hr>
 
                         <h5>Total: Rp <span
                                 id="finalTotal">{{ number_format(old('total', $invoice->grand_total ?? 0), 0, ',', '.') }}</span>
                         </h5>
-                        <input type="hidden" name="total" id="totalInput"
+                        <input type="hidden" name="grand_total" id="totalInput"
                             value="{{ old('total', $invoice->grand_total ?? 0) }}">
 
                         <hr>
@@ -369,25 +372,34 @@ document.addEventListener('DOMContentLoaded', function() {
             const harga = item.pivot?.harga_satuan ?? 0;
 
             itemsContainer.insertAdjacentHTML('beforeend', `
-                <tr class="item-row">
-                    <td>
-                        <input type="hidden" name="items[${i}][perizinan_id]" value="${item.id}">
-                        <input type="text" class="form-control" value="${item.jenis}" readonly>
-                    </td>
-                    <td>
-                        <input type="text" class="form-control" name="items[${i}][description]">
-                    </td>
-                    <td>
-                        <input type="number" class="form-control qty" value="${qty}" readonly>
-                    </td>
-                    <td>
-                        <input type="number" class="form-control price" value="${harga}" readonly>
-                    </td>
-                    <td>
-                        <input type="text" class="form-control jumlah" readonly>
-                    </td>
-                    <td></td>
-                </tr>
+            <tr class="item-row">
+                <td>
+                    <input type="hidden" name="items[${i}][perizinan_id]" value="${item.id}">
+                    <input type="text" class="form-control" value="${item.jenis}" readonly>
+                </td>
+                <td>    
+                    <input type="text" class="form-control"
+                        name="items[${i}][deskripsi]">
+                </td>
+                <td>
+                    <input type="number"
+                        class="form-control qty"
+                        name="items[${i}][qty]"
+                        value="${qty}"
+                        readonly>
+                </td>
+                <td>
+                    <input type="number"
+                        class="form-control price"
+                        name="items[${i}][harga_satuan]"
+                        value="${harga}"
+                        readonly>
+                </td>
+                <td>
+                    <input type="text" class="form-control jumlah" readonly>
+                </td>
+                <td></td>
+            </tr>
             `);
         });
 
@@ -408,12 +420,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tr class="item-row">
                     <td>
                         <input type="hidden" name="items[${i}][perizinan_id]" value="${item.perizinan_id}">
-                        <input type="text" class="form-control" value="${item.perizinan.jenis}" readonly>
+                        <input type="text" class="form-control" value="${item.perizinan.jenis}">
                     </td>
                     <td>
                         <input type="text" class="form-control"
-                               name="items[${i}][description]"
-                               value="${item.description ?? ''}">
+                               name="items[${i}][deskripsi]"
+                               value="${item.deskripsi ?? ''}">
                     </td>
                     <td>
                         <input type="number" class="form-control qty"
@@ -587,22 +599,30 @@ document.addEventListener('DOMContentLoaded', function() {
     /* ===============================
        RECALCULATE ALL
     =============================== */
+    const isGabungan = @json($isGabungan);
+
     function recalculateAll() {
-
         let subtotal = 0;
+        const itemRows = document.querySelectorAll('.item-row');
 
-        document.querySelectorAll('.item-row').forEach(row => {
-
-            const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
-            const price = parseFloat(row.querySelector('.price')?.value) || 0;
-
-            const jumlah = qty * price;
-
-            const jumlahInput = row.querySelector('.jumlah');
-            if (jumlahInput) jumlahInput.value = jumlah;
-
-            subtotal += jumlah;
-        });
+        if (isGabungan) {
+            subtotal = parseFloat(document.getElementById('hargaGabunganInput')?.value) || 0;
+            itemRows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
+                const price = parseFloat(row.querySelector('.price')?.value) || 0;
+                const jumlahInput = row.querySelector('.jumlah');
+                if (jumlahInput) jumlahInput.value = qty * price; // tetap isi kolom jumlah
+            });
+        } else {
+            itemRows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
+                const price = parseFloat(row.querySelector('.price')?.value) || 0;
+                const jumlah = qty * price;
+                const jumlahInput = row.querySelector('.jumlah');
+                if (jumlahInput) jumlahInput.value = jumlah;
+                subtotal += jumlah;
+            });
+        }
 
         document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
         document.getElementById('subtotalInput').value = subtotal;
@@ -614,8 +634,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('nominalPoDisplay').innerText = 'Rp ' + rupiah(nominalPO);
         document.getElementById('nominalPoInput').value = nominalPO;
 
-        const termin = {{ $invoice->persentase_termin ?? 0 }};
-        let nominalInvoice = nominalPO * termin / 100;
+        const termin = parseFloat(
+            document.querySelector('input[name="persentase_termin"]')?.value
+        ) || 0;        
+        let nominalInvoice = Math.round(nominalPO * termin / 100);
 
         document.getElementById('nominalInvoice').innerText = 'Rp ' + rupiah(nominalInvoice);
         document.getElementById('nominalInvoiceInput').value = nominalInvoice;
@@ -633,10 +655,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         document.getElementById('jumlah_diskon').innerText = rupiah(jumlahDiskon);
 
-        let totalAfter = nominalInvoice - jumlahDiskon;
+        let totalAfter = Math.round(nominalInvoice - jumlahDiskon);
         if (totalAfter < 0) totalAfter = 0;
 
-        document.getElementById('total_after_discount').innerText = rupiah(totalAfter);
+        document.getElementById('total_after_diskon_inv').innerText = rupiah(totalAfter);
         document.getElementById('totalAfterDiscountInput').value = totalAfter;
 
         hitungPajak();

@@ -176,7 +176,6 @@ class FinanceController extends Controller
         $persentaseTermin = $terminSchedule[$invoiceTerbuat]['persen'] ?? 0;
 
         // Hitung nominal invoice
-
         if ($quotation->harga_tipe === 'gabungan') {
 
             $subtotal = (float) $quotation->harga_gabungan;
@@ -326,7 +325,7 @@ class FinanceController extends Controller
         } else {
 
             $diskonInvoice = 0;
-            $totalAfterDiscountInv = null; // 🔥 tidak disimpan
+            $totalAfterDiscountInv = null; //  tidak disimpan
         }
 
         $base = ($totalAfterDiscountInv > 0 && $totalAfterDiscountInv != $nominalInvoice)
@@ -522,7 +521,17 @@ class FinanceController extends Controller
         $diskonPO           = $invoice->diskon_po;
         $nominalPO          = $invoice->nominal_po;
         $nominalTermin      = $invoice->nominal_invoice;
-        $diskonInvoice      = $invoice->nilai_diskon ?? 0;
+        $diskonInvoice = 0;
+
+        if (!empty($invoice->nilai_diskon)) {
+
+            if ($invoice->tipe_diskon === 'persen') {
+                $diskonInvoice = ($invoice->nominal_invoice * $invoice->nilai_diskon) / 100;
+            } else {
+                $diskonInvoice = $invoice->nilai_diskon;
+            }
+
+        }
         $afterDiscount      = $invoice->total_after_diskon_inv ?? $nominalTermin;
         $dpp                = $invoice->dpp;
         $ppn                = $invoice->ppn;
@@ -542,7 +551,6 @@ class FinanceController extends Controller
             'grandTotal'
         ));
     }
-
 
     public function edit($id)
     {
@@ -594,15 +602,23 @@ class FinanceController extends Controller
         $perizinans = $quotation ? $quotation->perizinan : collect();
 
         $ppnList = Coa::where('id', 1)->get();
-        if ($quotation->harga_tipe === 'gabungan') {
 
-            $subtotal = (float) $quotation->harga_gabungan;
+        $isGabungan = $quotation && $quotation->harga_tipe === 'gabungan';
+    
+        if ($quotation && $quotation->harga_tipe === 'gabungan') {
+
+            // 🔥 ambil dari invoice, bukan quotation
+            $subtotal = (float) $invoice->subtotal;
+
         } else {
 
-            $subtotal = $quotation->perizinan->sum(function ($item) {
-                return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
+            // kalau bukan gabungan, boleh hitung dari produk invoice
+            $subtotal = $invoice->produk->sum(function ($item) {
+                return ($item->qty ?? 0) * ($item->harga_satuan ?? 0);
             });
         }
+// dd($invoice->harga_gabungan);   
+
         //diskon after subtotal
         $tipeDiskonQuotation  = $quotation->diskon_tipe ?? null;
         $nilaiDiskonQuotation = $quotation->diskon_nilai ?? 0;
@@ -643,125 +659,169 @@ class FinanceController extends Controller
             'diskonQuotation',
             'nominalPO',
             'dppOld',
-            'isSameWithPo'
+            'isSameWithPo',
+            'isGabungan'
         ));
     }
 
 
     // Update invoice
-    public function update(Request $request, $id)
-    {
-        Log::info('=== START UPDATE INVOICE ===', ['invoice_id' => $id]);
+  public function update(Request $request, $id)
+{
+    $invoice = Invoice::findOrFail($id);
 
-        $invoice = Invoice::findOrFail($id);
+    $validated = $request->validate([
+        'tgl_inv' => 'required|date',
+        'tgl_jatuh_tempo' => 'required|date',
+        'jenis_invoice' => 'required',
+        'keterangan' => 'nullable|string',
+        'catatan' => 'nullable|string',
+        'persentase_termin' => 'required|numeric',
 
-        Log::info('Invoice found', $invoice->toArray());
+        'diskon_po' => 'nullable|numeric',
+        'tipe_diskon' => 'nullable|string',
+        'nilai_diskon' => 'nullable|numeric',
 
-        $validated = $request->validate([
-            'tgl_inv' => 'required|date',
-            'tgl_jatuh_tempo' => 'required|date',
-            'jenis_invoice' => 'required',
-            'keterangan' => 'nullable|string',
-            'catatan' => 'nullable|string',
-            'persentase_termin' => 'required|numeric',
-            'subtotal' => 'required|numeric',
-            'nominal_invoice' => 'required|numeric',
-            'tipe_diskon' => 'nullable|string',
-            'nilai_diskon' => 'nullable|numeric',
-            'total_after_discount' => 'required|numeric',
-            'total' => 'required|numeric',
-            'items' => 'required|array|min:1',
-            'items.*.perizinan_id' => 'required|exists:perizinans,id',
-            'items.*.qty' => 'nullable|numeric',
-            'items.*.harga_satuan' => 'nullable|numeric',
-            'items.*.description' => 'nullable|string',
-            'items.*.harga_tipe' => 'nullable|string',
-            'tax' => 'nullable|array'
+        'items' => 'required|array|min:1',
+        'items.*.perizinan_id' => 'required|exists:perizinans,id',
+        'items.*.qty' => 'nullable|numeric',
+        'items.*.harga_satuan' => 'nullable|numeric',
+
+        'tax' => 'nullable|array'
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+
+        /* ===============================
+           1️⃣ HITUNG ULANG TOTAL
+        =============================== */
+
+        $subtotal = collect($validated['items'])->sum(function ($item) {
+            return ($item['qty'] ?? 1) * ($item['harga_satuan'] ?? 0);
+        });
+
+        $diskonPo = $validated['diskon_po'] ?? 0;
+        $nominalPo = max($subtotal - $diskonPo, 0);
+
+        $persenTermin = $validated['persentase_termin'];
+
+        $nominalInvoice = $nominalPo * $persenTermin / 100;
+        $tipeDiskon = $request->tipe_diskon;
+        $nilaiDiskon = $request->nilai_diskon ?? 0;
+        /*
+        |--------------------------------------------------------------------------
+        | Kalau tidak ada diskon, NULL-kan semuanya
+        |--------------------------------------------------------------------------
+        */
+        if (!$nilaiDiskon || $nilaiDiskon == 0) {
+            $tipeDiskon = null;
+            $nilaiDiskon = null;
+            $jumlahDiskon = 0;
+             $totalAfterDiskon = null; // ✅ jadi NULL kalau tidak ada diskon
+        } else {
+
+            if ($tipeDiskon === 'persen') {
+                $jumlahDiskon = ($nominalInvoice * $nilaiDiskon) / 100;
+            } else {
+                $jumlahDiskon = $nilaiDiskon;
+            }
+
+            $totalAfterDiskon = max($nominalInvoice - $jumlahDiskon, 0);
+        }
+        
+        $base = $totalAfterDiskon ?? $nominalInvoice; 
+        /* ===============================
+           2️⃣ HITUNG PAJAK
+        =============================== */
+        $dpp = 0;
+        $ppn = 0;
+        $grandTotal = $base; 
+        
+      if ($request->filled('tax')) {
+
+            $selectedTaxes = $request->tax;
+
+            // misal ID COA PPN kamu
+            $ppnCoaId = 1; // ganti sesuai ID PPN kamu
+
+            if (in_array($ppnCoaId, $selectedTaxes)) {
+
+                $dpp = round(($base * 11) / 12);
+                $ppn = round(($dpp * 12) / 100);
+
+                $grandTotal = $base + $ppn;
+            }
+        }
+
+        /* ===============================
+           3️⃣ UPDATE HEADER
+        =============================== */
+
+        $invoice->update([
+            'tgl_inv' => $validated['tgl_inv'],
+            'tgl_jatuh_tempo' => $validated['tgl_jatuh_tempo'],
+            'jenis_invoice' => $validated['jenis_invoice'],
+            'keterangan' => $validated['keterangan'] ?? null,
+            'catatan' => $validated['catatan'] ?? null,
+            'persentase_termin' => $persenTermin,
+
+            'subtotal' => $subtotal,
+            'diskon_po' => $diskonPo,
+            'nominal_po' => $nominalPo,
+            'nominal_invoice' => $nominalInvoice,
+            'tipe_diskon' => $tipeDiskon,
+            'nilai_diskon' => $nilaiDiskon,
+            'total_after_diskon_inv' => $totalAfterDiskon,
+            'dpp' => $dpp,
+            'ppn' => $ppn,
+            'grand_total' => $grandTotal,
         ]);
 
-        Log::info('Validated data', $validated);
+        /* ===============================
+           4️⃣ REPLACE PRODUK
+        =============================== */
 
-        DB::beginTransaction();
-        try {
+        $invoice->produk()->delete();
 
-            /* ===============================
-         | 1️⃣ Update invoice header
-         =============================== */
-            $invoice->update([
-                'tgl_inv' => $validated['tgl_inv'],
-                'tgl_jatuh_tempo' => $validated['tgl_jatuh_tempo'],
-                'jenis_invoice' => $validated['jenis_invoice'],
-                'keterangan' => $validated['keterangan'] ?? null,
-                'catatan' => $validated['catatan'] ?? null,
-                'persentase_termin' => $validated['persentase_termin'],
-                'subtotal' => $validated['subtotal'],
-                'nominal_invoice' => $validated['nominal_invoice'],
-                'tipe_diskon' => $validated['tipe_diskon'] ?? 'nominal',
-                'nilai_diskon' => $validated['nilai_diskon'] ?? 0,
-                'total_after_discount' => $validated['total_after_discount'],
-                'total' => $validated['total'],
+        foreach ($validated['items'] as $item) {
+            $invoice->produk()->create([
+                'perizinan_id' => $item['perizinan_id'],
+                'qty' => $item['qty'] ?? 1,
+                'deskripsi' => $item['deskripsi'] ?? null,
+                'harga_satuan' => $item['harga_satuan'] ?? 0,
             ]);
+        }
 
-            Log::info('Invoice header updated');
+        /* ===============================
+           5️⃣ REPLACE PAJAK
+        =============================== */
 
-            /* ===============================
-         | 2️⃣ Replace PRODUK invoice
-         =============================== */
-            Log::info('Deleting old produk invoice');
-            $invoice->produk()->delete();
+        $invoice->pajak()->delete();
 
-            foreach ($validated['items'] as $index => $item) {
-                Log::info("Insert produk invoice {$index}", $item);
-
-                $invoice->produk()->create([
-                    'perizinan_id' => $item['perizinan_id'],
-                    'qty' => $item['qty'] ?? 0,
-                    'harga_satuan' => $item['harga_satuan'] ?? 0,
-                    'description' => $item['description'] ?? null,
-                    'harga_tipe' => $item['harga_tipe'] ?? 'satuan',
+        if (!empty($validated['tax'])) {
+            foreach ($validated['tax'] as $coaId) {
+                $invoice->pajak()->create([
+                    'coa_id' => $coaId
                 ]);
             }
-
-            Log::info('Produk invoice replaced');
-
-            /* ===============================
-         | 3️⃣ Replace PAJAK invoice
-         =============================== */
-            Log::info('Deleting old pajak');
-            $invoice->pajak()->delete();
-
-            if (!empty($validated['tax'])) {
-                foreach ($validated['tax'] as $coaId) {
-                    Log::info('Insert pajak', ['coa_id' => $coaId]);
-
-                    $invoice->pajak()->create([
-                        'coa_id' => $coaId
-                    ]);
-                }
-            }
-
-            Log::info('Pajak updated');
-
-            DB::commit();
-            Log::info('=== UPDATE INVOICE SUCCESS ===', ['invoice_id' => $invoice->id]);
-
-            return redirect()
-                ->route('finance.invoice_index')
-                ->with('success', 'Invoice berhasil diperbarui');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            Log::error('=== UPDATE INVOICE FAILED ===', [
-                'invoice_id' => $id,
-                'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return back()->withErrors(['error' => $e->getMessage()]);
         }
+
+        DB::commit();
+
+        return redirect()
+            ->route('finance.invoice_index')
+            ->with('success', 'Invoice berhasil diperbarui');
+
+    } catch (\Throwable $e) {
+
+        DB::rollBack();
+
+        return back()->withErrors(['error' => $e->getMessage()]);
     }
+}
+
     public function print($id)
     {
         $invoice = Invoice::with([

@@ -94,8 +94,9 @@
         overflow-x: visible;
         /* supaya flyout tetap muncul */
     }
-
-    /* .page-wrapper,
+    
+/* kalo ini di koment di customer sub menu ketindihan content. tp kalo ga di komen, ga bisa scroll sidebar*/ 
+    .page-wrapper,
     .body-wrapper {
         overflow: visible;
     }
@@ -105,7 +106,7 @@
     .scroll-sidebar,
     #sidebarnav {
         overflow: visible !important;
-    } */
+    }
 </style>
 
 <aside class="left-sidebar">
