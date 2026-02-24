@@ -197,7 +197,7 @@
 
                 <hr>
 
-                {{-- TOTAL --}}
+        {{-- TOTAL --}}
                 <div class="row justify-content-end">
                     <div class="col-md-6">
 
@@ -211,9 +211,9 @@
                         </div>
 
                         {{-- Harga Gabungan --}}
-                        <input type="hidden" id="hargaGabunganInput"
-                            value="{{ old('harga_gabungan', $invoice->harga_gabungan ?? 0) }}">
-
+                        <!-- <input type="hidden" id="hargaGabunganInput" value="{{ old('harga_gabungan', $invoice->harga_gabungan ?? 0) }}"> -->
+                        <input type="hidden" name="is_gabungan" value="{{ $isGabungan ? 1 : 0 }}">
+                        <input type="hidden" name="harga_gabungan" value="{{ $quotation->harga_gabungan ?? 0 }}">
                         <div class="mb-2 d-flex justify-content-between">
                             <span>Diskon PO</span>
                             <strong>
@@ -354,6 +354,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const invoiceItems = @json($invoice->produk ?? []);
     const isSameWithPo = @json($isSameWithPo ?? false);
 
+    const isGabunganEl = document.getElementById('isGabunganInput');
+    let isGabungan = isGabunganEl ? parseInt(isGabunganEl.value) === 1 : false;
     function rupiah(number) {
         return new Intl.NumberFormat('id-ID').format(number);
     }
@@ -419,10 +421,12 @@ document.addEventListener('DOMContentLoaded', function() {
             itemsContainer.insertAdjacentHTML('beforeend', `
                 <tr class="item-row">
                     <td>
-                        <input type="hidden" name="items[${i}][perizinan_id]" value="${item.perizinan_id}">
-                        <input type="text" class="form-control" value="${item.perizinan.jenis}">
+                        <input type="hidden" name="items[${i}][perizinan_id]" value="${item.perizinan_id ?? ''}">
+                        <input type="text" class="form-control"
+                            name="items[${i}][perizinan_lainnya]"
+                            value="${item.perizinan ? '' : item.perizinan_lainnya ?? ''}"
+                            placeholder="Produk (manual)">
                     </td>
-                    <td>
                         <input type="text" class="form-control"
                                name="items[${i}][deskripsi]"
                                value="${item.deskripsi ?? ''}">
@@ -599,73 +603,67 @@ document.addEventListener('DOMContentLoaded', function() {
     /* ===============================
        RECALCULATE ALL
     =============================== */
-    const isGabungan = @json($isGabungan);
+function recalculateAll() {
+    let subtotal = 0;
+    const itemRows = document.querySelectorAll('.item-row');
+    const hargaGabungan = parseFloat(document.getElementById('hargaGabunganInput')?.value) || 0;
+    const isGabungan = parseInt(document.getElementById('isGabunganInput')?.value) === 1;
 
-    function recalculateAll() {
-        let subtotal = 0;
-        const itemRows = document.querySelectorAll('.item-row');
+    itemRows.forEach(row => {
+        const qtyInput = row.querySelector('.qty');
+        const priceInput = row.querySelector('.price');
 
-        if (isGabungan) {
-            subtotal = parseFloat(document.getElementById('hargaGabunganInput')?.value) || 0;
-            itemRows.forEach(row => {
-                const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
-                const price = parseFloat(row.querySelector('.price')?.value) || 0;
-                const jumlahInput = row.querySelector('.jumlah');
-                if (jumlahInput) jumlahInput.value = qty * price; // tetap isi kolom jumlah
-            });
-        } else {
-            itemRows.forEach(row => {
-                const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
-                const price = parseFloat(row.querySelector('.price')?.value) || 0;
-                const jumlah = qty * price;
-                const jumlahInput = row.querySelector('.jumlah');
-                if (jumlahInput) jumlahInput.value = jumlah;
-                subtotal += jumlah;
-            });
-        }
+        const qty = parseFloat(qtyInput?.value) || 0;
+        const price = parseFloat(priceInput?.value) || 0;
 
-        document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
-        document.getElementById('subtotalInput').value = subtotal;
+        const jumlah = qty * price;
 
-        const diskonPO = parseFloat(document.getElementById('diskonPoInput')?.value) || 0;
-        let nominalPO = subtotal - diskonPO;
-        if (nominalPO < 0) nominalPO = 0;
+        const jumlahInput = row.querySelector('.jumlah');
+        if (jumlahInput) jumlahInput.value = jumlah;
 
-        document.getElementById('nominalPoDisplay').innerText = 'Rp ' + rupiah(nominalPO);
-        document.getElementById('nominalPoInput').value = nominalPO;
+        if (!isGabungan) subtotal += jumlah;
+    });
 
-        const termin = parseFloat(
-            document.querySelector('input[name="persentase_termin"]')?.value
-        ) || 0;        
-        let nominalInvoice = Math.round(nominalPO * termin / 100);
+    if (isGabungan) subtotal = hargaGabungan;
 
-        document.getElementById('nominalInvoice').innerText = 'Rp ' + rupiah(nominalInvoice);
-        document.getElementById('nominalInvoiceInput').value = nominalInvoice;
+    document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
+    document.getElementById('subtotalInput').value = subtotal;
 
-        const tipeDiskon = document.getElementById('tipe_diskon')?.value;
-        const nilaiDiskonInput = parseFloat(document.getElementById('nilai_diskon')?.value) || 0;
+    const diskonPO = parseFloat(document.getElementById('diskonPoInput')?.value) || 0;
+    let nominalPO = subtotal - diskonPO;
+    if (nominalPO < 0) nominalPO = 0;
 
-        let jumlahDiskon = 0;
+    document.getElementById('nominalPoDisplay').innerText = 'Rp ' + rupiah(nominalPO);
+    document.getElementById('nominalPoInput').value = nominalPO;
 
-        if (tipeDiskon === 'persen') {
-            jumlahDiskon = nominalInvoice * nilaiDiskonInput / 100;
-        } else {
-            jumlahDiskon = nilaiDiskonInput;
-        }
+    const termin = parseFloat(document.querySelector('input[name="persentase_termin"]')?.value) || 0;
+    let nominalInvoice = Math.round(nominalPO * termin / 100);
 
-        document.getElementById('jumlah_diskon').innerText = rupiah(jumlahDiskon);
+    document.getElementById('nominalInvoice').innerText = 'Rp ' + rupiah(nominalInvoice);
+    document.getElementById('nominalInvoiceInput').value = nominalInvoice;
 
-        let totalAfter = Math.round(nominalInvoice - jumlahDiskon);
-        if (totalAfter < 0) totalAfter = 0;
+    const tipeDiskon = document.getElementById('tipe_diskon')?.value;
+    const nilaiDiskonInput = parseFloat(document.getElementById('nilai_diskon')?.value) || 0;
 
-        document.getElementById('total_after_diskon_inv').innerText = rupiah(totalAfter);
-        document.getElementById('totalAfterDiscountInput').value = totalAfter;
-
-        hitungPajak();
+    let jumlahDiskon = 0;
+    if (tipeDiskon === 'persen') {
+        jumlahDiskon = nominalInvoice * nilaiDiskonInput / 100;
+    } else {
+        jumlahDiskon = nilaiDiskonInput;
     }
 
+    document.getElementById('jumlah_diskon').innerText = rupiah(jumlahDiskon);
+
+    let totalAfter = Math.round(nominalInvoice - jumlahDiskon);
+    if (totalAfter < 0) totalAfter = 0;
+
+    document.getElementById('total_after_diskon_inv').innerText = rupiah(totalAfter);
+    document.getElementById('totalAfterDiscountInput').value = totalAfter;
+
+    // hitung pajak terakhir
+    hitungPajak();
+}
 });
 </script>
-
 
 @endsection

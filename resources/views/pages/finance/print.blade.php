@@ -201,7 +201,12 @@
                 {{-- Produk --}}
                 @foreach ($invoice->produk as $item)
                     <tr>
-                        <td>{{ $item->perizinan->jenis }}</td>
+                    <td>
+                        {{ $item->perizinan_id 
+                            ? $item->perizinan->jenis ?? '-' 
+                            : $item->perizinan_lainnya ?? '-' 
+                        }}
+                    </td>                        
                         <td class="text-right">{{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
                         <td class="text-center">{{ $item->qty }}</td>
                         <td class="text-right">{{ number_format($item->qty * $item->harga_satuan, 0, ',', '.') }}</td>

@@ -138,14 +138,10 @@
                                     </td>
                                     <td>{{ $inv->po->no_po ?? '-' }}</td>
                                     <td>
-                                        @php
-                                            $perizinans = $inv->po->quotation->perizinan ?? collect();
-                                        @endphp
-
-                                        @if ($perizinans->isNotEmpty())
-                                            @foreach ($perizinans as $izin)
+                                        @if ($inv->produk->isNotEmpty())
+                                            @foreach ($inv->produk as $item)
                                                 <span class="badge bg-primary-subtle text-dark border me-1">
-                                                    {{ $izin->jenis }}
+                                                    {{ $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-' }}
                                                 </span>
                                             @endforeach
                                         @else

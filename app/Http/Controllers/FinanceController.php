@@ -6,6 +6,7 @@ use App\Models\PO;
 use App\Models\Wilayah;
 use App\Models\invoice;
 use App\Models\Customer;
+use App\Models\Perizinan;
 use App\Models\Coa;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -146,6 +147,7 @@ class FinanceController extends Controller
 
         $quotation = $po->quotation;
         $perizinans = $quotation->perizinan;
+        $perizinan = Perizinan::all();
         //get PPN aja
         $ppnList = Coa::where('id', 1)->get();
 
@@ -217,6 +219,7 @@ class FinanceController extends Controller
             'no_po' => $po->no_po,
             'quotation' => $quotation,
             'perizinans'  => $perizinans,
+            'perizinan'  => $perizinan,
             'no_invoice' => $noInvoice,
             'termin_ke' => $terminKe,
             'persentaseTermin' => $persentaseTermin,
@@ -300,7 +303,8 @@ class FinanceController extends Controller
         // Ambil PO dulu
         $po        = PO::with('quotation')->findOrFail($request->po_id);
         $quotation = $po->quotation;
-
+        
+        $isGabungan = $po->harga_gabungan != null;
         // Ambil subtotal dari request
         $subtotal = $request->subtotal ?? 0;
 
@@ -372,9 +376,9 @@ class FinanceController extends Controller
         $tipeHarga     = $quotation->harga_tipe; // satuan / gabungan
         $hargaGabungan = null;
 
-        if ($tipeHarga === 'gabungan') {
-            $hargaGabungan = $quotation->harga_gabungan;
-        }
+        // if ($tipeHarga === 'gabungan') {
+        //     $hargaGabungan = $quotation->harga_gabungan;
+        // }
 
         Log::info('TIPE HARGA DARI QUOTATION', [
             'harga_tipe'     => $tipeHarga,
@@ -383,6 +387,10 @@ class FinanceController extends Controller
 
         DB::beginTransaction();
         try {
+            $isSameWithPo = $request->has('is_same_with_po') ? 1 : 0;
+            $hargaGabungan = ($isSameWithPo && $quotation->harga_tipe === 'gabungan')
+                ? $quotation->harga_gabungan
+                : null;
 
             // 6️⃣ Simpan Invoice
             $invoice = Invoice::create([
@@ -409,6 +417,7 @@ class FinanceController extends Controller
 
                 // 🔥 KUNCI
                 'harga_gabungan'    => $hargaGabungan,
+                 'is_same_with_po'   => $isSameWithPo,
             ]);
 
             Log::info('Invoice created', [
@@ -416,44 +425,83 @@ class FinanceController extends Controller
                 'harga_gabungan' => $invoice->harga_gabungan,
             ]);
 
+            
             // 7️⃣ Simpan Produk Invoice
-            foreach ($request->items as $index => $item) {
+            $isInvoiceGabungan = $request->has('is_same_with_po') && $quotation->harga_tipe === 'gabungan';
 
-                Log::info("ITEM LOOP {$index}", [
-                    'perizinan_id' => $item['perizinan_id'],
-                    'tipe_harga'   => $tipeHarga,
-                    'qty'          => $item['qty'],
-                    'harga_satuan' => $item['harga_satuan'],
-                ]);
+foreach ($request->items as $item) {
 
-                // 🔹 HARGA GABUNGAN
-                if ($tipeHarga === 'gabungan') {
+    $perizinan_id = $item['perizinan_id'] ?? null; // dari PO langsung
+    $perizinan_lainnya = $item['perizinan_lainnya'] ?? null;
 
-                    ProdukInvoice::create([
-                        'invoice_id'   => $invoice->id,
-                        'perizinan_id' => $item['perizinan_id'],
-                        'deskripsi'    => $item['deskripsi'] ?? null,
-                        'qty'          => $item['qty'],
-                        'harga_satuan' => null,
-                    ]);
+    // Hanya jika manual input (is_same_with_po = 0)
+    if (!$request->has('is_same_with_po')) {
+        $input = $item['perizinan_input'] ?? null;
 
-                    continue;
-                }
+        if ($input && str_starts_with($input, 'id:')) {
+            $perizinan_id = str_replace('id:', '', $input);
+            $perizinan_lainnya = null;
+        } else {
+            $perizinan_lainnya = $input;
+            $perizinan_id = null;
+        }
+    }
 
-                // 🔹 SATUAN
-                if (empty($item['qty']) || empty($item['harga_satuan'])) {
-                    Log::warning("Item satuan skipped {$index}", $item);
-                    continue;
-                }
+    ProdukInvoice::create([
+        'invoice_id'        => $invoice->id,
+        'perizinan_id'      => $perizinan_id,
+        'perizinan_lainnya' => $perizinan_lainnya,
+        'deskripsi'         => $item['deskripsi'] ?? null,
+        'qty'               => $item['qty'] ?? 1,
+        'harga_satuan'      => $item['harga_satuan'] ?? null,
+    ]);
+}
+            // $isInvoiceGabungan = $isSameWithPo && $quotation->harga_tipe === 'gabungan';
 
-                ProdukInvoice::create([
-                    'invoice_id'   => $invoice->id,
-                    'perizinan_id' => $item['perizinan_id'],
-                    'deskripsi'    => $item['deskripsi'] ?? null,
-                    'qty'          => $item['qty'],
-                    'harga_satuan' => $item['harga_satuan'],
-                ]);
-            }
+            //     foreach ($request->items as $index => $item) {
+
+            //         $input = $item['perizinan_input'] ?? null;
+
+            //         $perizinan_id = null;
+            //         $perizinan_lainnya = null;
+
+            //         if ($input && str_starts_with($input, 'id:')) {
+            //             $perizinan_id = str_replace('id:', '', $input);
+            //         } else {
+            //             $perizinan_lainnya = $input;
+            //         }
+
+            //         // 🔹 MODE GABUNGAN (ONLY if same with PO)
+            //         if ($isInvoiceGabungan) {
+
+            //             ProdukInvoice::create([
+            //                 'invoice_id'        => $invoice->id,
+            //                 'perizinan_id'      => $perizinan_id,
+            //                 'perizinan_lainnya' => $perizinan_lainnya,
+            //                 'deskripsi'         => $item['deskripsi'] ?? null,
+            //                 'qty'               => $item['qty'],
+            //                 'harga_satuan'      => null,
+            //             ]);
+
+            //             continue;
+            //         }
+
+            //         // 🔹 MODE SATUAN (default fallback)
+            //         if ($item['qty'] === null || $item['harga_satuan'] === null) {
+            //             continue;
+            //         }
+
+            //         ProdukInvoice::create([
+            //             'invoice_id'        => $invoice->id,
+            //             'perizinan_id'      => $perizinan_id,
+            //             'perizinan_lainnya' => $perizinan_lainnya,
+            //             'deskripsi'         => $item['deskripsi'] ?? null,
+            //             'qty'               => $item['qty'],
+            //             'harga_satuan'      => $item['harga_satuan'],
+            //         ]);
+            //     }
+
+        
 
             // 8️⃣ Pajak
             if ($request->filled('tax')) {
@@ -660,7 +708,8 @@ class FinanceController extends Controller
             'nominalPO',
             'dppOld',
             'isSameWithPo',
-            'isGabungan'
+            'isGabungan',
+            'quotation'
         ));
     }
 
@@ -683,7 +732,8 @@ class FinanceController extends Controller
         'nilai_diskon' => 'nullable|numeric',
 
         'items' => 'required|array|min:1',
-        'items.*.perizinan_id' => 'required|exists:perizinans,id',
+        'items.*.perizinan_id' => 'nullable|exists:perizinans,id',
+        'items.*.perizinan_lainnya' => 'nullable|string|required_without:items.*.perizinan_id',
         'items.*.qty' => 'nullable|numeric',
         'items.*.harga_satuan' => 'nullable|numeric',
 
@@ -697,10 +747,20 @@ class FinanceController extends Controller
         /* ===============================
            1️⃣ HITUNG ULANG TOTAL
         =============================== */
+        $isGabungan = $request->input('is_gabungan') == 1;
+        $hargaGabungan = (float) $request->input('harga_gabungan', 0);
 
-        $subtotal = collect($validated['items'])->sum(function ($item) {
-            return ($item['qty'] ?? 1) * ($item['harga_satuan'] ?? 0);
-        });
+        if ($isGabungan) {
+            // 🔥 pakai harga gabungan sebagai acuan
+            $subtotal = $hargaGabungan;
+            $nominalPo = max($subtotal - ($validated['diskon_po'] ?? 0), 0);
+        } else {
+            // Normal mode: hitung dari items
+            $subtotal = collect($validated['items'])->sum(function ($item) {
+                return ($item['qty'] ?? 1) * ($item['harga_satuan'] ?? 0);
+            });
+            $nominalPo = max($subtotal - ($validated['diskon_po'] ?? 0), 0);
+        }
 
         $diskonPo = $validated['diskon_po'] ?? 0;
         $nominalPo = max($subtotal - $diskonPo, 0);
@@ -719,19 +779,17 @@ class FinanceController extends Controller
             $tipeDiskon = null;
             $nilaiDiskon = null;
             $jumlahDiskon = 0;
-             $totalAfterDiskon = null; // ✅ jadi NULL kalau tidak ada diskon
+            $totalAfterDiskon = null;
         } else {
-
             if ($tipeDiskon === 'persen') {
                 $jumlahDiskon = ($nominalInvoice * $nilaiDiskon) / 100;
             } else {
                 $jumlahDiskon = $nilaiDiskon;
             }
-
             $totalAfterDiskon = max($nominalInvoice - $jumlahDiskon, 0);
         }
-        
-        $base = $totalAfterDiskon ?? $nominalInvoice; 
+
+        $base = $totalAfterDiskon ?? $nominalInvoice;
         /* ===============================
            2️⃣ HITUNG PAJAK
         =============================== */
@@ -777,6 +835,7 @@ class FinanceController extends Controller
             'dpp' => $dpp,
             'ppn' => $ppn,
             'grand_total' => $grandTotal,
+            'harga_gabungan' => $isGabungan ? $hargaGabungan : null,
         ]);
 
         /* ===============================
@@ -787,7 +846,8 @@ class FinanceController extends Controller
 
         foreach ($validated['items'] as $item) {
             $invoice->produk()->create([
-                'perizinan_id' => $item['perizinan_id'],
+ 'perizinan_id' => $item['perizinan_id'] ?? null,
+        'perizinan_lainnya' => $item['perizinan_lainnya'] ?? null,
                 'qty' => $item['qty'] ?? 1,
                 'deskripsi' => $item['deskripsi'] ?? null,
                 'harga_satuan' => $item['harga_satuan'] ?? 0,

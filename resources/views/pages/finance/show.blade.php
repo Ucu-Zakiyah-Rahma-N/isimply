@@ -94,7 +94,7 @@
                 <tbody>
                     @foreach ($invoice->produk as $item)
                         <tr>
-                            <td>{{ $item->perizinan->jenis ?? '-' }}</td>
+                            <td>{{ $item->perizinan->jenis ?? $item->perizinan_lainnya ?? '-' }}</td>
                             <td>{{ $item->deskripsi ?? '-' }}</td>
                             <td class="text-end">{{ $item->qty }}</td>
                             <td class="text-end">Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
