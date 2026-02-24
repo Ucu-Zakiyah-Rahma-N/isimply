@@ -161,6 +161,8 @@ Route::middleware('auth')->group(function () {
         Route::put('invoice/update/{invoice}', [FinanceController::class, 'update'])->name('invoice.update');
         Route::get('/invoice/{id}/print', [FinanceController::class, 'print'])->name('invoice.invoice_print');
         Route::delete('/invoice/{id}', [FinanceController::class, 'destroy'])->name('invoice.invoice_destroy');
+        Route::get('/terima_pembayaran/invoice/{id}', [FinanceController::class, 'terima_pembayaran'])->name('invoice.terima_pembayaran');
+        Route::post('/payment/store', [FinanceController::class, 'storePayment'])->name('invoice.storePayment');
 
         // Operasional (Biaya)
         Route::get('/biaya', [OperasionalController::class, 'biayaIndex'])->name('biaya_index');
