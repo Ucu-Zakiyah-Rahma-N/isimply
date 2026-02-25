@@ -94,8 +94,8 @@
         overflow-x: visible;
         /* supaya flyout tetap muncul */
     }
-    
-/* kalo ini di koment di customer sub menu ketindihan content. tp kalo ga di komen, ga bisa scroll sidebar*/ 
+
+    /* kalo ini di koment di customer sub menu ketindihan content. tp kalo ga di komen, ga bisa scroll sidebar*/
     .page-wrapper,
     .body-wrapper {
         overflow: visible;
@@ -369,6 +369,12 @@
                 <a class="sidebar-link" href="{{ route('finance.invoice_index') }}" aria-expanded="false">
                     <span><i class=""></i></span>
                     <span class="hide-menu">Sudah Invoice</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('finance.purchasing_index') }}" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Purchasing</span>
                 </a>
             </li>
 

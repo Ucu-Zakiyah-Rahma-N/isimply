@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\ProdukInvoice;
 use App\Models\TaxInvoice;
+use App\Models\InvoicePayment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\TotalInvoiceHelper;
@@ -303,7 +304,7 @@ class FinanceController extends Controller
         // Ambil PO dulu
         $po        = PO::with('quotation')->findOrFail($request->po_id);
         $quotation = $po->quotation;
-        
+
         $isGabungan = $po->harga_gabungan != null;
         // Ambil subtotal dari request
         $subtotal = $request->subtotal ?? 0;
@@ -417,7 +418,7 @@ class FinanceController extends Controller
 
                 // 🔥 KUNCI
                 'harga_gabungan'    => $hargaGabungan,
-                 'is_same_with_po'   => $isSameWithPo,
+                'is_same_with_po'   => $isSameWithPo,
             ]);
 
             Log::info('Invoice created', [
@@ -425,37 +426,37 @@ class FinanceController extends Controller
                 'harga_gabungan' => $invoice->harga_gabungan,
             ]);
 
-            
+
             // 7️⃣ Simpan Produk Invoice
             $isInvoiceGabungan = $request->has('is_same_with_po') && $quotation->harga_tipe === 'gabungan';
 
-foreach ($request->items as $item) {
+            foreach ($request->items as $item) {
 
-    $perizinan_id = $item['perizinan_id'] ?? null; // dari PO langsung
-    $perizinan_lainnya = $item['perizinan_lainnya'] ?? null;
+                $perizinan_id = $item['perizinan_id'] ?? null; // dari PO langsung
+                $perizinan_lainnya = $item['perizinan_lainnya'] ?? null;
 
-    // Hanya jika manual input (is_same_with_po = 0)
-    if (!$request->has('is_same_with_po')) {
-        $input = $item['perizinan_input'] ?? null;
+                // Hanya jika manual input (is_same_with_po = 0)
+                if (!$request->has('is_same_with_po')) {
+                    $input = $item['perizinan_input'] ?? null;
 
-        if ($input && str_starts_with($input, 'id:')) {
-            $perizinan_id = str_replace('id:', '', $input);
-            $perizinan_lainnya = null;
-        } else {
-            $perizinan_lainnya = $input;
-            $perizinan_id = null;
-        }
-    }
+                    if ($input && str_starts_with($input, 'id:')) {
+                        $perizinan_id = str_replace('id:', '', $input);
+                        $perizinan_lainnya = null;
+                    } else {
+                        $perizinan_lainnya = $input;
+                        $perizinan_id = null;
+                    }
+                }
 
-    ProdukInvoice::create([
-        'invoice_id'        => $invoice->id,
-        'perizinan_id'      => $perizinan_id,
-        'perizinan_lainnya' => $perizinan_lainnya,
-        'deskripsi'         => $item['deskripsi'] ?? null,
-        'qty'               => $item['qty'] ?? 1,
-        'harga_satuan'      => $item['harga_satuan'] ?? null,
-    ]);
-}
+                ProdukInvoice::create([
+                    'invoice_id'        => $invoice->id,
+                    'perizinan_id'      => $perizinan_id,
+                    'perizinan_lainnya' => $perizinan_lainnya,
+                    'deskripsi'         => $item['deskripsi'] ?? null,
+                    'qty'               => $item['qty'] ?? 1,
+                    'harga_satuan'      => $item['harga_satuan'] ?? null,
+                ]);
+            }
             // $isInvoiceGabungan = $isSameWithPo && $quotation->harga_tipe === 'gabungan';
 
             //     foreach ($request->items as $index => $item) {
@@ -501,7 +502,7 @@ foreach ($request->items as $item) {
             //         ]);
             //     }
 
-        
+
 
             // 8️⃣ Pajak
             if ($request->filled('tax')) {
@@ -578,7 +579,6 @@ foreach ($request->items as $item) {
             } else {
                 $diskonInvoice = $invoice->nilai_diskon;
             }
-
         }
         $afterDiscount      = $invoice->total_after_diskon_inv ?? $nominalTermin;
         $dpp                = $invoice->dpp;
@@ -652,12 +652,11 @@ foreach ($request->items as $item) {
         $ppnList = Coa::where('id', 1)->get();
 
         $isGabungan = $quotation && $quotation->harga_tipe === 'gabungan';
-    
+
         if ($quotation && $quotation->harga_tipe === 'gabungan') {
 
             // 🔥 ambil dari invoice, bukan quotation
             $subtotal = (float) $invoice->subtotal;
-
         } else {
 
             // kalau bukan gabungan, boleh hitung dari produk invoice
@@ -665,7 +664,7 @@ foreach ($request->items as $item) {
                 return ($item->qty ?? 0) * ($item->harga_satuan ?? 0);
             });
         }
-// dd($invoice->harga_gabungan);   
+        // dd($invoice->harga_gabungan);   
 
         //diskon after subtotal
         $tipeDiskonQuotation  = $quotation->diskon_tipe ?? null;
@@ -715,172 +714,171 @@ foreach ($request->items as $item) {
 
 
     // Update invoice
-  public function update(Request $request, $id)
-{
-    $invoice = Invoice::findOrFail($id);
+    public function update(Request $request, $id)
+    {
+        $invoice = Invoice::findOrFail($id);
 
-    $validated = $request->validate([
-        'tgl_inv' => 'required|date',
-        'tgl_jatuh_tempo' => 'required|date',
-        'jenis_invoice' => 'required',
-        'keterangan' => 'nullable|string',
-        'catatan' => 'nullable|string',
-        'persentase_termin' => 'required|numeric',
+        $validated = $request->validate([
+            'tgl_inv' => 'required|date',
+            'tgl_jatuh_tempo' => 'required|date',
+            'jenis_invoice' => 'required',
+            'keterangan' => 'nullable|string',
+            'catatan' => 'nullable|string',
+            'persentase_termin' => 'required|numeric',
 
-        'diskon_po' => 'nullable|numeric',
-        'tipe_diskon' => 'nullable|string',
-        'nilai_diskon' => 'nullable|numeric',
+            'diskon_po' => 'nullable|numeric',
+            'tipe_diskon' => 'nullable|string',
+            'nilai_diskon' => 'nullable|numeric',
 
-        'items' => 'required|array|min:1',
-        'items.*.perizinan_id' => 'nullable|exists:perizinans,id',
-        'items.*.perizinan_lainnya' => 'nullable|string|required_without:items.*.perizinan_id',
-        'items.*.qty' => 'nullable|numeric',
-        'items.*.harga_satuan' => 'nullable|numeric',
+            'items' => 'required|array|min:1',
+            'items.*.perizinan_id' => 'nullable|exists:perizinans,id',
+            'items.*.perizinan_lainnya' => 'nullable|string|required_without:items.*.perizinan_id',
+            'items.*.qty' => 'nullable|numeric',
+            'items.*.harga_satuan' => 'nullable|numeric',
 
-        'tax' => 'nullable|array'
-    ]);
+            'tax' => 'nullable|array'
+        ]);
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
+        try {
 
-        /* ===============================
+            /* ===============================
            1️⃣ HITUNG ULANG TOTAL
         =============================== */
-        $isGabungan = $request->input('is_gabungan') == 1;
-        $hargaGabungan = (float) $request->input('harga_gabungan', 0);
+            $isGabungan = $request->input('is_gabungan') == 1;
+            $hargaGabungan = (float) $request->input('harga_gabungan', 0);
 
-        if ($isGabungan) {
-            // 🔥 pakai harga gabungan sebagai acuan
-            $subtotal = $hargaGabungan;
-            $nominalPo = max($subtotal - ($validated['diskon_po'] ?? 0), 0);
-        } else {
-            // Normal mode: hitung dari items
-            $subtotal = collect($validated['items'])->sum(function ($item) {
-                return ($item['qty'] ?? 1) * ($item['harga_satuan'] ?? 0);
-            });
-            $nominalPo = max($subtotal - ($validated['diskon_po'] ?? 0), 0);
-        }
+            if ($isGabungan) {
+                // 🔥 pakai harga gabungan sebagai acuan
+                $subtotal = $hargaGabungan;
+                $nominalPo = max($subtotal - ($validated['diskon_po'] ?? 0), 0);
+            } else {
+                // Normal mode: hitung dari items
+                $subtotal = collect($validated['items'])->sum(function ($item) {
+                    return ($item['qty'] ?? 1) * ($item['harga_satuan'] ?? 0);
+                });
+                $nominalPo = max($subtotal - ($validated['diskon_po'] ?? 0), 0);
+            }
 
-        $diskonPo = $validated['diskon_po'] ?? 0;
-        $nominalPo = max($subtotal - $diskonPo, 0);
+            $diskonPo = $validated['diskon_po'] ?? 0;
+            $nominalPo = max($subtotal - $diskonPo, 0);
 
-        $persenTermin = $validated['persentase_termin'];
+            $persenTermin = $validated['persentase_termin'];
 
-        $nominalInvoice = $nominalPo * $persenTermin / 100;
-        $tipeDiskon = $request->tipe_diskon;
-        $nilaiDiskon = $request->nilai_diskon ?? 0;
-        /*
+            $nominalInvoice = $nominalPo * $persenTermin / 100;
+            $tipeDiskon = $request->tipe_diskon;
+            $nilaiDiskon = $request->nilai_diskon ?? 0;
+            /*
         |--------------------------------------------------------------------------
         | Kalau tidak ada diskon, NULL-kan semuanya
         |--------------------------------------------------------------------------
         */
-        if (!$nilaiDiskon || $nilaiDiskon == 0) {
-            $tipeDiskon = null;
-            $nilaiDiskon = null;
-            $jumlahDiskon = 0;
-            $totalAfterDiskon = null;
-        } else {
-            if ($tipeDiskon === 'persen') {
-                $jumlahDiskon = ($nominalInvoice * $nilaiDiskon) / 100;
+            if (!$nilaiDiskon || $nilaiDiskon == 0) {
+                $tipeDiskon = null;
+                $nilaiDiskon = null;
+                $jumlahDiskon = 0;
+                $totalAfterDiskon = null;
             } else {
-                $jumlahDiskon = $nilaiDiskon;
+                if ($tipeDiskon === 'persen') {
+                    $jumlahDiskon = ($nominalInvoice * $nilaiDiskon) / 100;
+                } else {
+                    $jumlahDiskon = $nilaiDiskon;
+                }
+                $totalAfterDiskon = max($nominalInvoice - $jumlahDiskon, 0);
             }
-            $totalAfterDiskon = max($nominalInvoice - $jumlahDiskon, 0);
-        }
 
-        $base = $totalAfterDiskon ?? $nominalInvoice;
-        /* ===============================
+            $base = $totalAfterDiskon ?? $nominalInvoice;
+            /* ===============================
            2️⃣ HITUNG PAJAK
         =============================== */
-        $dpp = 0;
-        $ppn = 0;
-        $grandTotal = $base; 
-        
-      if ($request->filled('tax')) {
+            $dpp = 0;
+            $ppn = 0;
+            $grandTotal = $base;
 
-            $selectedTaxes = $request->tax;
+            if ($request->filled('tax')) {
 
-            // misal ID COA PPN kamu
-            $ppnCoaId = 1; // ganti sesuai ID PPN kamu
+                $selectedTaxes = $request->tax;
 
-            if (in_array($ppnCoaId, $selectedTaxes)) {
+                // misal ID COA PPN kamu
+                $ppnCoaId = 1; // ganti sesuai ID PPN kamu
 
-                $dpp = round(($base * 11) / 12);
-                $ppn = round(($dpp * 12) / 100);
+                if (in_array($ppnCoaId, $selectedTaxes)) {
 
-                $grandTotal = $base + $ppn;
+                    $dpp = round(($base * 11) / 12);
+                    $ppn = round(($dpp * 12) / 100);
+
+                    $grandTotal = $base + $ppn;
+                }
             }
-        }
 
-        /* ===============================
+            /* ===============================
            3️⃣ UPDATE HEADER
         =============================== */
 
-        $invoice->update([
-            'tgl_inv' => $validated['tgl_inv'],
-            'tgl_jatuh_tempo' => $validated['tgl_jatuh_tempo'],
-            'jenis_invoice' => $validated['jenis_invoice'],
-            'keterangan' => $validated['keterangan'] ?? null,
-            'catatan' => $validated['catatan'] ?? null,
-            'persentase_termin' => $persenTermin,
+            $invoice->update([
+                'tgl_inv' => $validated['tgl_inv'],
+                'tgl_jatuh_tempo' => $validated['tgl_jatuh_tempo'],
+                'jenis_invoice' => $validated['jenis_invoice'],
+                'keterangan' => $validated['keterangan'] ?? null,
+                'catatan' => $validated['catatan'] ?? null,
+                'persentase_termin' => $persenTermin,
 
-            'subtotal' => $subtotal,
-            'diskon_po' => $diskonPo,
-            'nominal_po' => $nominalPo,
-            'nominal_invoice' => $nominalInvoice,
-            'tipe_diskon' => $tipeDiskon,
-            'nilai_diskon' => $nilaiDiskon,
-            'total_after_diskon_inv' => $totalAfterDiskon,
-            'dpp' => $dpp,
-            'ppn' => $ppn,
-            'grand_total' => $grandTotal,
-            'harga_gabungan' => $isGabungan ? $hargaGabungan : null,
-        ]);
+                'subtotal' => $subtotal,
+                'diskon_po' => $diskonPo,
+                'nominal_po' => $nominalPo,
+                'nominal_invoice' => $nominalInvoice,
+                'tipe_diskon' => $tipeDiskon,
+                'nilai_diskon' => $nilaiDiskon,
+                'total_after_diskon_inv' => $totalAfterDiskon,
+                'dpp' => $dpp,
+                'ppn' => $ppn,
+                'grand_total' => $grandTotal,
+                'harga_gabungan' => $isGabungan ? $hargaGabungan : null,
+            ]);
 
-        /* ===============================
+            /* ===============================
            4️⃣ REPLACE PRODUK
         =============================== */
 
-        $invoice->produk()->delete();
+            $invoice->produk()->delete();
 
-        foreach ($validated['items'] as $item) {
-            $invoice->produk()->create([
- 'perizinan_id' => $item['perizinan_id'] ?? null,
-        'perizinan_lainnya' => $item['perizinan_lainnya'] ?? null,
-                'qty' => $item['qty'] ?? 1,
-                'deskripsi' => $item['deskripsi'] ?? null,
-                'harga_satuan' => $item['harga_satuan'] ?? 0,
-            ]);
-        }
+            foreach ($validated['items'] as $item) {
+                $invoice->produk()->create([
+                    'perizinan_id' => $item['perizinan_id'] ?? null,
+                    'perizinan_lainnya' => $item['perizinan_lainnya'] ?? null,
+                    'qty' => $item['qty'] ?? 1,
+                    'deskripsi' => $item['deskripsi'] ?? null,
+                    'harga_satuan' => $item['harga_satuan'] ?? 0,
+                ]);
+            }
 
-        /* ===============================
+            /* ===============================
            5️⃣ REPLACE PAJAK
         =============================== */
 
-        $invoice->pajak()->delete();
+            $invoice->pajak()->delete();
 
-        if (!empty($validated['tax'])) {
-            foreach ($validated['tax'] as $coaId) {
-                $invoice->pajak()->create([
-                    'coa_id' => $coaId
-                ]);
+            if (!empty($validated['tax'])) {
+                foreach ($validated['tax'] as $coaId) {
+                    $invoice->pajak()->create([
+                        'coa_id' => $coaId
+                    ]);
+                }
             }
+
+            DB::commit();
+
+            return redirect()
+                ->route('finance.invoice_index')
+                ->with('success', 'Invoice berhasil diperbarui');
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
-
-        DB::commit();
-
-        return redirect()
-            ->route('finance.invoice_index')
-            ->with('success', 'Invoice berhasil diperbarui');
-
-    } catch (\Throwable $e) {
-
-        DB::rollBack();
-
-        return back()->withErrors(['error' => $e->getMessage()]);
     }
-}
 
     public function print($id)
     {
