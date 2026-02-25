@@ -33,4 +33,9 @@ class Coa extends Model
     {
         return $this->belongsTo(Coa::class, 'parent_akun_id');
     }
+
+    public function journalDetails()
+{
+    return $this->hasMany(JournalDetail::class);
+}
 }

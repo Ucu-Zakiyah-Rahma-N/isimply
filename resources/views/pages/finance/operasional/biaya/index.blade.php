@@ -133,7 +133,7 @@
         storePengajuan: "{{ route('finance.pengajuan-biaya.store') }}"
     };
 </script>
-@vite(['resources/js/operasional/pengajuan.js'])
+@vite (['resources/js/operasional/pengajuan.js'])
 
 <script>
     function rupiah(value) {

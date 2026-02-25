@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Invoice extends Model
+class JournalDetail extends Model
 {
-    protected $table = 'invoice';
+    protected $table = 'journal_details';
     protected $guarded = ['id'];
 
-        public function customer()
+    public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'id');
     }
@@ -23,8 +23,8 @@ class Invoice extends Model
     {
         return $this->belongsTo(Po::class, 'po_id');
     }
-    
-        public function produk()
+
+    public function produk()
     {
         return $this->hasMany(ProdukInvoice::class, 'invoice_id');
     }
@@ -34,7 +34,7 @@ class Invoice extends Model
         return $this->hasMany(TaxInvoice::class, 'invoice_id');
     }
 
-        
+
     public function provinsi()
     {
         return $this->belongsTo(Wilayah::class, 'provinsi_id', 'kode')->where('jenis', 'provinsi');
@@ -50,9 +50,19 @@ class Invoice extends Model
     {
         return $this->belongsTo(KawasanIndustri::class, 'kawasan_id', 'id');
     }
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class, 'invoice_id');
+    }
 
-    public function payments()
-{
-    return $this->hasMany(InvoicePayment::class);
-}
+    public function journal()
+    {
+        return $this->belongsTo(Journal::class);
+    }
+
+    // akun COA
+    public function coa()
+    {
+        return $this->belongsTo(Coa::class);
+    }
 }

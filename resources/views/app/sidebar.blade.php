@@ -141,9 +141,7 @@
                 </a>
             </li>
             @endif
-
-
-
+            
             {{-- super admin --}}
             @if (in_array(auth()->user()->role, ['superadmin']))
             <li class="sidebar-item position-relative">
@@ -355,6 +353,29 @@
 
 
             @if (in_array(auth()->user()->role, ['manager finance', 'admin finance']))
+
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Accounting</span>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="#" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Saldo</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('finance.bank_cash') }}" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Bank Cash</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="#" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Laporan Arus Kas</span>
+                </a>
+
             <li class="nav-small-cap">
                 <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
                 <span class="hide-menu">Finance</span>
@@ -368,13 +389,25 @@
             <li class="sidebar-item">
                 <a class="sidebar-link" href="{{ route('finance.invoice_index') }}" aria-expanded="false">
                     <span><i class=""></i></span>
-                    <span class="hide-menu">Sudah Invoice</span>
+                    <span class="hide-menu">Data sudah Invoice</span>
                 </a>
             </li>
             <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.purchasing_index') }}" aria-expanded="false">
+                <a class="sidebar-link" href="#" aria-expanded="false">
                     <span><i class=""></i></span>
-                    <span class="hide-menu">Purchasing</span>
+                    <span class="hide-menu">Data Piutang</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="#" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Data Outstanding</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="#" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Data Penerimaan Bulan Ini</span>
                 </a>
             </li>
 
@@ -401,6 +434,17 @@
                 <a class="sidebar-link" href="#" aria-expanded="false">
                     <span><i class="bi bi-bag"></i></span>
                     <span class="hide-menu">Pihak Ketiga</span>
+                </a>
+            </li>
+
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Purchasing</span>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('finance.purchasing_index') }}" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Purchasing</span>
                 </a>
             </li>
 

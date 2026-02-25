@@ -19,7 +19,7 @@
         </div>
         @endif
 
-        <form id="invoiceForm" action="{{ route('finance.invoice.storePayment') }}" method="POST">
+        <form id="invoiceForm" action="{{ route('finance.invoice.storePembayaran') }}" method="POST">
             @csrf
 
             {{-- HEADER --}}
@@ -32,11 +32,18 @@
 
                 <div class="col-md-2">
                     <label class="form-label">Tgl Pembayaran</label>
-                    <input type="date" class="form-control" name="tgl_jatuh_tempo">
+                    <input type="date" class="form-control" name="tanggal">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">COA</label>
+                    <input type="text" class="form-control" 
+                        value="{{ $coaPendapatan->kode_akun }} - {{ $coaPendapatan->nama_akun }}" readonly>
+                    <input type="hidden" name="coa_id" value="{{ $coaPendapatan->id }}">
                 </div>
 
                 {{-- RIGHT SUMMARY --}}
-                <div class="col-md-7 d-flex justify-content-end">
+                <div class="col-md-4 d-flex justify-content-end">
                     <div class="border rounded p-3 bg-light" style="width:320px">
                         <strong>Total:</strong>
                         <h4 class="mb-2">Rp. <span id="grandTotal">{{ number_format($invoice->grand_total ?? 0) }}</span></h4>
@@ -55,6 +62,12 @@
 
                         <small>
                             Diskon : Rp <span id="diskon">{{ number_format($diskon) }}</span>
+                        </small><br> 
+                        <small>
+                            Total Setelah Diskon : Rp 
+                            <span id="total_after_diskon_inv">
+                                {{ number_format($invoice->total_after_diskon_inv ?? 0) }}
+                            </span>
                         </small><br>
                         <small>PPN : Rp <span id="ppn">{{ number_format($invoice->ppn ?? 0) }}</span></small><br>
                         <small>Grand Total : Rp <span id="grandTotal2">{{ number_format($invoice->grand_total ?? 0) }}</span></small>
@@ -118,7 +131,7 @@
 
                 <div class="col-md-2">
                     <label class="form-label">Keterangan</label>
-                    <input type="text" class="form-control" value="{{ $invoice->keterangan }}" readonly>
+                    <input type="text" class="form-control" name="keterangan" value="{{ $invoice->keterangan }}" readonly>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Total Tagihan</label>
@@ -132,10 +145,10 @@
                         <option value="3.5">PPh 3.5%</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+               <div class="col-md-3">
                     <label class="form-label">Nilai PPh</label>
-                    <input type="text" id="nilai_pph" class="form-control" readonly>
-                </div>
+                   <input type="text" name="nilai_pph" id="nilai_pph" class="form-control" readonly>
+                </div> 
                 <div class="col-md-3">
                     <label class="form-label">Nominal diterima</label>
                     <input type="text" name="nominal" id="nominal_diterima" class="form-control">
@@ -149,7 +162,7 @@
                     Batal
                 </a>
                 <button type="submit" class="btn btn-primary">
-                    Simpan Invoice
+                    Buat Penerimaan
                 </button>
             </div>
         </form>
@@ -157,20 +170,25 @@
 </div>
 
 <script>
-    document.getElementById('pph_rate').addEventListener('change', function() {
+document.getElementById('pph_rate').addEventListener('change', function () {
+    let rate = parseFloat(this.value);
+    let grandTotal = {{ $invoice->grand_total }};
+    let nominalInvoice = {{ $invoice->nominal_invoice }};
+    let totalAfterDiskonInv = {{ $invoice->total_after_diskon_inv ?? 0 }};
 
-        let rate = parseFloat(this.value);
-        let grandTotal = {
-            {
-                $invoice - > grand_total
-            }
-        };
+    let nilaiPph;
 
-        let nilaiPph = grandTotal * rate / 100;
-        let diterima = grandTotal - nilaiPph;
+    if (totalAfterDiskonInv && totalAfterDiskonInv > 0) {
+        nilaiPph = totalAfterDiskonInv * rate / 100;
+    } else {
+        nilaiPph = nominalInvoice * rate / 100;
+    }
 
-        document.getElementById('nilai_pph').value = nilaiPph.toLocaleString();
-        document.getElementById('nominal_diterima').value = diterima.toLocaleString();
-    });
+    let diterima = grandTotal - nilaiPph;
+
+    // tampilkan formatted untuk user
+    document.getElementById('nilai_pph').value = nilaiPph.toFixed(2); // kirim angka mentah
+    document.getElementById('nominal_diterima').value = diterima.toFixed(2);
+});
 </script>
 @endsection

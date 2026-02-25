@@ -30,7 +30,10 @@
             "app/Helpers/DashboardHelper.php",
             "app/Helpers/Terbilang.php",
             "app/Helpers/TahapanHelper.php",
-            "app/Helpers/PaginationHelper.php"
+            "app/Helpers/PaginationHelper.php",
+            "app/Helpers/InvoiceCalculatorHelper.php",
+            "app/Helpers/TotalInvoiceHelper.php",
+            "app/Helpers/JournalHelper.php"
         ],
         "psr-4": {
             "App\\": "app/",

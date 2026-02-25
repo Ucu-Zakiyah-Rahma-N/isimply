@@ -19,6 +19,7 @@ use App\Http\Controllers\OperasionalController;
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\KontakController;
 use App\Http\Controllers\PurchasingController;
+use App\Http\Controllers\AccountingController;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
 
@@ -163,7 +164,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/invoice/{id}/print', [FinanceController::class, 'print'])->name('invoice.invoice_print');
         Route::delete('/invoice/{id}', [FinanceController::class, 'destroy'])->name('invoice.invoice_destroy');
         Route::get('/terima_pembayaran/invoice/{id}', [FinanceController::class, 'terima_pembayaran'])->name('invoice.terima_pembayaran');
-        Route::post('/payment/store', [FinanceController::class, 'storePayment'])->name('invoice.storePayment');
+        Route::post('/payment/store', action: [FinanceController::class, 'storePembayaran'])->name('invoice.storePembayaran');
+        Route::post('/invoice/{id}/upload-invoice', [FinanceController::class, 'uploadInvoice'])->name('invoice.uploadInvoice');
+        Route::post('/invoice/{id}/upload-faktur', [FinanceController::class, 'uploadFaktur'])->name('invoice.uploadFaktur');
+
 
         // Operasional (Biaya)
         Route::get('/biaya', [OperasionalController::class, 'biayaIndex'])->name('biaya_index');
@@ -181,6 +185,12 @@ Route::middleware('auth')->group(function () {
 
         // Purchasing
         Route::get('/purchasing', [PurchasingController::class, 'purchasingIndex'])->name('purchasing_index');
+
+        // index (ALL)
+        Route::get('/bank-cash', [AccountingController::class, 'bankCash'])->name('bank_cash');
+
+        // ledger per akun
+        // Route::get('/bank-cash/{coaId}', [AccountingController::class, 'bankCash'])->name('bank_cash.ledger');
     });
 
 

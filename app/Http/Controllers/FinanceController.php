@@ -13,11 +13,18 @@ use Illuminate\Http\Request;
 use App\Models\ProdukInvoice;
 use App\Models\TaxInvoice;
 use App\Models\InvoicePayment;
+use App\Models\Journal;
+use App\Models\JournalDetail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\TotalInvoiceHelper;
 use App\Helpers\InvoiceCalculatorHelper;
+use App\Helpers\JournalHelper;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+//finance itu seputar invoice, Data yang sudah invoice, Data Piutang, Data Outstanding, Data Penerimaan Bulan Ini
+//Data PPN Bulanan dan tahunan, Data PPh Bulanan dan tahunan, Data PPN dan PPh
 
 class FinanceController extends Controller
 {
@@ -387,6 +394,10 @@ class FinanceController extends Controller
         ]);
 
         DB::beginTransaction();
+        $coaPiutangId   = 13;
+        $coaPpnId        = 1;
+        $coaPendapatanId = 20;
+
         try {
             $isSameWithPo = $request->has('is_same_with_po') ? 1 : 0;
             $hargaGabungan = ($isSameWithPo && $quotation->harga_tipe === 'gabungan')
@@ -514,6 +525,40 @@ class FinanceController extends Controller
                 }
             }
 
+            $journal = Journal::create([
+                'tanggal'     => $request->tgl_invoice,
+                'no_jurnal'   => Journal::generateNo(),
+                'keterangan'  => 'Invoice ' . $invoice->no_invoice,
+                'ref_type'    => 'invoice',
+                'ref_id'      => $invoice->id,
+            ]);
+
+            // PIUTANG
+            JournalDetail::create([
+                'journal_id' => $journal->id,
+                'coa_id'     => $coaPiutangId,
+                'debit'      => $grandTotal,
+                'credit'     => 0,
+            ]);
+
+            //  PENDAPATAN (INI YANG KAMU BELUM ADA)
+            JournalDetail::create([
+                'journal_id' => $journal->id,
+                'coa_id'     => $coaPendapatanId,
+                'debit'      => 0,
+                'credit'     => $dpp > 0 ? $dpp : $grandTotal,
+            ]);
+
+            // PPN (optional)
+            if ($ppn > 0) {
+                JournalDetail::create([
+                    'journal_id' => $journal->id,
+                    'coa_id'     => $coaPpnId,
+                    'debit'      => 0,
+                    'credit'     => $ppn,
+                ]);
+            }
+
             DB::commit();
 
             return redirect()
@@ -538,12 +583,21 @@ class FinanceController extends Controller
             'produk',   // ambil semua produk_invoice terkait
             'pajak.coa', // ambil semua tax_invoice + nama pajak
             'po.quotation.customer',
+            'payments'
         ])->orderBy('id', 'desc')->get();
+
 
         foreach ($invoice as $inv) {
             $inv->total_hitung = TotalInvoiceHelper::calculateTotal($inv);
-        }
 
+            $inv->nilai_Pph = $inv->payments->isNotEmpty()
+                ? $inv->payments->last()->nilai_Pph
+                : 0;
+
+            $inv->nominal = $inv->payments->isNotEmpty()
+                ? $inv->payments->last()->nominal
+                : 0;
+        }
         //cek debug total di index_inv
         // foreach ($invoice as $invoice) {
         //     dd(\App\Helpers\TotalInvoiceHelper::calculateTotalDebug($invoice));
@@ -1003,6 +1057,7 @@ class FinanceController extends Controller
             'pajak',
             'po.quotation'
         ])->findOrFail($id);
+        $coaPendapatan = Coa::find(56);
 
         // ambil semua akun kas & bank (anak header)
         $banks = Coa::whereIn('parent_akun_id', [3, 9])->get();
@@ -1010,28 +1065,174 @@ class FinanceController extends Controller
         return view('pages.finance.terima_pembayaran', [
             'title' => $title,
             'invoice' => $invoice,
+            'coaPendapatan' => $coaPendapatan,
             'banks' => $banks
         ]);
     }
+
+    // public function storePembayaran(Request $request)
+    // {
+    //     $request->validate([
+    //         'invoice_id' => 'required',
+    //         'coa_bank_id' => 'required',
+    //         'nominal' => 'required'
+    //     ]);
+
+    //     InvoicePayment::create([
+    //         'invoice_id' => $request->invoice_id,
+    //         'tanggal' => $request->tanggal,
+    //         'metode_pembayaran' => $request->metode_pembayaran,
+    //         'coa_bank_id' => $request->coa_bank_id,
+    //         'coa_pph_id' => $request->coa_pph_id,
+    //         'keterangan' => $request->keterangan,
+    //         'pph_rate' => $request->pph_rate,
+    //         'nilai_pph' => clean($request->nilai_pph),
+    //         'nominal' => str_replace(',', '', $request->nominal),
+    //     ]);
+    //     $invoice = Invoice::find($request->invoice_id);
+    //     $coaPiutang = $invoice->coa_piutang_id;
+    //     return back()->with('success', 'Pembayaran tersimpan');
+    // }
 
     public function storePembayaran(Request $request)
     {
         $request->validate([
             'invoice_id' => 'required',
             'coa_bank_id' => 'required',
-            'nominal' => 'required'
+            'nominal' => 'required',
+            'tanggal' => 'required'
         ]);
 
-        InvoicePayment::create([
-            'invoice_id' => $request->invoice_id,
-            'coa_bank_id' => $request->coa_bank_id,
-            'nominal' => str_replace(',', '', $request->nominal),
-            'pph_rate' => $request->pph_rate,
-            'nilai_pph' => clean($request->nilai_pph),
-            'metode_pembayaran' => $request->metode_pembayaran,
-            'tanggal' => now()
+        DB::transaction(function () use ($request) {
+            $nominal = (float) str_replace(',', '', $request->nominal);
+            $nilaiPph = (float) str_replace(',', '', $request->nilai_pph ?? 0);
+            $coaPphId = 2;
+
+            $invoice = Invoice::findOrFail($request->invoice_id);
+
+            if (!$invoice->coa_piutang_id) {
+                throw new \Exception('COA piutang invoice belum di set');
+            }
+
+            $payment = InvoicePayment::create([
+                'invoice_id' => $request->invoice_id,
+                'coa_bank_id' => $request->coa_bank_id,
+                'nominal' => $nominal,
+                'nilai_pph' => $nilaiPph,
+                'coa_pph_id' => $coaPphId,
+                'metode_pembayaran' => $request->metode_pembayaran,
+                'tanggal' => $request->tanggal,
+                'keterangan' => $request->keterangan,
+            ]);
+
+            $journal = Journal::create([
+                'tanggal' => $request->tanggal,
+                'no_jurnal' => Journal::generateNo(),
+                'keterangan' => 'Pembayaran invoice ' . $invoice->no_invoice,
+                'source_type' => 'invoice_payment',
+                'source_id' => $payment->id,
+            ]);
+
+            $details = [];
+
+            // Debit Bank
+            $details[] = [
+                'journal_id' => $journal->id,
+                'coa_id' => $request->coa_bank_id,
+                'debit' => $nominal,
+                'credit' => 0
+            ];
+
+            // Debit PPH
+            if ($nilaiPph > 0) {
+                $details[] = [
+                    'journal_id' => $journal->id,
+                    'coa_id' => $coaPphId,
+                    'debit' => $nilaiPph,
+                    'credit' => 0
+                ];
+            }
+
+            // Credit Piutang
+            $details[] = [
+                'journal_id' => $journal->id,
+                'coa_id' => $invoice->coa_piutang_id,
+                'debit' => 0,
+                'credit' => $nominal + $nilaiPph
+            ];
+
+            JournalDetail::insert($details);
+        });
+
+
+        return back()->with('success', 'Pembayaran berhasil + jurnal terbentuk');
+    }
+
+    public function uploadInvoice(Request $request, $id)
+    {
+        $request->validate([
+            'file_invoice' => 'required|mimes:pdf|max:10240',
         ]);
 
-        return back()->with('success', 'Pembayaran tersimpan');
+        $invoice = Invoice::findOrFail($id);
+        $file = $request->file('file_invoice');
+
+        // ⭐ ubah no_invoice jadi filename aman
+        $noInvoiceSafe = preg_replace('/[^A-Za-z0-9\-]/', '-', $invoice->no_invoice);
+
+        // ⭐ nama file
+        $filename = 'invoice_' . $noInvoiceSafe . '.' . $file->getClientOriginalExtension();
+
+        // ⭐ hapus file lama
+        if ($invoice->file_invoice && Storage::disk('public')->exists($invoice->file_invoice)) {
+            Storage::disk('public')->delete($invoice->file_invoice);
+        }
+
+        // ⭐ simpan tanpa folder per invoice
+        $path = $file->storeAs('invoice_pdfs', $filename, 'public');
+
+        // ⭐ save DB
+        $invoice->update([
+            'file_invoice' => $path
+        ]);
+
+        return back()->with('success', 'File Invoice berhasil diupload');
+    }
+
+    public function uploadFaktur(Request $request, $id)
+    {
+        $request->validate([
+            'file_faktur' => 'required|mimes:pdf|max:10240',
+        ]);
+
+        $invoice = Invoice::findOrFail($id);
+        $file = $request->file('file_faktur');
+
+
+        $noInvoiceSafe = preg_replace('/[^A-Za-z0-9\-]/', '-', $invoice->no_invoice);
+
+        // ambil nama file asli tanpa extension
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+
+        // sanitize nama file
+        $originalSafe = Str::slug($originalName);
+
+        // gabungkan
+        $filename = 'faktur_' . $noInvoiceSafe . '_' . $originalSafe . '.' . $file->getClientOriginalExtension();
+
+        // hapus file lama
+        if ($invoice->file_faktur && Storage::disk('public')->exists($invoice->file_faktur)) {
+            Storage::disk('public')->delete($invoice->file_faktur);
+        }
+
+        // simpan (tanpa folder)
+        $path = $file->storeAs('faktur_pajak_pdfs', $filename, 'public');
+
+        // save DB
+        $invoice->update([
+            'file_faktur' => $path
+        ]);
+
+        return back()->with('success', 'File Faktur Pajak berhasil diupload');
     }
 }
