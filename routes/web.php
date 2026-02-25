@@ -185,7 +185,12 @@ Route::middleware('auth')->group(function () {
 
         // Purchasing
         Route::get('/purchasing', [PurchasingController::class, 'purchasingIndex'])->name('purchasing_index');
-
+        Route::get('/get-coa-kas-bank', [PurchasingController::class, 'getCoaKasBank'])->name('getCoaKasBank');
+        Route::get('/get-akun-coa', [PurchasingController::class, 'getAkunCoa'])->name('getAkunCoa');
+        Route::post(
+            '/scheduling/store',
+            [PurchasingController::class, 'storeScheduling']
+        )->name('scheduling.store');
         // index (ALL)
         Route::get('/bank-cash', [AccountingController::class, 'bankCash'])->name('bank_cash');
 

@@ -141,7 +141,7 @@
                 </a>
             </li>
             @endif
-            
+
             {{-- super admin --}}
             @if (in_array(auth()->user()->role, ['superadmin']))
             <li class="sidebar-item position-relative">
@@ -224,10 +224,6 @@
 
             </li>
             @endif
-
-
-
-
 
             {{-- admin  marketing --}}
             @if (in_array(auth()->user()->role, ['admin marketing']))
@@ -319,7 +315,6 @@
             </li>
             @endif
 
-
             <li class="sidebar-item">
                 <a href="{{ url('PO') }}" class="sidebar-link">
                     <i class="bi bi-file-spreadsheet"></i>
@@ -332,25 +327,19 @@
                     <span class="hide-menu">Rekap Marketing</span>
                 </a>
             </li>
-
             <li class="sidebar-item">
                 <a href="{{ url('projects') }}" class="sidebar-link">
                     <i class="bi bi-kanban"></i>
                     <span class="hide-menu">Data Projek</span>
                 </a>
             </li>
-
-
             <li class="sidebar-item">
                 <a href="{{ route('projects.timeline') }}" class="sidebar-link">
                     <i class="bi bi-clock-history"></i>
                     <span class="hide-menu">Timeline Projek</span>
                 </a>
             </li>
-
             @endif
-
-
 
             @if (in_array(auth()->user()->role, ['manager finance', 'admin finance']))
 

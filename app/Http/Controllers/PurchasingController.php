@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Kontak;
 use App\Models\Coa;
+use App\Models\SchedulingPengajuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\PengajuanBiaya;
@@ -49,5 +50,98 @@ class PurchasingController extends Controller
             'pages.finance.purchasing.index',
             compact('title', 'data', 'tab')
         );
+    }
+
+    public function storeScheduling(Request $request)
+    {
+        $request->validate([
+            'nomor_pengajuan' => 'required',
+            'coa_lawan_id'    => 'required|exists:coa,id',
+            'coa_bank_id'     => 'required|exists:coa,id',
+            'tgl_pembayaran'  => 'required|date',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+
+            // Ambil pengajuan berdasarkan nomor
+            $pengajuan = PengajuanBiaya::where(
+                'nomor_pengajuan',
+                $request->nomor_pengajuan
+            )->firstOrFail();
+
+            SchedulingPengajuan::create([
+                'pengajuan_biaya_pengadaan_id' => $pengajuan->id,
+                'coa_id'        => $request->coa_lawan_id,
+                'bank_coa_id'    => $request->coa_bank_id,
+                'tgl_pembayaran' => $request->tgl_pembayaran,
+                'is_akomodasi'  => $request->boolean('is_akomodasi'),
+            ]);
+
+            // Optional: update status
+            $pengajuan->update([
+                'status' => 'dijadwalkan'
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pembayaran berhasil dijadwalkan'
+            ]);
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menjadwalkan pembayaran'
+            ], 500);
+        }
+    }
+
+    public function getCoaKasBank(Request $request)
+    {
+        $search = $request->get('term');
+
+        $data = Coa::where('kategori_akun', 'Kas & Bank')
+            ->when($search, function ($query) use ($search) {
+                $query->where('nama_akun', 'like', '%' . $search . '%');
+            })
+            ->select('id', 'nama_akun')
+            ->orderBy('nama_akun')
+            ->get();
+
+        return response()->json([
+            'results' => $data->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'text' => $item->nama_akun
+                ];
+            })
+        ]);
+    }
+
+    public function getAkunCoa(Request $request)
+    {
+        $search = $request->get('term');
+
+        $data = Coa::where('kategori_akun', '!=', 'Kas & Bank')
+            ->when($search, function ($query) use ($search) {
+                $query->where('nama_akun', 'like', '%' . $search . '%');
+            })
+            ->select('id', 'nama_akun')
+            ->orderBy('nama_akun')
+            ->get();
+
+        return response()->json([
+            'results' => $data->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'text' => $item->nama_akun
+                ];
+            })
+        ]);
     }
 }

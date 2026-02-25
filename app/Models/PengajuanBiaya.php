@@ -26,7 +26,8 @@ class PengajuanBiaya extends Model
         'total_diskon',
         'total_ppn',
         'grand_total',
-        'lampiran'
+        'lampiran',
+        'status'
     ];
 
     protected $casts = [

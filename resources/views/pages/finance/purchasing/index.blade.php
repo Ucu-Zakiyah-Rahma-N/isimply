@@ -185,9 +185,11 @@
                             <div class="fw-semibold">
                                 {{ $row->nomor_pengajuan }}
                             </div>
-                            <!-- <small>
-                                {{ $row->deskripsi }}
-                            </small> -->
+                            <small>
+                                @foreach($row->items as $item)
+                                <div>{{ $item->deskripsi }}</div>
+                                @endforeach
+                            </small>
                         </td>
 
                         <td>{{ $row->penerima ?? '-' }}</td>
@@ -227,8 +229,11 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#modalJadwalkan"
                                     data-id="{{ $row->id }}"
-                                    data-no="{{ $row->no_pengajuan }}"
-                                    data-total="{{ $row->total }}">
+                                    data-no="{{ $row->nomor_pengajuan }}"
+                                    data-tgl="{{ $row->tgl_pengajuan->format('d/m/Y') }}"
+                                    data-deskripsi="{{ $row->items->pluck('deskripsi')->implode(', ') }}"
+                                    data-penerima="{{ $row->penerima }}"
+                                    data-total="{{ number_format($row->grand_total,0,',','.') }}">
                                     Jadwalkan
                                 </button>
                                 <button class="btn btn-warning action-btn">
@@ -265,11 +270,24 @@
 
             const button = event.relatedTarget;
 
-            const no = button.getAttribute('data-no');
-            const total = button.getAttribute('data-total');
+            document.getElementById('modalTextPengajuan').innerText =
+                button.getAttribute('data-no');
 
-            modal.querySelector('.col-md-2:nth-child(1)').innerText = no;
-            modal.querySelector('.fw-bold').innerText = total;
+            document.getElementById('modalNoPengajuan').value =
+                button.getAttribute('data-no');
+
+            document.getElementById('modalTglPengajuan').innerText =
+                button.getAttribute('data-tgl');
+
+            document.getElementById('modalDeskripsi').innerText =
+                button.getAttribute('data-deskripsi');
+
+            document.getElementById('modalPenerima').innerText =
+                button.getAttribute('data-penerima');
+
+            document.getElementById('modalTotal').innerText =
+                'Rp ' + button.getAttribute('data-total');
+
         });
 
     });

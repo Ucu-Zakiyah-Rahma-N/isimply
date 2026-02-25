@@ -186,7 +186,7 @@
                                     <div class="col-md-6">
                                         <label class="form-label label-saas">Project</label>
                                         <select class="input-saas" id="projectSelect" name="project_id"></select>
-                                        <input type="hidden" name="jenis_project" id="jenisProject">
+                                        <input type="text" name="jenis_project" id="jenis_project">
                                     </div>
 
                                 </div>
@@ -371,7 +371,7 @@
                 // Jika ada selectedId (mode edit), langsung set jenis
                 if (selectedId) {
                     const selectedOption = select.find('option:selected');
-                    $('#jenisProject').val(selectedOption.data('jenis') ?? '');
+                    $('#jenis_project').val(selectedOption.data('jenis') ?? '');
                 }
             })
             .catch(err => console.error(err));
@@ -391,12 +391,12 @@
         // Event khusus Select2 (lebih stabil daripada change biasa)
         select.on('select2:select', function(e) {
             const jenis = $(e.params.data.element).data('jenis');
-            $('#jenisProject').val(jenis ?? '');
+            $('#jenis_project').val(jenis ?? '');
         });
 
         // Jika di-clear
         select.on('select2:clear', function() {
-            $('#jenisProject').val('');
+            $('#jenis_project').val('');
         });
 
         loadProject(); // load awal

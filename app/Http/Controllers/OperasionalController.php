@@ -72,7 +72,7 @@ class OperasionalController extends Controller
             'tanggal_pengajuan'       => 'required|date',
             'metode_pembayaran'   => 'required|in:cash,transfer',
             'project_id' => 'nullable',
-            'jenisProject' => 'nullable|string',
+            'jenis_project' => 'nullable|string',
             'kontak_id'         => 'required|integer',
             'deskripsi.*'         => 'required|string',
             'qty.*'               => 'required|numeric|min:1',
@@ -139,7 +139,7 @@ class OperasionalController extends Controller
             $pengajuan = PengajuanBiaya::create([
                 'jenis_pengajuan'        => $request->jenis_pengajuan,
                 'project_id'             => $request->project_id,
-                'jenis_project'          => $request->jenisProject,
+                'jenis_project'          => $request->jenis_project,
                 'nomor_pengajuan'        => $nomorPengajuan,
                 'tgl_pengajuan'          => $request->tanggal_pengajuan,
                 'metode_pembayaran'      => $request->metode_pembayaran,
@@ -150,7 +150,8 @@ class OperasionalController extends Controller
                 'total_diskon'           => $totalDiskon,
                 'total_ppn'              => $totalPPN,
                 'grand_total'            => $subtotal - $totalDiskon + $totalPPN,
-                'lampiran'               => $lampiranPath
+                'lampiran'               => $lampiranPath,
+                'status'                => 'proses di purchasing'
             ]);
 
             /** ================== DETAIL ================== */
