@@ -987,4 +987,51 @@ class FinanceController extends Controller
 
         return redirect()->back()->with('success', 'Akun berhasil ditambahkan');
     }
+
+    public function terima_pembayaran($id)
+    {
+
+        $title = 'terima pembayaran';
+
+        $invoice = Invoice::with([
+            'customer',
+            'quotations.kawasan_industri',
+            'quotations.kabupaten',
+            'quotations.provinsi',
+            'po',
+            'produk.perizinan',
+            'pajak',
+            'po.quotation'
+        ])->findOrFail($id);
+
+        // ambil semua akun kas & bank (anak header)
+        $banks = Coa::whereIn('parent_akun_id', [3, 9])->get();
+
+        return view('pages.finance.terima_pembayaran', [
+            'title' => $title,
+            'invoice' => $invoice,
+            'banks' => $banks
+        ]);
+    }
+
+    public function storePembayaran(Request $request)
+    {
+        $request->validate([
+            'invoice_id' => 'required',
+            'coa_bank_id' => 'required',
+            'nominal' => 'required'
+        ]);
+
+        InvoicePayment::create([
+            'invoice_id' => $request->invoice_id,
+            'coa_bank_id' => $request->coa_bank_id,
+            'nominal' => str_replace(',', '', $request->nominal),
+            'pph_rate' => $request->pph_rate,
+            'nilai_pph' => clean($request->nilai_pph),
+            'metode_pembayaran' => $request->metode_pembayaran,
+            'tanggal' => now()
+        ]);
+
+        return back()->with('success', 'Pembayaran tersimpan');
+    }
 }
