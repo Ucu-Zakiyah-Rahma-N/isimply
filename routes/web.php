@@ -19,6 +19,7 @@ use App\Http\Controllers\OperasionalController;
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\KontakController;
 use App\Http\Controllers\PurchasingController;
+use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\AccountingController;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
@@ -168,7 +169,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/invoice/{id}/upload-invoice', [FinanceController::class, 'uploadInvoice'])->name('invoice.uploadInvoice');
         Route::post('/invoice/{id}/upload-faktur', [FinanceController::class, 'uploadFaktur'])->name('invoice.uploadFaktur');
 
-
         // Operasional (Biaya)
         Route::get('/biaya', [OperasionalController::class, 'biayaIndex'])->name('biaya_index');
         Route::post('/kontak/store', [OperasionalController::class, 'store'])->name('kontak.store');
@@ -187,10 +187,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/purchasing', [PurchasingController::class, 'purchasingIndex'])->name('purchasing_index');
         Route::get('/get-coa-kas-bank', [PurchasingController::class, 'getCoaKasBank'])->name('getCoaKasBank');
         Route::get('/get-akun-coa', [PurchasingController::class, 'getAkunCoa'])->name('getAkunCoa');
-        Route::post(
-            '/scheduling/store',
-            [PurchasingController::class, 'storeScheduling']
-        )->name('scheduling.store');
+        Route::post('/scheduling/store', [PurchasingController::class, 'storeScheduling'])->name('scheduling.store');
+
+        // Manager
+        Route::get('/manager', [ManagerController::class, 'managerIndex'])->name('manager_index');
+        Route::post('/manager/approve/{id}', [ManagerController::class, 'approve'])->name('manager.approve');
+        Route::post('/manager/{id}/tolak', [ManagerController::class, 'tolak'])
+            ->name('manager.tolak');
         // // index (ALL)
         // Route::get('/bank-cash', [AccountingController::class, 'bankCash'])->name('bank_cash');
 

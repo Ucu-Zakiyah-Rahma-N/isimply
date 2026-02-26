@@ -22,6 +22,32 @@ class PurchasingController extends Controller
         $title = 'Purchasing';
         $tab = $request->get('tab', 'proses di purchasing');
 
+        $baseQuery = PengajuanBiaya::query();
+
+        // =======================
+        // COUNT NOTIFICATION
+        // =======================
+        $countWaiting = (clone $baseQuery)
+            ->where('status', 'proses di purchasing')
+            ->count();
+
+        $countToday = (clone $baseQuery)
+            ->where('status', 'proses di purchasing')
+            ->whereDate('tgl_pengajuan', Carbon::today())
+            ->count();
+
+        $countScheduled = (clone $baseQuery)
+            ->where('status', 'dijadwalkan')
+            ->count();
+
+        $countReject = (clone $baseQuery)
+            ->where('status', 'ditolak')
+            ->count();
+
+
+        // =======================
+        // DATA TABLE
+        // =======================
         $query = PengajuanBiaya::with('items')
             ->leftJoin('kontak', 'pengajuan_biaya.kontak_id', '=', 'kontak.id')
             ->select('pengajuan_biaya.*', 'kontak.nama as penerima');
@@ -30,25 +56,30 @@ class PurchasingController extends Controller
 
             $query->where('pengajuan_biaya.status', 'proses di purchasing')
                 ->whereDate('pengajuan_biaya.tgl_pengajuan', Carbon::today());
-        } elseif ($tab == 'diajukan') {
+        } elseif ($tab == 'dijadwalkan') {
 
-            $query->where('pengajuan_biaya.status', 'diajukan')
-                ->whereNotNull('pengajuan_biaya.tgl_pengajuan')
-                ->whereDate('pengajuan_biaya.tgl_pengajuan', '!=', Carbon::today());
+            $query->where('pengajuan_biaya.status', 'dijadwalkan');
         } elseif ($tab == 'ditolak') {
 
             $query->where('pengajuan_biaya.status', 'ditolak');
         } else {
-            // Waiting List (default)
+
             $query->where('pengajuan_biaya.status', 'proses di purchasing');
         }
 
-        $data = $query->orderByDesc('pengajuan_biaya.tgl_pengajuan')
-            ->get();
+        $data = $query->orderByDesc('pengajuan_biaya.tgl_pengajuan')->get();
 
         return view(
             'pages.finance.purchasing.index',
-            compact('title', 'data', 'tab')
+            compact(
+                'title',
+                'data',
+                'tab',
+                'countWaiting',
+                'countToday',
+                'countScheduled',
+                'countReject'
+            )
         );
     }
 

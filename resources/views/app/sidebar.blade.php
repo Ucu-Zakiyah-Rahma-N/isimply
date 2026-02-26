@@ -303,7 +303,6 @@
             </li>
             @endif
 
-
             @if (in_array(auth()->user()->role, ['CEO', 'direktur', 'manager projek', 'manager marketing', 'manager finance']))
 
             @if (auth()->user()->role === 'manager marketing')
@@ -439,6 +438,17 @@
 
             <li class="nav-small-cap">
                 <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+                <span class="hide-menu">Manager</span>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="{{ route('finance.manager_index') }}" aria-expanded="false">
+                    <span><i class=""></i></span>
+                    <span class="hide-menu">Manager</span>
+                </a>
+            </li>
+
+            <li class="nav-small-cap">
+                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
                 <span class="hide-menu">AKUN</span>
             </li>
 
@@ -461,7 +471,6 @@
                 </a>
             </li>
             @endif
-
 
             @if (auth()->user()->role === 'customer')
             <li class="nav-small-cap">

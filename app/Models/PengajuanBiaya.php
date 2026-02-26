@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\SchedulingPengajuan;
 
 class PengajuanBiaya extends Model
 {
@@ -27,7 +28,8 @@ class PengajuanBiaya extends Model
         'total_ppn',
         'grand_total',
         'lampiran',
-        'status'
+        'status',
+        'note'
     ];
 
     protected $casts = [
@@ -38,5 +40,13 @@ class PengajuanBiaya extends Model
     public function items()
     {
         return $this->hasMany(PengajuanBiayaItem::class);
+    }
+    public function scheduling()
+    {
+        return $this->hasOne(
+            SchedulingPengajuan::class,
+            'pengajuan_biaya_pengadaan_id', // foreign key di scheduling_pengajuan
+            'id' // local key di pengajuan_biaya
+        );
     }
 }

@@ -115,45 +115,37 @@
     {{-- NAVBAR FILTER ROW --}}
     <div class="px-4">
         <ul class="nav custom-tabs">
-            <li class="nav-item">
-                <a class="nav-link {{ $tab == 'proses di purchasing' ? 'active' : '' }}"
-                    href="{{ route('finance.purchasing_index', ['tab' => 'proses di purchasing']) }}">
-                    Waiting List
-                    @if($countWaiting > 0)
-                    <span class="badge bg-danger ms-1">{{ $countWaiting }}</span>
-                    @endif
-                </a>
-            </li>
 
             <li class="nav-item">
-                <a class="nav-link {{ $tab == 'today' ? 'active' : '' }}"
-                    href="{{ route('finance.purchasing_index', ['tab' => 'today']) }}">
-                    Hari Ini
-                    @if($countToday > 0)
-                    <span class="badge bg-primary ms-1">{{ $countToday }}</span>
+                <a class="nav-link {{ $tab == 'disetujui' ? 'active' : '' }}"
+                    href="{{ route('finance.manager_index', ['tab' => 'disetujui']) }}">
+                    Disetujui (Hari Ini)
+                    @if($countApprovedToday > 0)
+                    <span class="badge bg-success ms-1">{{ $countApprovedToday }}</span>
                     @endif
                 </a>
             </li>
 
             <li class="nav-item">
                 <a class="nav-link {{ $tab == 'dijadwalkan' ? 'active' : '' }}"
-                    href="{{ route('finance.purchasing_index', ['tab' => 'dijadwalkan']) }}">
-                    Rencana Pembayaran
+                    href="{{ route('finance.manager_index', ['tab' => 'dijadwalkan']) }}">
+                    Dijadwalkan
                     @if($countScheduled > 0)
-                    <span class="badge bg-success ms-1">{{ $countScheduled }}</span>
+                    <span class="badge bg-primary ms-1">{{ $countScheduled }}</span>
                     @endif
                 </a>
             </li>
 
             <li class="nav-item">
                 <a class="nav-link {{ $tab == 'ditolak' ? 'active' : '' }}"
-                    href="{{ route('finance.purchasing_index', ['tab' => 'ditolak']) }}">
-                    Reject
+                    href="{{ route('finance.manager_index', ['tab' => 'ditolak']) }}">
+                    Ditolak
                     @if($countReject > 0)
                     <span class="badge bg-danger ms-1">{{ $countReject }}</span>
                     @endif
                 </a>
             </li>
+
         </ul>
     </div>
 
@@ -182,7 +174,9 @@
                         <td>{{ $i + 1 }}</td>
 
                         <td>
-                            {{ $row->tgl_bayar ? \Carbon\Carbon::parse($row->tgl_bayar)->format('d-m-Y') : '-' }}
+                            {{ optional($row->scheduling)->tgl_pembayaran 
+                            ? \Carbon\Carbon::parse($row->scheduling->tgl_pembayaran)->format('d-m-Y') 
+                            : '-' }}
                         </td>
 
                         <td>{{ $row->kategori ?? '-' }}</td>
@@ -207,12 +201,14 @@
                         <td>{{ $row->penerima ?? '-' }}</td>
 
                         <td>
-                            @if($row->status == 'proses di purchasing')
-                            <span class="status-badge badge-diajukan">Proses</span>
-                            @elseif($row->status == 'diajukan')
-                            <span class="status-badge badge-approved">Di ajukan</span>
-                            @elseif($row->status == 'ditolak')
-                            <span class="status-badge badge-reject">Di tolak</span>
+                            @if($row->status == 'ditolak')
+                            <span class="status-badge badge-reject">Ditolak</span>
+
+                            @elseif(optional($row->scheduling)->tgl_pembayaran == \Carbon\Carbon::today()->toDateString())
+                            <span class="status-badge badge-approved">Disetujui</span>
+
+                            @else
+                            <span class="status-badge badge-diajukan">Dijadwalkan</span>
                             @endif
                         </td>
 
@@ -222,36 +218,49 @@
 
                         <td>
                             <div class="d-flex flex-column">
-                                @if($row->status == 'dijadwalkan')
-                                <button class="btn btn-success action-btn" disabled>
-                                    Dijadwalkan
-                                </button>
-                                <button class="btn btn-secondary action-btn" disabled>
-                                    Edit
-                                </button>
-                                @elseif($row->status == 'ditolak')
+
+                                {{-- Jika Ditolak --}}
+                                @if($row->status == 'ditolak')
                                 <button class="btn btn-danger action-btn" disabled>
                                     Ditolak
                                 </button>
-                                <button class="btn btn-secondary action-btn" disabled>
-                                    Edit
-                                </button>
-                                @else
-                                <button class="btn btn-primary action-btn"
+
+                                {{-- Jika Ada Scheduling --}}
+                                @elseif(optional($row->scheduling)->tgl_pembayaran)
+
+                                {{-- Jika Pembayaran Hari Ini --}}
+                                @if(\Carbon\Carbon::parse($row->scheduling->tgl_pembayaran)->isToday())
+
+                                <form id="form-approve-{{ $row->id }}"
+                                    action="{{ route('finance.manager.approve', $row->id) }}"
+                                    method="POST">
+                                    @csrf
+                                    <button type="button"
+                                        class="btn btn-success action-btn btn-approve"
+                                        data-id="{{ $row->id }}">
+                                        Disetujui
+                                    </button>
+                                </form>
+
+                                {{-- BUTTON DITOLAK --}}
+                                <button class="btn btn-danger action-btn"
                                     data-bs-toggle="modal"
-                                    data-bs-target="#modalJadwalkan"
-                                    data-id="{{ $row->id }}"
-                                    data-no="{{ $row->nomor_pengajuan }}"
-                                    data-tgl="{{ $row->tgl_pengajuan->format('d/m/Y') }}"
-                                    data-deskripsi="{{ $row->items->pluck('deskripsi')->implode(', ') }}"
-                                    data-penerima="{{ $row->penerima }}"
-                                    data-total="{{ number_format($row->grand_total,0,',','.') }}">
-                                    Jadwalkan
+                                    data-bs-target="#modalTolak"
+                                    data-id="{{ $row->id }}">
+                                    Ditolak
                                 </button>
-                                <button class="btn btn-warning action-btn">
-                                    Edit
+
+                                @else
+                                <button class="btn btn-primary action-btn" disabled>
+                                    Dijadwalkan
                                 </button>
                                 @endif
+
+                                {{-- Safety fallback --}}
+                                @else
+                                <span class="text-muted small">-</span>
+                                @endif
+
                             </div>
                         </td>
 
@@ -270,35 +279,51 @@
 
 </div>
 
-@include('pages.finance.purchasing.modal-jadwalkan')
+@include('pages.finance.manager.modal-tolak')
 @endsection
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
 
-        const modal = document.getElementById('modalJadwalkan');
+        document.querySelectorAll('.btn-approve').forEach(function(button) {
+
+            button.addEventListener('click', function() {
+
+                let id = this.dataset.id;
+                let form = document.getElementById('form-approve-' + id);
+
+                Swal.fire({
+                    title: 'Apakah anda yakin?',
+                    text: "Pembayaran akan disetujui dan tidak dapat dibatalkan.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#16a34a',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Setujui',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+
+            });
+
+        });
+
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const modal = document.getElementById('modalTolak');
 
         modal.addEventListener('show.bs.modal', function(event) {
 
             const button = event.relatedTarget;
 
-            document.getElementById('modalTextPengajuan').innerText =
-                button.getAttribute('data-no');
-
-            document.getElementById('modalNoPengajuan').value =
-                button.getAttribute('data-no');
-
-            document.getElementById('modalTglPengajuan').innerText =
-                button.getAttribute('data-tgl');
-
-            document.getElementById('modalDeskripsi').innerText =
-                button.getAttribute('data-deskripsi');
-
-            document.getElementById('modalPenerima').innerText =
-                button.getAttribute('data-penerima');
-
-            document.getElementById('modalTotal').innerText =
-                'Rp ' + button.getAttribute('data-total');
+            document.getElementById('modalFormTolak').action =
+                `/finance/manager/${button.getAttribute('data-id')}/tolak`;
 
         });
 
