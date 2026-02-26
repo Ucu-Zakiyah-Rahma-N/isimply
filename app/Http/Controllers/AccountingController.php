@@ -14,31 +14,84 @@ use App\Models\JournalDetail;
 
 class AccountingController extends Controller
 {
-    public function bankCash()
+    public function bankCashIndex()
     {
         $title = "bank cash";
-        // 1. ambil semua akun kas & bank
-        $bankCoaIds = Coa::where('kategori_akun', 'Kas & bank')
-            ->pluck('id');
+        $parents = Coa::where('kategori_akun', 'Kas & Bank')
+            ->where('is_header_akun', 1)
+            ->with(['children' => function ($q) {
+                $q->orderBy('nama_akun');
+            }])
+            ->orderBy('nama_akun')
+            ->get();
 
-        // 2. ambil transaksi jurnal yang pakai akun tsb
-        $details = JournalDetail::with(['journal', 'coa'])
-            ->whereIn('coa_id', $bankCoaIds)
+        // 🔥 HITUNG SALDO REAL
+        foreach ($parents as $parent) {
+            foreach ($parent->children as $child) {
+
+                $debit = JournalDetail::where('coa_id', $child->id)->sum('debit');
+                $credit = JournalDetail::where('coa_id', $child->id)->sum('credit');
+
+                $saldoAwal = $child->saldo_awal ?? 0;
+
+                $child->saldo = $saldoAwal + $debit - $credit;
+            }
+        }
+
+        return view('pages.finance.bank_cash_index', compact('parents', 'title'));
+    }
+
+    public function bankCashLedger($coaId)
+    {
+
+        $title = "bank cash";
+        $coa = Coa::findOrFail($coaId);
+
+        $details = JournalDetail::with('journal')
+            ->where('coa_id', $coaId)
             ->join('journals', 'journals.id', '=', 'journal_details.journal_id')
-            ->orderBy('journals.tanggal', 'desc')
+            ->orderBy('journals.tanggal')
+            ->orderBy('journal_details.id')
             ->select('journal_details.*')
             ->get();
 
-        // 3. running balance GLOBAL (optional)
         $saldo = 0;
+
         foreach ($details as $d) {
             $saldo += $d->debit;
             $saldo -= $d->credit;
             $d->saldo = $saldo;
         }
 
-        return view('pages.finance.bank_cash', compact('details', 'title'));
+        return view('pages.finance.bank_cash', compact('coa', 'details', 'title'));
     }
+    // public function bankCash()
+    // {
+    //     $title = "bank cash";
+    //     // 1. ambil semua akun kas & bank
+    //     $bankCoaIds = Coa::where('kategori_akun', 'Kas & bank')
+    //         ->pluck('id');
+
+    //     // 2. ambil transaksi jurnal yang pakai akun tsb
+    //     $details = JournalDetail::with(['journal', 'coa'])
+    //         ->whereIn('coa_id', $bankCoaIds)
+    //         ->join('journals', 'journals.id', '=', 'journal_details.journal_id')
+    //         ->orderBy('journals.tanggal', 'desc')
+    //         ->select('journal_details.*')
+    //         ->get();
+
+    //     // 3. running balance GLOBAL (optional)
+    //     $saldo = 0;
+    //     foreach ($details as $d) {
+    //         $saldo += $d->debit;
+    //         $saldo -= $d->credit;
+    //         $d->saldo = $saldo;
+    //     }
+
+    //     return view('pages.finance.bank_cash', compact('details', 'title'));
+    // }
+
+
     // public function bankCash($coaId)
     // {
     //     $coa = Coa::findOrFail($coaId);

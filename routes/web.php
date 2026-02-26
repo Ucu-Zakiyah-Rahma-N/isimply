@@ -191,11 +191,15 @@ Route::middleware('auth')->group(function () {
             '/scheduling/store',
             [PurchasingController::class, 'storeScheduling']
         )->name('scheduling.store');
-        // index (ALL)
-        Route::get('/bank-cash', [AccountingController::class, 'bankCash'])->name('bank_cash');
+        // // index (ALL)
+        // Route::get('/bank-cash', [AccountingController::class, 'bankCash'])->name('bank_cash');
+
+        Route::get('/bank-cash', [AccountingController::class, 'bankCashIndex'])->name('bank_cash.index');
 
         // ledger per akun
-        // Route::get('/bank-cash/{coaId}', [AccountingController::class, 'bankCash'])->name('bank_cash.ledger');
+        Route::get('/bank-cash/{coaId}', [AccountingController::class, 'bankCashLedger'])
+            ->name('bank_cash.ledger');
+        // Route::get(uri: '/bank-cash/{coaId}', [AccountingController::class, 'bankCash'])->name('bank_cash.ledger');
     });
 
 

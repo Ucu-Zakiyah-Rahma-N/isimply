@@ -56,7 +56,7 @@
                             <label class="form-label fw-semibold">Saldo Awal</label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="number" name="saldo" class="form-control text-end" step="0.01"
+                                <input type="number" name="saldo_awal" class="form-control text-end" step="0.01"
                                     value="0">
                             </div>
                         </div>

@@ -354,7 +354,7 @@
                 </a>
             </li>
             <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.bank_cash') }}" aria-expanded="false">
+                <a class="sidebar-link" href="{{ route('finance.bank_cash.index') }}" aria-expanded="false">
                     <span><i class=""></i></span>
                     <span class="hide-menu">Bank Cash</span>
                 </a>

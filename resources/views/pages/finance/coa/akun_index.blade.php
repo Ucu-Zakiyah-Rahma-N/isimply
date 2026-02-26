@@ -57,7 +57,7 @@
                             {{ $child->nilai_coa ?? '-' }}
                         </td>
                         <td class="text-end">
-                            {{ number_format($child->saldo ?? 0, 2, ',', '.') }}
+                            {{ number_format($child->saldo_awal ?? 0, 2, ',', '.') }}
                         </td>
                     </tr>
                     @endforeach

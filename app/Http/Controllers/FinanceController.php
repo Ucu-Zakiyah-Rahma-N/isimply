@@ -1022,7 +1022,7 @@ class FinanceController extends Controller
             'kode_akun'     => 'required|string|max:20|unique:coa,kode_akun',
             'nama_akun'     => 'required|string|max:50',
             'kategori_akun' => 'required|in:Kas & Bank,Akun Piutang,Persediaan,Aktiva Lancar Lainnya,Aktiva Tetap,Depresiasi & Amortisasi,Akun Hutang,Kewajiban Lancar Lainnya,Ekuitas,Pendapatan,Harga Pokok Penjualan,Beban,Pendapatan Lainnya,Beban Lainnya',
-            'saldo'         => 'nullable|numeric|min:0',
+            'saldo_awal'         => 'nullable|numeric|min:0',
             'is_header_akun'  => 'nullable|boolean',
             'is_sub_account'  => 'nullable|boolean',
             'parent_akun_id'  => 'nullable|exists:coa,id'
@@ -1033,7 +1033,7 @@ class FinanceController extends Controller
             'nama_akun'     => $validated['nama_akun'],
             'nilai_coa'     => $validated['nilai_coa'] ?? 0,
             'kategori_akun' => $validated['kategori_akun'],
-            'saldo'         => $validated['saldo'] ?? 0,
+            'saldo_awal'         => $validated['saldo_awal'] ?? 0,
             'is_header_akun' => $request->has('is_header_akun'),
             'is_sub_account' => $request->has('is_sub_account'),
             'parent_akun_id' => $validated['parent_akun_id'] ?? null,

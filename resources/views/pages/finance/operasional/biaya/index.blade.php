@@ -83,18 +83,32 @@
                         <td>{{ $row->tgl_pengajuan->format('d/m/Y') }}</td>
                         <td>{{ optional($row->kontak)->nama ?? '-' }}</td>
                         <td>
-                            <span class="badge bg-info text-dark">
+                            <span class="badge bg-info">
                                 {{ ucfirst($row->metode_pembayaran) }}
                             </span>
                         </td>
                         <td class="text-end fw-bold">
                             Rp {{ number_format($row->grand_total, 0, ',', '.') }}
                         </td>
+                        @php
+                        $statusClass = [
+                        'proses di purchasing' => 'bg-primary',
+                        'dijadwalkan' => 'bg-warning',
+                        'disetujui' => 'bg-success',
+                        'ditolak' => 'bg-danger'
+                        ];
+                        @endphp
+
+                        <td>
+                            <span class="badge {{ $statusClass[$row->status] ?? 'bg-secondary' }}">
+                                {{ $row->status ?? 'proses di purcashasing' }}
+                            </span>
+                        </td>
                         <td>
                             @if($row->is_urgent)
-                            <span class="badge bg-danger">URGENT</span>
+                            <span class="badge text-danger fw-bold">Urgent</span>
                             @else
-                            <span class="badge bg-secondary">Normal</span>
+                            <span class="badge text-secondary">Normal</span>
                             @endif
                         </td>
                         <td>
