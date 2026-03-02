@@ -342,133 +342,211 @@
 
             @if (in_array(auth()->user()->role, ['manager finance', 'admin finance']))
 
-            <li class="nav-small-cap">
-                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                <span class="hide-menu">Accounting</span>
-            </li>
             <li class="sidebar-item">
-                <a class="sidebar-link" href="#" aria-expanded="false">
-                    <span><i class=""></i></span>
-                    <span class="hide-menu">Saldo</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.bank_cash.index') }}" aria-expanded="false">
-                    <span><i class=""></i></span>
-                    <span class="hide-menu">Bank Cash</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="#" aria-expanded="false">
-                    <span><i class=""></i></span>
-                    <span class="hide-menu">Laporan Arus Kas</span>
+                <a class="sidebar-link has-arrow"
+                    data-bs-toggle="collapse"
+                    href="#accountingMenu"
+                    role="button"
+                    aria-expanded="false">
+                    <span><i class="ti ti-book-2"></i></span>
+                    <span class="hide-menu">Accounting</span>
                 </a>
 
-            <li class="nav-small-cap">
-                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                <span class="hide-menu">Finance</span>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ url('finance') }}" aria-expanded="false">
-                    <span><i class="bi bi-search"></i></span>
-                    <span class="hide-menu">Data BAST</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.invoice_index') }}" aria-expanded="false">
-                    <span><i class=""></i></span>
-                    <span class="hide-menu">Data sudah Invoice</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="#" aria-expanded="false">
-                    <span><i class=""></i></span>
-                    <span class="hide-menu">Data Piutang</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="#" aria-expanded="false">
-                    <span><i class=""></i></span>
-                    <span class="hide-menu">Data Outstanding</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="#" aria-expanded="false">
-                    <span><i class=""></i></span>
-                    <span class="hide-menu">Data Penerimaan Bulan Ini</span>
-                </a>
-            </li>
+                <ul class="collapse list-unstyled ps-3" id="accountingMenu">
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="#">
+                            <span class="hide-menu">Saldo</span>
+                        </a>
+                    </li>
 
-            <li class="nav-small-cap">
-                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                <span class="hide-menu">Operasional</span>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.bank_cash.index') }}">
+                            <span class="hide-menu">Bank Cash</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="#">
+                            <span class="hide-menu">Laporan Arus Kas</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
 
             <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.biaya_index') }}" aria-expanded="false">
-                    <span><i class="bi bi-cash-stack"></i></span>
-                    <span class="hide-menu">Biaya & Pengadaan</span>
+                <a class="sidebar-link has-arrow"
+                    data-bs-toggle="collapse"
+                    href="#financeMenu"
+                    role="button"
+                    aria-expanded="false">
+                    <span><i class="ti ti-wallet"></i></span>
+                    <span class="hide-menu">Finance</span>
                 </a>
+
+                <ul class="collapse list-unstyled ps-3"
+                    id="financeMenu"
+                    data-bs-parent="#sidebarnav">
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ url('finance') }}">
+                            <span><i class="bi bi-search"></i></span>
+                            <span class="hide-menu">Data BAST</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.invoice_index') }}">
+                            <span class="hide-menu">Data sudah Invoice</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="#">
+                            <span class="hide-menu">Data Piutang</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="#">
+                            <span class="hide-menu">Data Outstanding</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="#">
+                            <span class="hide-menu">Data Penerimaan Bulan Ini</span>
+                        </a>
+                    </li>
+
+                </ul>
             </li>
 
             <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.pembelian_index') }}" aria-expanded="false">
-                    <span><i class="bi bi-bag"></i></span>
-                    <span class="hide-menu">Pembelian</span>
+                <a class="sidebar-link has-arrow"
+                    data-bs-toggle="collapse"
+                    href="#operasionalMenu"
+                    role="button"
+                    aria-expanded="false">
+                    <span><i class="ti ti-settings"></i></span>
+                    <span class="hide-menu">Operasional</span>
                 </a>
+
+                <ul class="collapse list-unstyled ps-3"
+                    id="operasionalMenu"
+                    data-bs-parent="#sidebarnav">
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.biaya_index') }}">
+                            <span><i class="bi bi-cash-stack"></i></span>
+                            <span class="hide-menu">Biaya & Pengadaan</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.pembelian_index') }}">
+                            <span><i class="bi bi-bag"></i></span>
+                            <span class="hide-menu">Pembelian</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="#">
+                            <span><i class="bi bi-briefcase"></i></span>
+                            <span class="hide-menu">Pihak Ketiga</span>
+                        </a>
+                    </li>
+
+                </ul>
             </li>
 
             <li class="sidebar-item">
-                <a class="sidebar-link" href="#" aria-expanded="false">
-                    <span><i class="bi bi-bag"></i></span>
-                    <span class="hide-menu">Pihak Ketiga</span>
-                </a>
-            </li>
-
-            <li class="nav-small-cap">
-                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                <span class="hide-menu">Purchasing</span>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.purchasing_index') }}" aria-expanded="false">
-                    <span><i class=""></i></span>
+                <a class="sidebar-link has-arrow"
+                    data-bs-toggle="collapse"
+                    href="#purchasingMenu"
+                    role="button"
+                    aria-expanded="false">
+                    <span><i class="ti ti-shopping-cart"></i></span>
                     <span class="hide-menu">Purchasing</span>
                 </a>
+
+                <ul class="collapse list-unstyled ps-3"
+                    id="purchasingMenu"
+                    data-bs-parent="#sidebarnav">
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.purchasing_index') }}">
+                            <span class="hide-menu">Purchasing</span>
+                        </a>
+                    </li>
+
+                </ul>
             </li>
 
-            <li class="nav-small-cap">
-                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                <span class="hide-menu">Manager</span>
-            </li>
             <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.manager_index') }}" aria-expanded="false">
-                    <span><i class=""></i></span>
+                <a class="sidebar-link has-arrow"
+                    data-bs-toggle="collapse"
+                    href="#managerMenu"
+                    role="button"
+                    aria-expanded="false">
+                    <span><i class="ti ti-user"></i></span>
                     <span class="hide-menu">Manager</span>
                 </a>
-            </li>
 
-            <li class="nav-small-cap">
-                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                <span class="hide-menu">AKUN</span>
-            </li>
+                <ul class="collapse list-unstyled ps-3"
+                    id="managerMenu"
+                    data-bs-parent="#sidebarnav">
 
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.manager_index') }}">
+                            <span class="hide-menu">Manager</span>
+                        </a>
+                    </li>
+
+                </ul>
+            </li>
             <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.akun_index') }}" aria-expanded="false">
+                <a class="sidebar-link has-arrow"
+                    data-bs-toggle="collapse"
+                    href="#akunMenu"
+                    role="button"
+                    aria-expanded="false">
                     <span><i class="bi bi-credit-card"></i></span>
                     <span class="hide-menu">Akun</span>
                 </a>
-            </li>
 
-            <li class="nav-small-cap">
-                <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-                <span class="hide-menu">Supplier</span>
-            </li>
+                <ul class="collapse list-unstyled ps-3"
+                    id="akunMenu"
+                    data-bs-parent="#sidebarnav">
 
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.akun_index') }}">
+                            <span class="hide-menu">Data Akun</span>
+                        </a>
+                    </li>
+
+                </ul>
+            </li>
             <li class="sidebar-item">
-                <a class="sidebar-link" href="{{ route('finance.kontak_index') }}" aria-expanded="false">
+                <a class="sidebar-link has-arrow"
+                    data-bs-toggle="collapse"
+                    href="#supplierMenu"
+                    role="button"
+                    aria-expanded="false">
                     <span><i class="bi bi-briefcase"></i></span>
-                    <span class="hide-menu">Kontak</span>
+                    <span class="hide-menu">Supplier</span>
                 </a>
+
+                <ul class="collapse list-unstyled ps-3"
+                    id="supplierMenu"
+                    data-bs-parent="#sidebarnav">
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.kontak_index') }}">
+                            <span class="hide-menu">Kontak</span>
+                        </a>
+                    </li>
+
+                </ul>
             </li>
             @endif
 

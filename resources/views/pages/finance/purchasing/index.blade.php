@@ -115,9 +115,11 @@
     {{-- NAVBAR FILTER ROW --}}
     <div class="px-4">
         <ul class="nav custom-tabs">
+
+            {{-- WAITING --}}
             <li class="nav-item">
-                <a class="nav-link {{ $tab == 'proses di purchasing' ? 'active' : '' }}"
-                    href="{{ route('finance.purchasing_index', ['tab' => 'proses di purchasing']) }}">
+                <a class="nav-link {{ $tab == 'waiting' ? 'active' : '' }}"
+                    href="{{ route('finance.purchasing_index', ['tab' => 'waiting']) }}">
                     Waiting List
                     @if($countWaiting > 0)
                     <span class="badge bg-danger ms-1">{{ $countWaiting }}</span>
@@ -125,6 +127,7 @@
                 </a>
             </li>
 
+            {{-- HARI INI --}}
             <li class="nav-item">
                 <a class="nav-link {{ $tab == 'today' ? 'active' : '' }}"
                     href="{{ route('finance.purchasing_index', ['tab' => 'today']) }}">
@@ -135,6 +138,7 @@
                 </a>
             </li>
 
+            {{-- RENCANA PEMBAYARAN --}}
             <li class="nav-item">
                 <a class="nav-link {{ $tab == 'dijadwalkan' ? 'active' : '' }}"
                     href="{{ route('finance.purchasing_index', ['tab' => 'dijadwalkan']) }}">
@@ -145,6 +149,29 @@
                 </a>
             </li>
 
+            {{-- PENDING --}}
+            <li class="nav-item">
+                <a class="nav-link {{ $tab == 'pending' ? 'active' : '' }}"
+                    href="{{ route('finance.purchasing_index', ['tab' => 'pending']) }}">
+                    Pending
+                    @if($countPending > 0)
+                    <span class="badge bg-warning text-dark ms-1">{{ $countPending }}</span>
+                    @endif
+                </a>
+            </li>
+
+            {{-- DISETUJUI --}}
+            <li class="nav-item">
+                <a class="nav-link {{ $tab == 'disetujui' ? 'active' : '' }}"
+                    href="{{ route('finance.purchasing_index', ['tab' => 'disetujui']) }}">
+                    Disetujui
+                    @if($countApproved > 0)
+                    <span class="badge bg-success ms-1">{{ $countApproved }}</span>
+                    @endif
+                </a>
+            </li>
+
+            {{-- REJECT --}}
             <li class="nav-item">
                 <a class="nav-link {{ $tab == 'ditolak' ? 'active' : '' }}"
                     href="{{ route('finance.purchasing_index', ['tab' => 'ditolak']) }}">
@@ -154,6 +181,7 @@
                     @endif
                 </a>
             </li>
+
         </ul>
     </div>
 
@@ -182,7 +210,9 @@
                         <td>{{ $i + 1 }}</td>
 
                         <td>
-                            {{ $row->tgl_bayar ? \Carbon\Carbon::parse($row->tgl_bayar)->format('d-m-Y') : '-' }}
+                            {{ optional($row->scheduling)->tgl_pembayaran 
+                            ? \Carbon\Carbon::parse($row->scheduling->tgl_pembayaran)->format('d-m-Y') 
+                            : '-' }}
                         </td>
 
                         <td>{{ $row->kategori ?? '-' }}</td>
@@ -207,12 +237,20 @@
                         <td>{{ $row->penerima ?? '-' }}</td>
 
                         <td>
-                            @if($row->status == 'proses di purchasing')
-                            <span class="status-badge badge-diajukan">Proses</span>
-                            @elseif($row->status == 'diajukan')
-                            <span class="status-badge badge-approved">Di ajukan</span>
+                            @if($row->approved_at)
+                            <span class="status-badge badge-approved">Disetujui</span>
+
                             @elseif($row->status == 'ditolak')
-                            <span class="status-badge badge-reject">Di tolak</span>
+                            <span class="status-badge badge-reject">Ditolak</span>
+
+                            @elseif($row->scheduling && \Carbon\Carbon::parse($row->scheduling->tgl_pembayaran)->lt(\Carbon\Carbon::today()))
+                            <span class="status-badge badge-warning">Pending</span>
+
+                            @elseif($row->scheduling)
+                            <span class="status-badge badge-success">Dijadwalkan</span>
+
+                            @else
+                            <span class="status-badge badge-diajukan">Menunggu Jadwal</span>
                             @endif
                         </td>
 
@@ -222,36 +260,43 @@
 
                         <td>
                             <div class="d-flex flex-column">
-                                @if($row->status == 'dijadwalkan')
+
+                                @if($row->approved_at)
+                                <button class="btn btn-success action-btn" disabled>
+                                    Disetujui
+                                </button>
+
+                                @elseif($row->status == 'ditolak')
+                                <button class="btn btn-danger action-btn" disabled>
+                                    Ditolak
+                                </button>
+
+                                @elseif($row->scheduling)
                                 <button class="btn btn-success action-btn" disabled>
                                     Dijadwalkan
                                 </button>
                                 <button class="btn btn-secondary action-btn" disabled>
                                     Edit
                                 </button>
-                                @elseif($row->status == 'ditolak')
-                                <button class="btn btn-danger action-btn" disabled>
-                                    Ditolak
-                                </button>
-                                <button class="btn btn-secondary action-btn" disabled>
-                                    Edit
-                                </button>
+
                                 @else
                                 <button class="btn btn-primary action-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#modalJadwalkan"
                                     data-id="{{ $row->id }}"
                                     data-no="{{ $row->nomor_pengajuan }}"
-                                    data-tgl="{{ $row->tgl_pengajuan->format('d/m/Y') }}"
+                                    data-tgl="{{ \Carbon\Carbon::parse($row->tgl_pengajuan)->format('d/m/Y') }}"
                                     data-deskripsi="{{ $row->items->pluck('deskripsi')->implode(', ') }}"
                                     data-penerima="{{ $row->penerima }}"
                                     data-total="{{ number_format($row->grand_total,0,',','.') }}">
                                     Jadwalkan
                                 </button>
+
                                 <button class="btn btn-warning action-btn">
                                     Edit
                                 </button>
                                 @endif
+
                             </div>
                         </td>
 
