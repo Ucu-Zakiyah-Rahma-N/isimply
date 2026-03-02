@@ -154,7 +154,15 @@
                             </td>
                             <td>{{ $inv->keterangan ?? '-' }}</td>
                             <td class="text-end fw-bold">
-                                Rp {{ number_format($inv->nominal_invoice, 0, ',', '.') }}
+                                @php
+                                $totalFinal = $inv->total_after_diskon_inv > 0
+                                ? $inv->total_after_diskon_inv
+                                : $inv->nominal_invoice;
+                                @endphp
+
+                                Rp {{ number_format($totalFinal, 0, ',', '.') }}
+
+                                <!-- Rp {{ number_format($inv->nominal_invoice, 0, ',', '.') }} ini kalo tanpa kondisi total after diskon --> 
                             </td>
 
                             <td class="text-end fw-bold">

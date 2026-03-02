@@ -151,7 +151,7 @@
                 </div> 
                 <div class="col-md-3">
                     <label class="form-label">Nominal diterima</label>
-                    <input type="text" name="nominal" id="nominal_diterima" class="form-control">
+                    <input type="text" name="nominal" id="nominal_diterima" class="form-control" readonly>
                 </div>
             </div>
 
@@ -169,7 +169,40 @@
     </div>
 </div>
 
+
 <script>
+function hitungPph() {
+
+    let rate = parseFloat(document.getElementById('pph_rate').value) || 0;
+
+    let grandTotal = {{ $invoice->grand_total }};
+    let nominalInvoice = {{ $invoice->nominal_invoice }};
+    let totalAfterDiskonInv = {{ $invoice->total_after_diskon_inv ?? 0 }};
+
+    // Tentukan DPP yang benar
+    let dpp = totalAfterDiskonInv > 0 ? totalAfterDiskonInv : nominalInvoice;
+
+    let nilaiPph = 0;
+    let diterima = grandTotal;
+
+    // Kalau pakai PPh
+    if (rate > 0) {
+        nilaiPph = dpp * rate / 100;
+        diterima = grandTotal - nilaiPph;
+    }
+
+    document.getElementById('nilai_pph').value = nilaiPph.toFixed(2);
+    document.getElementById('nominal_diterima').value = diterima.toFixed(2);
+}
+
+// Trigger saat dropdown berubah
+document.getElementById('pph_rate').addEventListener('change', hitungPph);
+
+// Hitung saat pertama load
+window.addEventListener('load', hitungPph);
+</script>
+
+<!-- <script>
 document.getElementById('pph_rate').addEventListener('change', function () {
     let rate = parseFloat(this.value);
     let grandTotal = {{ $invoice->grand_total }};
@@ -190,5 +223,5 @@ document.getElementById('pph_rate').addEventListener('change', function () {
     document.getElementById('nilai_pph').value = nilaiPph.toFixed(2); // kirim angka mentah
     document.getElementById('nominal_diterima').value = diterima.toFixed(2);
 });
-</script>
+</script> -->
 @endsection

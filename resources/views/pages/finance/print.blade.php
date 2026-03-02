@@ -385,7 +385,7 @@
                     <div style="height:80px;"></div>
 
                     <p style="margin:0; text-decoration:underline;">
-                        Alex
+                        Melasari Nugraha
                     </p>
                     <p style="margin:0;">Staff Accounting</p>
                 </div>

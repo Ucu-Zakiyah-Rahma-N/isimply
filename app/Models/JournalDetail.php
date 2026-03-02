@@ -9,7 +9,8 @@ class JournalDetail extends Model
 {
     protected $table = 'journal_details';
     protected $guarded = ['id'];
-
+    public $timestamps = true;
+    
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'id');
