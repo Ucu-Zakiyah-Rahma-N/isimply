@@ -401,13 +401,13 @@
                     </li>
 
                     <li class="sidebar-item">
-                        <a class="sidebar-link" href="#">
+                        <a class="sidebar-link" href="{{ route('finance.invoice.laporan_piutang') }}">
                             <span class="hide-menu">Data Piutang</span>
                         </a>
                     </li>
 
                     <li class="sidebar-item">
-                        <a class="sidebar-link" href="#">
+                        <a class="sidebar-link" href="{{ route('finance.invoice.laporan_outstanding') }}">
                             <span class="hide-menu">Data Outstanding</span>
                         </a>
                     </li>

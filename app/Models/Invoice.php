@@ -10,7 +10,7 @@ class Invoice extends Model
     protected $table = 'invoice';
     protected $guarded = ['id'];
 
-        public function customer()
+    public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'id');
     }
@@ -23,8 +23,8 @@ class Invoice extends Model
     {
         return $this->belongsTo(Po::class, 'po_id');
     }
-    
-        public function produk()
+
+    public function produk()
     {
         return $this->hasMany(ProdukInvoice::class, 'invoice_id');
     }
@@ -34,7 +34,7 @@ class Invoice extends Model
         return $this->hasMany(TaxInvoice::class, 'invoice_id');
     }
 
-        
+
     public function provinsi()
     {
         return $this->belongsTo(Wilayah::class, 'provinsi_id', 'kode')->where('jenis', 'provinsi');
@@ -52,7 +52,12 @@ class Invoice extends Model
     }
 
     public function payments()
-{
-    return $this->hasMany(InvoicePayment::class);
-}
+    {
+        return $this->hasMany(InvoicePayment::class);
+    }
+    public function journal()
+    {
+        return $this->hasOne(Journal::class);
+    }
+    
 }

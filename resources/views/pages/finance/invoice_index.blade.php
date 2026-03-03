@@ -76,7 +76,6 @@
                             <h6 class="text-muted mb-1">Penagihan telat dibayar</h6>
                             <h4 class="fw-bold mb-0">{{ $rekap['on_progress'] ?? 0 }}</h4>
                         </div>
-                        t
                     </div>
                 </div>
             </a>
@@ -112,6 +111,7 @@
                             <th>Nominal Pembayaran</th>
                             <th>Tgl Pembayaran</th>
                             <th>Bulan</th>
+                            <th>Status Payment</th>
                             <th>Status</th>
                             <th>File Invoice</th>
                             <th>File Faktur</th>
@@ -162,7 +162,7 @@
 
                                 Rp {{ number_format($totalFinal, 0, ',', '.') }}
 
-                                <!-- Rp {{ number_format($inv->nominal_invoice, 0, ',', '.') }} ini kalo tanpa kondisi total after diskon --> 
+                                <!-- Rp {{ number_format($inv->nominal_invoice, 0, ',', '.') }} ini kalo tanpa kondisi total after diskon -->
                             </td>
 
                             <td class="text-end fw-bold">
@@ -175,7 +175,7 @@
                                 Rp {{ number_format($inv->grand_total, 0, ',', '.') ?? '-' }}
                             </td>
                             <td>
-                                {{ $inv->nilai_Pph > 0 ? 'Rp ' . number_format($inv->nilai_Pph,0,',','.') : '-' }}
+                                {{ $inv->nilai_pph > 0 ? 'Rp ' . number_format($inv->nilai_pph,0,',','.') : '-' }}
                             </td>
 
                             <td>
@@ -203,31 +203,72 @@
                                 @endif
                             </td>
                             <td>
-                                <button type="button" class="btn btn-sm btn-primary"
-                                    data-bs-toggle="modal" data-bs-target="#uploadInvoiceModal{{ $inv->id }}">
-                                    Upload
-                                </button>
+                                @if($inv->status === 'posted')
+                                <span class="badge bg-primary">Posted</span>
 
-                                @if($inv->file_invoice)
-                                <button class="btn btn-sm btn-danger"
-                                    onclick="openPdf('{{ route('files.view', $inv->file_invoice) }}')">
-                                    <i class="bi bi-file-earmark-pdf"></i> Lihat
-                                </button>
+                                @elseif($inv->status === 'paid')
+                                <span class="badge bg-success">Paid</span>
+
+                                @elseif($inv->status === 'void')
+                                <span class="badge bg-danger">Void</span>
                                 @endif
                             </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center align-items-center gap-1">
 
-                            <td>
-                                <button type="button" class="btn btn-sm btn-primary"
-                                    data-bs-toggle="modal" data-bs-target="#uploadFakturModal{{ $inv->id }}">
-                                    Upload
-                                </button>
+                                    @if(!$inv->file_invoice)
+                                    <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#uploadInvoiceModal{{ $inv->id }}"
+                                        title="Upload">
+                                        <i class="bi bi-upload"></i>
+                                    </button>
+                                    @else
+                                    <button class="btn btn-sm btn-danger"
+                                        onclick="openPdf('{{ route('files.view', $inv->file_invoice) }}')"
+                                        title="Lihat">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </button>
 
-                                @if($inv->file_faktur)
-                                <button class="btn btn-sm btn-danger"
-                                    onclick="openPdf('{{ route('files.view', $inv->file_faktur) }}')">
-                                    <i class="bi bi-file-earmark-pdf"></i> Lihat
-                                </button>
-                                @endif
+                                    <button type="button"
+                                        class="btn btn-sm btn-warning"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#uploadInvoiceModal{{ $inv->id }}"
+                                        title="Edit / Ganti File">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    @endif
+                                </div>
+                            </td>
+
+
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                    @if(!$inv->file_faktur)
+                                    <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#uploadFakturModal{{ $inv->id }}"
+                                        title="Upload">
+                                        <i class="bi bi-upload"></i>
+                                    </button>
+                                    @else
+                                    <button class="btn btn-sm btn-danger"
+                                        onclick="openPdf('{{ route('files.view', $inv->file_faktur) }}')"
+                                        title="Lihat">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </button>
+
+                                    <button type="button"
+                                        class="btn btn-sm btn-warning"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#uploadFakturModal{{ $inv->id }}"
+                                        title="Edit / Ganti File">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    @endif
+                                </div>
                             </td>
 
                             <!-- Modal Invoice -->
@@ -274,24 +315,21 @@
                                 </div>
                             </div>
                             <td class="text-center">
-                                <a href="{{ route('finance.invoice.invoice_print', $inv->id) }}"
-                                    class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-printer"></i>
-                                </a>
-                                {{-- <button type="button" class="btn btn-sm btn-outline-primary"
-                                            onclick="printInvoice({{ $inv->id }})">
-                                <i class="bi bi-printer"></i>
-                                </button> --}}
-                                {{-- <iframe id="print-frame" style="display:none;"></iframe> --}}
-                                <form action="{{ route('finance.invoice.invoice_destroy', $inv->id) }}"
-                                    method="POST" class="d-inline"
-                                    onsubmit="return confirm('Yakin ingin menghapus invoice ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                    <a href="{{ route('finance.invoice.invoice_print', $inv->id) }}"
+                                        class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-printer"></i>
+                                    </a>
+                                    <form action="{{ route('finance.invoice.invoice_destroy', $inv->id) }}"
+                                        method="POST"
+                                        class="form-delete">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                             {{-- <td>{{ $inv->tgl_inv }}</td>
                             <td>{{ $inv->tgl_jatuh_tempo }}</td>
@@ -366,5 +404,32 @@
         var modal = new bootstrap.Modal(document.getElementById('pdfViewerModal'));
         modal.show();
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        document.querySelectorAll('.btn-delete').forEach(function(button) {
+            button.addEventListener('click', function() {
+
+                let form = this.closest('form');
+
+                Swal.fire({
+                    title: 'Yakin ingin menghapus?',
+                    text: "Data invoice tidak bisa dikembalikan!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+
+            });
+        });
+
+    });
 </script>
 @endsection

@@ -592,8 +592,8 @@ class FinanceController extends Controller
         foreach ($invoice as $inv) {
             $inv->total_hitung = TotalInvoiceHelper::calculateTotal($inv);
 
-            $inv->nilai_Pph = $inv->payments->isNotEmpty()
-                ? $inv->payments->last()->nilai_Pph
+            $inv->nilai_pph = $inv->payments->isNotEmpty()
+                ? $inv->payments->last()->nilai_pph
                 : 0;
 
             $inv->nominal = $inv->payments->isNotEmpty()
@@ -985,20 +985,120 @@ class FinanceController extends Controller
         return $pdf->stream('invoice.pdf');
     }
 
+
     public function destroy($id)
     {
-        DB::transaction(function () use ($id) {
-            $invoice = Invoice::findOrFail($id);
+        $invoice = Invoice::with(['payments', 'journal.details'])->findOrFail($id);
 
-            $invoice->produk()->delete();
-            $invoice->pajak()->delete();
-            $invoice->delete();
+        DB::transaction(function () use ($invoice) {
+
+            // ===============================
+            // 1️⃣ DRAFT → DELETE FISIK
+            // ===============================
+            if ($invoice->status === 'draft') {
+
+                $invoice->produk()->delete();
+                $invoice->pajak()->delete();
+                $invoice->delete();
+
+                return;
+            }
+
+            // ===============================
+            // 2️⃣ SUDAH ADA PAYMENT → REFUND
+            // ===============================
+            if ($invoice->payments()->exists()) {
+
+                foreach ($invoice->payments as $payment) {
+
+                    $journal = Journal::where('ref_type', 'invoice_payment')
+                        ->where('ref_id', $payment->id)
+                        ->first();
+
+                    if ($journal) {
+
+                        $reversalJournal = Journal::create([
+                            'tanggal'     => now(),
+                            'no_jurnal'   => Journal::generateNo(),
+                            'keterangan'  => 'Refund Invoice ' . $invoice->no_invoice,
+                            'ref_type'    => 'invoice_refund',
+                            'ref_id'      => $payment->id,
+                            'reversal_of' => $journal->id
+                        ]);
+
+                        foreach ($journal->journaldetails as $detail) {
+                            JournalDetail::create([
+                                'journal_id' => $reversalJournal->id,
+                                'coa_id'     => $detail->coa_id,
+                                'debit'      => $detail->credit,
+                                'credit'     => $detail->debit,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // ===============================
+            // 3️⃣ POSTED → VOID + REVERSAL
+            // ===============================
+            if ($invoice->status === 'posted' || $invoice->status === 'paid') {
+
+                $originalJournal = $invoice->journal;
+
+                if ($originalJournal) {
+
+                    $reversalJournal = Journal::create([
+                        'invoice_id'  => $invoice->id,
+                        'tanggal'     => now(),
+                        'no_jurnal'   => Journal::generateNo(),
+                        'status'      => 'posted',
+                        'reversal_of' => $originalJournal->id,
+                        'keterangan'  => 'Void Invoice ' . $invoice->no_invoice
+                    ]);
+
+                    foreach ($originalJournal->details as $detail) {
+                        JournalDetail::create([
+                            'journal_id' => $reversalJournal->id,
+                            'coa_id'     => $detail->coa_id,
+                            'debit'      => $detail->credit,
+                            'credit'     => $detail->debit,
+                        ]);
+                    }
+                }
+
+                $invoice->update([
+                    'status' => 'void',
+                    'void_at' => now(),
+                    'void_reason' => 'PO Cancelled'
+                ]);
+            }
         });
 
-        return redirect()
-            ->route('finance.invoice_index')
-            ->with('success', 'Invoice berhasil dihapus');
+        return back()->with('success', 'Invoice berhasil diproses sesuai kondisi.');
     }
+
+    // public function destroy($id)
+    // {
+    //     DB::transaction(function () use ($id) {
+    //         $invoice = Invoice::findOrFail($id);
+
+    //         // Cek apakah sudah ada pembayaran
+    //         if ($invoice->payments()->exists()) {
+    //             return redirect()
+    //                 ->route('finance.invoice_index')
+    //                 ->with('error', 'Invoice sudah memiliki pembayaran dan tidak dapat dihapus.');
+    //         }
+
+
+    //         $invoice->produk()->delete();
+    //         $invoice->pajak()->delete();
+    //         $invoice->delete();
+    //     });
+
+    //     return redirect()
+    //         ->route('finance.invoice_index')
+    //         ->with('success', 'Invoice berhasil dihapus');
+    // }
 
     public function akun_index()
     {
@@ -1164,6 +1264,15 @@ class FinanceController extends Controller
             foreach ($details as $detail) {
                 JournalDetail::create($detail);
             }
+
+            //update status invoice
+            $totalPaid = $invoice->payments()->sum('nominal') + $nominalMasuk;
+
+            if ($totalPaid >= $grandTotal) {
+                $invoice->update(['status' => 'paid']);
+            } else {
+                $invoice->update(['status' => 'posted']);
+            }
         });
         return redirect()
             ->route('finance.invoice_index')
@@ -1236,5 +1345,103 @@ class FinanceController extends Controller
         ]);
 
         return back()->with('success', 'File Faktur Pajak berhasil diupload');
+    }
+
+    //untuk outstanding
+    // Pastikan laporan outstanding hanya ambil invoice aktif:
+    // Invoice::where('status', 'posted')
+    //     ->whereColumn('total', '>', 'paid_amount')
+    //     ->get();
+    //     Jangan ambil status void.
+
+
+    public function laporanPiutang()
+    {
+        $title = 'Laporan Piutang';
+
+        $data = Invoice::with(['payments', 'customer', 'produk', 'po'])
+            ->whereIn('status', ['posted', 'paid'])
+            ->get();
+
+        // Hitung total piutang (hanya yang belum lunas)
+        $totalPiutang = $data->where('status', 'posted')->sum(function ($row) {
+
+            $nominalSpk = $row->total_after_diskon_inv > 0
+                ? $row->total_after_diskon_inv
+                : $row->nominal_invoice;
+
+            return $nominalSpk + ($row->ppn ?? 0);
+        });
+
+        return view('pages.finance.laporan_piutang', compact('data', 'totalPiutang', 'title'));
+    }
+
+    public function laporanOutstanding()
+    {
+        $title = 'Laporan Outstanding';
+
+        $pos = Po::with([
+            'customer',
+            'invoices.produk.perizinan',
+            'invoices.payments'
+        ])
+            ->where('bast_verified', 1)
+            ->get();
+
+        foreach ($pos as $po) {
+
+            $totalInvoice = 0;
+            $totalBayar = 0;
+            $sisaInvoice = 0;
+
+            foreach ($po->invoices as $inv) {
+
+                $grandTotal = $inv->grand_total;
+
+                $dibayar = $inv->payments->sum('nominal')
+                    + $inv->payments->sum('nilai_pph');
+
+                $sisa = $grandTotal - $dibayar;
+
+                $totalInvoice += $grandTotal;
+                $totalBayar   += $dibayar;
+
+                if ($sisa > 0) {
+                    $sisaInvoice += $sisa;
+                }
+            }
+
+            $sisaBelumInvoice = $po->nominal_po - $totalInvoice;
+
+            if ($sisaBelumInvoice < 0) {
+                $sisaBelumInvoice = 0;
+            }
+
+            // ==============================
+            // TAMBAHAN UNTUK BLADE
+            // ==============================
+
+            // Ambil semua tanggal invoice
+            $po->tgl_invoice_list = $po->invoices->pluck('tgl_inv');
+
+            // Gabungkan semua produk dari semua invoice
+            $po->all_produk = $po->invoices->flatMap->produk;
+
+            // Summary angka
+            $po->sudah_invoice      = $totalInvoice;
+            $po->sudah_dibayar      = $totalBayar;
+            $po->sisa_invoice       = $sisaInvoice;
+            $po->sisa_belum_invoice = $sisaBelumInvoice;
+            $po->outstanding        = $sisaInvoice + $sisaBelumInvoice;
+        }
+
+        $data = $pos->where('outstanding', '>', 0);
+
+        $totalOutstanding = $data->sum('outstanding');
+
+        return view(
+            'pages.finance.laporan_outstanding',
+            compact('data', 'totalOutstanding', 'title')
+        );
     }
 }

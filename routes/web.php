@@ -168,7 +168,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/payment/store', action: [FinanceController::class, 'storePembayaran'])->name('invoice.storePembayaran');
         Route::post('/invoice/{id}/upload-invoice', [FinanceController::class, 'uploadInvoice'])->name('invoice.uploadInvoice');
         Route::post('/invoice/{id}/upload-faktur', [FinanceController::class, 'uploadFaktur'])->name('invoice.uploadFaktur');
-
+        Route::get('/finance/laporan-piutang',[FinanceController::class, 'laporanPiutang'])->name('invoice.laporan_piutang');
+        Route::get('/finance/laporan-outstanding',[FinanceController::class, 'laporanOutstanding'])->name('invoice.laporan_outstanding');
         // Operasional (Biaya)
         Route::get('/biaya', [OperasionalController::class, 'biayaIndex'])->name('biaya_index');
         Route::post('/kontak/store', [OperasionalController::class, 'store'])->name('kontak.store');
