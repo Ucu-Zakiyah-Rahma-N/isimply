@@ -37,6 +37,11 @@ class PengajuanBiaya extends Model
         'tgl_pengajuan' => 'date'
     ];
 
+    public function kontak()
+    {
+        return $this->belongsTo(Kontak::class, 'kontak_id');
+    }
+
     public function items()
     {
         return $this->hasMany(PengajuanBiayaItem::class);

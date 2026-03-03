@@ -150,133 +150,108 @@
 @vite (['resources/js/operasional/pengajuan.js'])
 
 <script>
-    window.pajakList = @json($pajakList ?? []);
-    $(document).on('click', '.btnDetailPengajuan', function() {
+    function rupiah(value) {
+        return new Intl.NumberFormat('id-ID').format(value || 0);
+    }
 
-        const id = $(this).data('id');
+    document.addEventListener('click', function(e) {
 
-        $.ajax({
-            url: `/finance/pengajuan-biaya/detail/${id}`,
-            type: 'GET',
-            success: function(response) {
+        const btn = e.target.closest('.btnDetailPengajuan');
+        if (!btn) return;
 
-                if (!response || response.status !== 'success') {
-                    console.error('Response invalid:', response);
+        e.preventDefault();
+        const id = btn.dataset.id;
+
+        const modal = new bootstrap.Modal(
+            document.getElementById('modalDetailPengajuan')
+        );
+
+        // reset item
+        document.getElementById('detailItemContainer').innerHTML =
+            `<div class="text-center text-muted">Memuat data...</div>`;
+
+        fetch(`/finance/pengajuan-biaya/detail/${id}`)
+            .then(res => res.json())
+            .then(res => {
+
+                if (res.status !== 'success') {
+                    alert(res.message || 'Gagal mengambil data');
                     return;
                 }
 
-                const header = response.data?.header || {};
-                const items = response.data?.items || [];
+                const {
+                    header,
+                    items
+                } = res.data;
 
-                const modal = $('#modalDetailPengajuan');
+                // kirim nomor pengajuan ke button edit
+                const btnEdit = document.getElementById('btnEditPengajuan');
+                btnEdit.dataset.nomor = header.nomor_pengajuan;
 
-                /* ================= HEADER ================= */
+                /* ========== HEADER ========== */
+                document.getElementById('d_nomor').value = header.nomor_pengajuan;
+                document.getElementById('d_tanggal').value = header.tgl_pengajuan;
+                document.getElementById('d_metode').value = header.metode_pembayaran;
+                document.getElementById('d_kontak').value = header.kontak_nama;
 
-                modal.find('[name="jenis_pengajuan"]').val(header.jenis_pengajuan ?? '');
-                modal.find('[name="metode_pembayaran"]').val(header.metode_pembayaran ?? '');
-                modal.find('[name="tanggal_pengajuan"]').val(header.tgl_pengajuan ?? '');
-                modal.find('[name="project_id"]').val(header.project_id ?? '').trigger('change');
-                modal.find('#jenis_project').val(header.jenis_project ?? '');
+                document.getElementById('d_subtotal').textContent = rupiah(header.subtotal);
+                document.getElementById('d_diskon').textContent = rupiah(header.total_diskon);
+                document.getElementById('d_ppn').textContent = rupiah(header.total_ppn);
+                document.getElementById('d_total').textContent = rupiah(header.grand_total);
+                document.getElementById('d_grand_total').textContent =
+                    'Rp ' + rupiah(header.grand_total);
 
-                modal.find('[name="is_urgent"]').prop('checked', !!header.is_urgent);
+                // urgent badge
+                document.getElementById('d_urgent')
+                    .classList.toggle('d-none', !header.is_urgent);
 
-                // Set kontak (Select2)
-                const kontakSelect = modal.find('#kontakSelect');
-                kontakSelect.empty(); // hindari duplicate
-                if (header.kontak_id && header.kontak_nama) {
-                    const option = new Option(
-                        header.kontak_nama,
-                        header.kontak_id,
-                        true,
-                        true
-                    );
-                    kontakSelect.append(option).trigger('change');
+                // lampiran
+                if (header.lampiran) {
+                    document.getElementById('lampiranWrapper').style.display = 'block';
+                    document.getElementById('d_lampiran').href = header.lampiran;
+                } else {
+                    document.getElementById('lampiranWrapper').style.display = 'none';
                 }
 
-                /* ================= ITEMS ================= */
-
-                const container = modal.find('#itemContainer');
-                container.empty();
-
-                // pastikan pajakList ada
-                const pajakData = (typeof pajakList !== 'undefined' && Array.isArray(pajakList)) ?
-                    pajakList : [];
+                /* ========== ITEMS ========== */
+                let html = '';
 
                 items.forEach(item => {
-
-                    const row = `
-                    <div class="row g-2 align-items-center mb-2 item-row">
-                        <div class="col-md-3">
-                            <input type="text" class="form-control" name="deskripsi[]" value="${item.deskripsi ?? ''}">
+                    html += `
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-md-3">
+                                <input class="form-control" value="${item.deskripsi}" readonly>
+                            </div>
+                            <div class="col-md-1">
+                                <input class="form-control" value="${item.qty}" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" value="${rupiah(item.harga)}" readonly>
+                            </div>
+                           <div class="col-md-2">
+                                <input class="form-control text-end"
+                                    value="${item.diskon ?? 0} %"
+                                    readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" value="${item.pajak_nama ?? '-'}" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control text-end" value="${rupiah(item.jumlah)}" readonly>
+                            </div>
                         </div>
-                        <div class="col-md-1">
-                            <input type="number" class="form-control qty" name="qty[]" value="${item.qty ?? 0}">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="number" class="form-control harga" name="harga[]" value="${item.harga ?? 0}">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="number" class="form-control diskon" name="diskon[]" value="${item.diskon ?? 0}">
-                        </div>
-                        <div class="col-md-2">
-                            <select class="form-select pajak" name="pajak_id[]">
-                                <option value="0">Non Pajak</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2 d-flex gap-2">
-                            <input type="text" class="form-control jumlah text-end" value="${item.jumlah ?? 0}" readonly>
-                            <button type="button" class="btn btn-outline-danger btnRemove">−</button>
-                        </div>
-                    </div>
-                `;
-
-                    container.append(row);
-
-                    const lastRow = container.find('.item-row').last();
-                    const pajakSelect = lastRow.find('.pajak');
-
-                    // isi ulang pajak dengan aman
-                    pajakData.forEach(pajak => {
-                        const opt = new Option(
-                            `${pajak.nama_akun} (${pajak.nilai_coa}%)`,
-                            pajak.id,
-                            false,
-                            pajak.id == item.pajak_id
-                        );
-                        pajakSelect.append(opt);
-                    });
+                    `;
                 });
 
-                /* ================= TOTAL ================= */
+                document.getElementById('detailItemContainer').innerHTML =
+                    html || `<div class="text-center text-muted">Tidak ada item</div>`;
 
-                modal.find('#subtotal').text(
-                    Number(header.subtotal ?? 0).toLocaleString('id-ID')
-                );
-
-                modal.find('#totalDiskon').text(
-                    Number(header.total_diskon ?? 0).toLocaleString('id-ID')
-                );
-
-                modal.find('#summaryTotal').text(
-                    Number(header.grand_total ?? 0).toLocaleString('id-ID')
-                );
-
-                modal.find('#grandTotal').text(
-                    'Rp ' + Number(header.grand_total ?? 0).toLocaleString('id-ID')
-                );
-
-                /* ================= SHOW MODAL ================= */
-
-                const bsModal = new bootstrap.Modal(
-                    document.getElementById('modalDetailPengajuan')
-                );
-                bsModal.show();
-            },
-            error: function(xhr) {
-                console.error('AJAX Error:', xhr.responseText);
-            }
-        });
-
+                modal.show();
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Terjadi kesalahan');
+            });
     });
 </script>
 

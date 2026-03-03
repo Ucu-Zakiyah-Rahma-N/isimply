@@ -184,6 +184,83 @@ class OperasionalController extends Controller
     {
         try {
 
+            $pengajuan = PengajuanBiaya::with([
+                'kontak:id,nama',
+                'items.coa:id,nama_akun,nilai_coa,kategori_pajak'
+            ])->findOrFail($id);
+
+            /** ================= HEADER ================= */
+            $header = [
+                'id'                => $pengajuan->id,
+                'nomor_pengajuan'   => $pengajuan->nomor_pengajuan,
+                'jenis_pengajuan'   => $pengajuan->jenis_pengajuan,
+                'tgl_pengajuan'     => $pengajuan->tgl_pengajuan,
+                'metode_pembayaran' => $pengajuan->metode_pembayaran,
+                'project_id'        => $pengajuan->project_id,
+                'jenis_project'     => $pengajuan->jenis_project,
+                'kontak_id'         => $pengajuan->kontak_id,
+                'kontak_nama'       => optional($pengajuan->kontak)->nama,
+                'is_urgent'         => (bool) $pengajuan->is_urgent,
+                'subtotal'          => $pengajuan->subtotal,
+                'total_diskon'      => $pengajuan->total_diskon,
+                'total_ppn'         => $pengajuan->total_ppn,
+                'grand_total'       => $pengajuan->grand_total,
+                'lampiran'          => $pengajuan->lampiran
+                    ? asset('storage/' . $pengajuan->lampiran)
+                    : null,
+                'status'            => $pengajuan->status,
+            ];
+
+            /** ================= ITEMS ================= */
+            $items = $pengajuan->items->map(function ($item) {
+
+                return [
+                    'item_id'        => $item->id,
+                    'deskripsi'      => $item->deskripsi,
+                    'qty'            => $item->qty,
+                    'harga'          => $item->harga,
+                    'diskon'         => $item->diskon,
+                    'pajak_id'       => $item->pajak_id,
+                    'pajak_nama'     => optional($item->coa)->nama_akun,
+                    'pajak_persen'   => optional($item->coa)->nilai_coa ?? 0,
+                    'kategori_pajak' => optional($item->coa)->kategori_pajak,
+                    'nilai_pajak'    => $item->nilai_pajak,
+                    'jumlah'         => $item->jumlah,
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'header' => $header,
+                    'items'  => $items
+                ]
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Data tidak ditemukan'
+            ], 404);
+        } catch (\Throwable $e) {
+
+            Log::error('SHOW PENGAJUAN BIAYA ERROR', [
+                'error' => $e->getMessage(),
+                'line'  => $e->getLine(),
+                'file'  => $e->getFile()
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Terjadi kesalahan saat mengambil data'
+            ], 500);
+        }
+    }
+
+    public function show_pengajuan_biaya1($id)
+    {
+        try {
+
             $rows = DB::table('pengajuan_biaya as pb')
                 ->leftJoin('kontak as p', 'p.id', '=', 'pb.kontak_id')
                 ->leftJoin('pengajuan_biaya_items as item', 'item.pengajuan_biaya_id', '=', 'pb.id')

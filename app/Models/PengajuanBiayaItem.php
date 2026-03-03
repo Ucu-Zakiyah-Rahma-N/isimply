@@ -26,4 +26,9 @@ class PengajuanBiayaItem extends Model
     {
         return $this->belongsTo(PengajuanBiaya::class);
     }
+
+    public function coa()
+    {
+        return $this->belongsTo(Coa::class, 'pajak_id');
+    }
 }
