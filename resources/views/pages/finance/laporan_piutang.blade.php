@@ -36,7 +36,7 @@
                             <th>PPN</th>
                             <th>PPh</th>
                             <th>Total Tagihan</th>
-                            <th>Status</th>
+                            <!-- <th>Status</th> -->
                         </tr>
                     </thead>
                     @php
@@ -88,7 +88,7 @@
                                 {{ $ppn > 0 ? 'Rp ' . number_format($ppn, 0, ',', '.') : '-' }}
                             </td>
 
-                            <td>
+                            <td>    
                                 {{ $row->nilai_pph > 0 ? 'Rp ' . number_format($row->nilai_pph,0,',','.') : '-' }}
                             </td>
 
@@ -96,13 +96,13 @@
                                 Rp {{ number_format($totalTagihan, 0, ',', '.') }}
                             </td>
 
-                            <td>
+                            <!-- <td>
                                 @if($row->status === 'paid')
                                 <span class="badge bg-success">Paid</span>
                                 @elseif($row->status === 'posted')
                                 <span class="badge bg-warning text-dark">Belum Lunas</span>
                                 @endif
-                            </td>
+                            </td> -->
                         </tr>
 
                         @empty

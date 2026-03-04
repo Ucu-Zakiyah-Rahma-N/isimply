@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class Quotation extends Model
 {
     use HasFactory;
-    
+
     protected $table = 'quotations'; // pastikan nama tabel benar
     protected $guarded = ['id'];
-
+    protected $casts = [
+        'termin_persentase' => 'array',
+    ];
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'id');
@@ -35,8 +37,8 @@ class Quotation extends Model
     public function perizinan()
     {
         return $this->belongsToMany(Perizinan::class, 'quotation_perizinan', 'quotation_id', 'perizinan_id')
-                    ->withPivot('harga_satuan', 'qty', 'satuan_id')
-                    ->withTimestamps();
+            ->withPivot('harga_satuan', 'qty', 'satuan_id')
+            ->withTimestamps();
     }
 
     public function parent()
@@ -63,7 +65,7 @@ class Quotation extends Model
     {
         return $this->hasOne(PO::class);
     }
-    
+
     public function marketing()
     {
         return $this->belongsTo(Marketing::class, 'marketing_id');
@@ -130,20 +132,20 @@ class Quotation extends Model
             return $qty * $harga;
         });
     }
-    
+
     public function getTotalDiskonAttribute()
     {
         if ($this->diskon_tipe === 'nominal') {
             return $this->diskon_nilai;
         }
-    
+
         if ($this->diskon_tipe === 'persen') {
             return ($this->total_harga * $this->diskon_nilai) / 100;
         }
-    
+
         return 0;
     }
-    
+
     public function getGrandTotalAttribute()
     {
         return max(0, $this->total_harga - $this->total_diskon);
@@ -205,11 +207,10 @@ class Quotation extends Model
             ];
         })->toArray();
     }
-    
+
     // public function customer() { return $this->belongsTo(Customer::class, 'customer_id'); }
     // public function perizinan() { return $this->belongsToMany(Perizinan::class, 'quotation_perizinan', 'quotation_id', 'perizinan_id')->withPivot('harga_satuan'); }
     // public function kabupaten() { return $this->belongsTo(Kabupaten::class, 'kabupaten_id'); }
     // public function provinsi() { return $this->belongsTo(Provinsi::class, 'provinsi_id'); }
 
 }
-
