@@ -140,7 +140,7 @@
 </div>
 @include('pages.finance.operasional.biaya.modal-tambah-biaya')
 @include('pages.finance.operasional.biaya.modal-tambah-penerima')
-@include('pages.finance.operasional.biaya.modal-detail-biaya')
+
 <script>
     window.appRoutes = {
         storeKontak: "{{ route('finance.kontak.store') }}",
@@ -150,7 +150,7 @@
 @vite (['resources/js/operasional/pengajuan.js'])
 
 <script>
-    window.pajakList = @json($pajakList ?? []);
+    // window.pajakList = @json($pajakList ?? []);
     $(document).on('click', '.btnDetailPengajuan', function() {
 
         const id = $(this).data('id');
@@ -175,6 +175,7 @@
                 modal.find('[name="jenis_pengajuan"]').val(header.jenis_pengajuan ?? '');
                 modal.find('[name="metode_pembayaran"]').val(header.metode_pembayaran ?? '');
                 modal.find('[name="tanggal_pengajuan"]').val(header.tgl_pengajuan ?? '');
+                modal.find('[name="kontak_id"]').val(header.kontak_id ?? '').trigger('change');
                 modal.find('[name="project_id"]').val(header.project_id ?? '').trigger('change');
                 modal.find('#jenis_project').val(header.jenis_project ?? '');
 

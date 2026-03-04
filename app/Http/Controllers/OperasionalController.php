@@ -194,7 +194,9 @@ class OperasionalController extends Controller
                 'id'                => $pengajuan->id,
                 'nomor_pengajuan'   => $pengajuan->nomor_pengajuan,
                 'jenis_pengajuan'   => $pengajuan->jenis_pengajuan,
-                'tgl_pengajuan'     => $pengajuan->tgl_pengajuan,
+                'tgl_pengajuan' => $pengajuan->tgl_pengajuan
+                    ? $pengajuan->tgl_pengajuan->format('Y-m-d')
+                    : null,
                 'metode_pembayaran' => $pengajuan->metode_pembayaran,
                 'project_id'        => $pengajuan->project_id,
                 'jenis_project'     => $pengajuan->jenis_project,

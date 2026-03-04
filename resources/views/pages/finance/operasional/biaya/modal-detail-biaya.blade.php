@@ -150,8 +150,8 @@
                                     <label class="form-label label-saas">Penerima</label>
 
                                     <div class="select2-group">
-                                        <select id="kontakSelect"
-                                            name="kontak_id">
+                                        <select id="kontakSelectEdit" name="kontak_id" class="input-saas">
+                                            <option value=""></option>
                                         </select>
 
                                         <button type="button"
@@ -181,8 +181,10 @@
 
                                 <div class="col-md-6">
                                     <label class="form-label label-saas">Project</label>
-                                    <select class="input-saas" id="projectSelect" name="project_id"></select>
-                                    <input type="text" name="jenis_project" id="jenis_project">
+                                    <select id="projectSelectEdit" name="project_id" class="input-saas">
+                                        <option value=""></option>
+                                    </select>
+                                    <input type="hidden" name="jenis_project_detail" id="jenis_project_detail">
                                 </div>
 
                             </div>
@@ -239,7 +241,9 @@
                                 <input type="number" class="form-control diskon" name="diskon[]" value="0">
                             </div>
                             <div class="col-md-2">
-                                <select class="form-select pajak" name="pajak_id[]">
+                                <select class="form-select pajak"
+                                    name="pajak_id[]"
+                                    data-selected="{{ $detail->pajak_id ?? 0 }}">
                                     <option value="0">Non Pajak</option>
                                 </select>
                             </div>
@@ -285,8 +289,8 @@
                         </div>
 
                         <div class="text-end mt-3">
-                            <button class="btn btn-success px-5">
-                                Buat
+                            <button class="btn btn-warning px-5">
+                                Edit
                             </button>
                         </div>
 
@@ -296,3 +300,333 @@
             </div>
         </div>
     </div>
+    <script>
+        $(function() {
+
+            const modal = $('#modalDetailPengajuan');
+            const kontakSelect = $('#kontakSelectEdit');
+            const projectSelect = $('#projectSelectEdit');
+
+            let kontakLoaded = false;
+            let projectLoaded = false;
+
+            /* ================= INIT SELECT2 (SEKALI SAJA) ================= */
+            kontakSelect.select2({
+                dropdownParent: modal,
+                placeholder: 'Cari Penerima...',
+                allowClear: true,
+                width: '100%'
+            });
+
+            projectSelect.select2({
+                dropdownParent: modal,
+                placeholder: 'Pilih Project',
+                allowClear: true,
+                width: '100%'
+            });
+
+            /* ================= EVENT PROJECT ================= */
+            projectSelect.on('select2:select', function(e) {
+                const jenis = $(e.params.data.element).data('jenis');
+                $('#jenis_project_detail').val(jenis ?? '');
+            });
+
+            projectSelect.on('select2:clear', function() {
+                $('#jenis_project_detail').val('');
+            });
+
+            /* ================= MODAL OPEN ================= */
+            modal.on('shown.bs.modal', function() {
+
+                if (!kontakLoaded) {
+                    loadKontak();
+                    kontakLoaded = true;
+                }
+
+                if (!projectLoaded) {
+                    loadProject();
+                    projectLoaded = true;
+                }
+            });
+
+            /* ================= LOAD KONTAK ================= */
+            function loadKontak(selectedId = null) {
+
+                fetch("{{ url('/finance/get/kontak') }}", {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+
+                        if (!Array.isArray(data)) return;
+
+                        kontakSelect.append('<option value=""></option>');
+
+                        data.forEach(item => {
+                            kontakSelect.append(
+                                new Option(
+                                    item.nama,
+                                    item.id,
+                                    false,
+                                    selectedId == item.id
+                                )
+                            );
+                        });
+
+                        if (selectedId) {
+                            kontakSelect.val(selectedId).trigger('change');
+                        }
+
+                    })
+                    .catch(err => console.error(err));
+            }
+
+            /* ================= LOAD PROJECT ================= */
+            function loadProject(selectedId = null) {
+
+                fetch("{{ url('/finance/get/project-gabungan') }}", {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+
+                        if (!Array.isArray(data)) return;
+
+                        projectSelect.append('<option value=""></option>');
+
+                        data.forEach(item => {
+
+                            const option = new Option(
+                                item.label,
+                                item.id,
+                                false,
+                                selectedId == item.id
+                            );
+
+                            $(option).attr('data-jenis', item.jenis_project);
+                            projectSelect.append(option);
+                        });
+
+                        if (selectedId) {
+                            projectSelect.val(selectedId).trigger('change');
+
+                            const selectedOption = projectSelect.find('option:selected');
+                            $('#jenis_project_detail')
+                                .val(selectedOption.data('jenis') ?? '');
+                        }
+
+                    })
+                    .catch(err => console.error(err));
+            }
+
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            let pajakList = [];
+
+            /* ================= LOAD PAJAK ================= */
+            fetch("{{ url('/finance/get/coa-pajak') }}", {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Gagal mengambil data pajak');
+                    return res.json();
+                })
+                .then(data => {
+                    pajakList = Array.isArray(data) ? data : [];
+                    document.querySelectorAll('.pajak').forEach(select => {
+                        isiSelectPajak(select);
+                    });
+                })
+                .catch(err => console.error('ERROR LOAD PAJAK:', err));
+
+
+            /* ================= ISI SELECT PAJAK (SUPPORT EDIT) ================= */
+            function isiSelectPajak(select, selectedId = null) {
+
+                if (!select) return;
+
+                const currentValue = selectedId ?? select.dataset.selected ?? 0;
+
+                select.innerHTML = `<option value="0">Non Pajak</option>`;
+
+                pajakList.forEach(pajak => {
+                    const opt = document.createElement('option');
+                    opt.value = pajak.id;
+                    opt.textContent = `${pajak.nama_akun} (${pajak.nilai_coa}%)`;
+
+                    opt.dataset.nilai = pajak.nilai_coa ?? 0;
+                    opt.dataset.kategori = (pajak.kategori_pajak ?? '').toUpperCase();
+
+                    if (parseInt(pajak.id) === parseInt(currentValue)) {
+                        opt.selected = true;
+                    }
+
+                    select.appendChild(opt);
+                });
+
+                select.value = currentValue;
+            }
+
+
+            /* ================= HITUNG SEMUA ================= */
+            function hitungSemua() {
+
+                let subtotal = 0;
+                let totalDiskon = 0;
+                let pajakSummary = {};
+                let totalPajakSemua = 0;
+
+                document.querySelectorAll('.item-row').forEach(row => {
+
+                    const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
+                    const harga = parseFloat(row.querySelector('.harga')?.value) || 0;
+                    const diskon = parseFloat(row.querySelector('.diskon')?.value) || 0;
+
+                    const pajakSelect = row.querySelector('.pajak');
+                    const selectedOption = pajakSelect?.options[pajakSelect.selectedIndex];
+
+                    const pajakPersen = parseFloat(selectedOption?.dataset.nilai) || 0;
+                    const kategoriPajak = selectedOption?.dataset.kategori || '';
+
+                    const total = qty * harga;
+                    const nilaiDiskon = total * (diskon / 100);
+                    const setelahDiskon = total - nilaiDiskon;
+
+                    let nilaiPajak = setelahDiskon * (pajakPersen / 100);
+
+                    if (kategoriPajak === 'PPH') {
+                        nilaiPajak *= -1;
+                    }
+
+                    const jumlah = setelahDiskon + nilaiPajak;
+
+                    row.querySelector('.jumlah').value =
+                        jumlah.toLocaleString('id-ID');
+
+                    subtotal += total;
+                    totalDiskon += nilaiDiskon;
+
+                    if (kategoriPajak) {
+                        if (!pajakSummary[kategoriPajak]) {
+                            pajakSummary[kategoriPajak] = 0;
+                        }
+                        pajakSummary[kategoriPajak] += nilaiPajak;
+                    }
+
+                    totalPajakSemua += nilaiPajak; // 🔥 FIX penting
+                });
+
+
+                /* ===== Render Pajak Summary ===== */
+                const pajakContainer = document.getElementById('pajakSummary');
+                pajakContainer.innerHTML = '';
+
+                Object.keys(pajakSummary).forEach(kategori => {
+
+                    const nilai = pajakSummary[kategori];
+                    const isMinus = nilai < 0;
+
+                    const div = document.createElement('div');
+                    div.className = 'd-flex justify-content-between';
+
+                    div.innerHTML = `
+                <span>${kategori}</span>
+                <span class="${isMinus ? 'text-danger' : ''}">
+                    Rp ${Math.abs(nilai).toLocaleString('id-ID')}
+                </span>
+            `;
+
+                    pajakContainer.appendChild(div);
+                });
+
+                const grandTotal = subtotal - totalDiskon + totalPajakSemua;
+
+                document.getElementById('subtotal').innerText =
+                    subtotal.toLocaleString('id-ID');
+
+                document.getElementById('totalDiskon').innerText =
+                    totalDiskon.toLocaleString('id-ID');
+
+                document.getElementById('summaryTotal').innerText =
+                    grandTotal.toLocaleString('id-ID');
+
+                document.getElementById('grandTotal').innerText =
+                    'Rp ' + grandTotal.toLocaleString('id-ID');
+            }
+
+
+            /* ================= AUTO HITUNG ================= */
+            document.addEventListener('input', hitungSemua);
+            document.addEventListener('change', hitungSemua);
+
+
+            /* ================= TAMBAH ITEM ================= */
+            document.getElementById('btnTambahItem').addEventListener('click', function() {
+
+                const container = document.getElementById('itemContainer');
+                const template = container.querySelector('.item-row');
+                const row = template.cloneNode(true);
+
+                row.querySelectorAll('input').forEach(i => i.value = '');
+                row.querySelector('.qty').value = 1;
+                row.querySelector('.diskon').value = 0;
+
+                isiSelectPajak(row.querySelector('.pajak'));
+
+                container.appendChild(row);
+                hitungSemua();
+            });
+
+
+            /* ================= HAPUS ITEM ================= */
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('btnRemove')) {
+                    const rows = document.querySelectorAll('.item-row');
+                    if (rows.length > 1) {
+                        e.target.closest('.item-row').remove();
+                        hitungSemua();
+                    }
+                }
+            });
+
+
+            /* ================= LOAD DETAIL MODAL ================= */
+            window.loadDetailModal = function(detailItems) {
+
+                const container = document.getElementById('itemContainer');
+                container.innerHTML = '';
+
+                detailItems.forEach(item => {
+
+                    const template = document.querySelector('.item-row-template');
+                    const row = template.cloneNode(true);
+
+                    row.classList.remove('item-row-template');
+                    row.classList.add('item-row');
+
+                    row.querySelector('.qty').value = item.qty;
+                    row.querySelector('.harga').value = item.harga;
+                    row.querySelector('.diskon').value = item.diskon;
+
+                    const pajakSelect = row.querySelector('.pajak');
+                    isiSelectPajak(pajakSelect, item.pajak_id);
+
+                    container.appendChild(row);
+                });
+
+                hitungSemua(); // 🔥 WAJIB supaya summary muncul
+            };
+
+        });
+    </script>

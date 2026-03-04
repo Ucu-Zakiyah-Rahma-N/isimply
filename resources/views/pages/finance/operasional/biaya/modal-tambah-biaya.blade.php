@@ -186,7 +186,7 @@
                                     <div class="col-md-6">
                                         <label class="form-label label-saas">Project</label>
                                         <select class="input-saas" id="projectSelect" name="project_id"></select>
-                                        <input type="text" name="jenis_project" id="jenis_project">
+                                        <input type="hidden" name="jenis_project" id="jenis_project">
                                     </div>
 
                                 </div>
