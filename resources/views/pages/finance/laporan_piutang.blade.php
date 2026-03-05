@@ -6,14 +6,64 @@
     <h4 class="mb-4">Laporan Piutang</h4>
 
     {{-- Summary --}}
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5>Total Piutang Aktif</h5>
-            <h3 class="text-danger">
-                Rp {{ number_format($totalPiutang, 0, ',', '.') }}
-            </h3>
+<div class="row mb-3">
+
+    {{-- CARD UTAMA --}}
+    <div class="col-md-4">
+        <div class="card shadow-sm h-90">
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between align-items-center toggle-header"
+                     data-bs-toggle="collapse"
+                     data-bs-target="#detailPiutang"
+                     aria-expanded="false">
+
+                    <div>
+                        <h5 class="mb-1">Data Piutang</h5>
+                        <h3 class="text-danger mb-0">
+                            Rp {{ number_format($totalPiutang ?? 0, 0, ',', '.') }}
+                        </h3>
+                    </div>
+
+                    <i class="bi bi-chevron-right fs-3 transition" id="iconPiutang"></i>
+                </div>
+
+            </div>
         </div>
     </div>
+
+    {{-- DETAIL (MUNCUL SEJAJAR DI KANAN) --}}
+    <div class="col-md-8">
+        <div class="collapse" id="detailPiutang">
+            <div class="row">
+
+                <div class="col-md-6">
+                    <div class="card border shadow-sm">
+                        <div class="card-body">
+                            <h6 class="text-muted">Bulan Ini</h6>
+                            <h5 class="fw-bold text-primary">
+                                Rp 0
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card border shadow-sm">
+                        <div class="card-body">
+                            <h6 class="text-muted">30 Hari Mendatang</h6>
+                            <h5 class="fw-bold text-warning">
+                                Rp 0
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
 
     {{-- Table --}}
     <div class="card">
@@ -35,7 +85,7 @@
 
                             <th>PPN</th>
                             <th>PPh</th>
-                            <th>Total Tagihan</th>
+                            <th>Sisa Tagihan</th>
                             <!-- <th>Status</th> -->
                         </tr>
                     </thead>
@@ -140,4 +190,19 @@
     </div>
 
 </div>
+
+
+<script>
+document.getElementById('detailPiutang')
+    .addEventListener('show.bs.collapse', function () {
+        document.getElementById('iconPiutang')
+            .classList.replace('bi-chevron-right', 'bi-chevron-left');
+    });
+
+document.getElementById('detailPiutang')
+    .addEventListener('hide.bs.collapse', function () {
+        document.getElementById('iconPiutang')
+            .classList.replace('bi-chevron-left', 'bi-chevron-right');
+    });
+</script>
 @endsection

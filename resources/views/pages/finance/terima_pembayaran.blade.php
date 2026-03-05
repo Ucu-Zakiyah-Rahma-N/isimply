@@ -49,7 +49,7 @@
                         <h4 class="mb-2">Rp. <span id="grandTotal">{{ number_format($invoice->grand_total ?? 0) }}</span></h4>
 
                         <small>Nominal PO : Rp <span id="nominalPo">{{ number_format($invoice->nominal_po ?? 0) }}</span></small><br>
-                        <small>Nominal Invoice : Rp <span id="nominalInvoice">{{ number_format($invoice->nominal_invoice ?? 0) }}</span></small><br>
+                        <small>Termin : Rp <span id="nominalInvoice">{{ number_format($invoice->nominal_invoice ?? 0) }}</span></small><br>
                         @php
                         $diskon = 0;
 

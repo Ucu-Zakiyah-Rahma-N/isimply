@@ -107,24 +107,19 @@
                             <th>DPP</th>
                             <th>PPN</th>
                             <th>Total Tagihan</th>
+
+                            <th>Rencana Pembayaran</th>
+
                             <th>PPH</th>
                             <th>Nominal Pembayaran</th>
                             <th>Tgl Pembayaran</th>
                             <th>Bulan</th>
+
                             <th>Status Payment</th>
                             <th>Status</th>
                             <th>File Invoice</th>
                             <th>File Faktur</th>
                             <th>Aksi</th>
-
-
-                            {{-- <th>Tgl Invoice</th>
-                                <th>Tgl Jatuh Tempo</th>
-                                <th>Nama Bangunan</th>
-                                <th>Alamat</th>
-                                <th>Status</th>
-                                <th>Sisa Tagihan</th>
-                                <th>Upload Inv</th> --}}
                         </tr>
                     </thead>
                     <tbody>
@@ -174,208 +169,287 @@
                             <td class="text-end fw-bold">
                                 Rp {{ number_format($inv->grand_total, 0, ',', '.') ?? '-' }}
                             </td>
-                            <td>
-                                {{ $inv->nilai_pph > 0 ? 'Rp ' . number_format($inv->nilai_pph,0,',','.') : '-' }}
-                            </td>
 
-                            <td>
-                                {{ $inv->nominal > 0 ? 'Rp ' . number_format($inv->nominal,0,',','.') : '-' }}
+                            {{-- Rencana Pembayaran --}}
+                            <td class="text-center">
+
+                                @php
+                                    $isOverdue = false;
+
+                                    if ($inv->tgl_rencana_pembayaran) {
+
+                                        $rencana = \Carbon\Carbon::parse($inv->tgl_rencana_pembayaran)->startOfDay();
+                                        $today = now()->startOfDay();
+
+                                        // Kalau belum ada pembayaran & sudah lewat
+                                        if ($inv->payments->isEmpty() && $rencana->lt($today)) {
+                                            $isOverdue = true;
+                                        }
+
+                                        // Kalau sudah bayar tapi bayar lebih lambat dari rencana
+                                        if ($inv->payments->isNotEmpty()) {
+                                            $tanggalBayarTerakhir = \Carbon\Carbon::parse($inv->payments->last()->tanggal)->startOfDay();
+
+                                            if ($tanggalBayarTerakhir->gt($rencana)) {
+                                                $isOverdue = true;
+                                            }
+                                        }
+                                    }
+                                @endphp
+
+                                <div class="d-flex justify-content-between align-items-center">
+
+                                    {{-- Tanggal di kiri --}}
+                                    <span
+                                        id="tanggal-text-{{ $inv->id }}"
+                                        class="{{ $isOverdue ? 'text-warning fw-bold' : '' }}">
+                                        @if($inv->tgl_rencana_pembayaran)
+                                        {{ \Carbon\Carbon::parse($inv->tgl_rencana_pembayaran)->format('d-m-Y') }}
+                                        @else
+                                        -
+                                        @endif
+                                    </span>
+
+                                    {{-- Icon --}}
+                                    <i class="bi bi-calendar-event text-primary"
+                                        style="cursor:pointer"
+                                        onclick="openTanggalModal({{ $inv->id }}, '{{ $inv->tgl_rencana_pembayaran ?? '' }}')">
+                                    </i>
+
+                                </div>
+
                             </td>
-                            <td>{{ $inv->payments->isNotEmpty() 
+                            {{-- <td class="text-center">
+
+                                <div class="d-flex justify-content-between align-items-center">
+
+                                    {{-- Tanggal di kiri
+                                    <span id="tanggal-text-{{ $inv->id }}">
+                            @if($inv->tgl_rencana_pembayaran)
+                            {{ \Carbon\Carbon::parse($inv->tgl_rencana_pembayaran)->format('d-m-Y') }}
+                            @else
+                            -
+                            @endif
+                            </span>
+
+                            {{-- Icon di kanan
+                                    <i class="bi bi-calendar-event text-primary"
+                                        style="cursor:pointer"
+                                        onclick="openTanggalModal({{ $inv->id }}, '{{ $inv->tgl_rencana_pembayaran ?? '' }}')">
+                            </i>
+
+            </div>
+
+            </td> --}}
+
+            <td>
+                {{ $inv->nilai_pph > 0 ? 'Rp ' . number_format($inv->nilai_pph,0,',','.') : '-' }}
+            </td>
+            <td>
+                {{ $inv->nominal > 0 ? 'Rp ' . number_format($inv->nominal,0,',','.') : '-' }}
+            </td>
+            {{-- tgl pembayaran --}}
+
+            <td>{{ $inv->payments->isNotEmpty() 
                                     ? $inv->payments->pluck('tanggal')
                                         ->map(fn($t) => \Carbon\Carbon::parse($t)->format('d-m-Y'))
                                         ->implode(', ') 
                                     : '-' 
                                 }}
-                            </td>
-                            <td>
-                                {{ $inv->payments->isNotEmpty() 
+            </td>
+            {{-- bulan pembayaran --}}
+            <td>
+                {{ $inv->payments->isNotEmpty() 
                                     ? \Carbon\Carbon::parse($inv->payments->last()->tanggal)->translatedFormat('F') 
                                     : '-' 
                                 }}
-                            </td>
+            </td>
+            <td>
+                @if($inv->payments->count() > 0)
+                <span class="badge bg-success">Done</span>
+                @else
+                <span class="badge bg-warning text-dark">Menunggu Pembayaran</span>
+                @endif
+            </td>
+            <td>
+                @if($inv->status === 'posted')
+                <span class="badge bg-primary">Posted</span>
 
-                            <td>
-                                @if($inv->payments->count() > 0)
-                                <span class="badge bg-success">Done</span>
-                                @else
-                                <span class="badge bg-warning text-dark">Menunggu Pembayaran</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($inv->status === 'posted')
-                                <span class="badge bg-primary">Posted</span>
+                @elseif($inv->status === 'paid')
+                <span class="badge bg-success">Paid</span>
 
-                                @elseif($inv->status === 'paid')
-                                <span class="badge bg-success">Paid</span>
+                @elseif($inv->status === 'void')
+                <span class="badge bg-danger">Void</span>
+                @endif
+            </td>
+            <td class="text-center">
+                <div class="d-flex justify-content-center align-items-center gap-1">
 
-                                @elseif($inv->status === 'void')
-                                <span class="badge bg-danger">Void</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center align-items-center gap-1">
+                    @if(!$inv->file_invoice)
+                    <button type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#uploadInvoiceModal{{ $inv->id }}"
+                        title="Upload">
+                        <i class="bi bi-upload"></i>
+                    </button>
+                    @else
+                    <button class="btn btn-sm btn-danger"
+                        onclick="openPdf('{{ route('files.view', $inv->file_invoice) }}')"
+                        title="Lihat">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </button>
 
-                                    @if(!$inv->file_invoice)
-                                    <button type="button"
-                                        class="btn btn-sm btn-outline-primary"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#uploadInvoiceModal{{ $inv->id }}"
-                                        title="Upload">
-                                        <i class="bi bi-upload"></i>
-                                    </button>
-                                    @else
-                                    <button class="btn btn-sm btn-danger"
-                                        onclick="openPdf('{{ route('files.view', $inv->file_invoice) }}')"
-                                        title="Lihat">
-                                        <i class="bi bi-file-earmark-pdf"></i>
-                                    </button>
-
-                                    <button type="button"
-                                        class="btn btn-sm btn-warning"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#uploadInvoiceModal{{ $inv->id }}"
-                                        title="Edit / Ganti File">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    @endif
-                                </div>
-                            </td>
+                    <button type="button"
+                        class="btn btn-sm btn-warning"
+                        data-bs-toggle="modal"
+                        data-bs-target="#uploadInvoiceModal{{ $inv->id }}"
+                        title="Edit / Ganti File">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    @endif
+                </div>
+            </td>
 
 
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center align-items-center gap-1">
-                                    @if(!$inv->file_faktur)
-                                    <button type="button"
-                                        class="btn btn-sm btn-outline-primary"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#uploadFakturModal{{ $inv->id }}"
-                                        title="Upload">
-                                        <i class="bi bi-upload"></i>
-                                    </button>
-                                    @else
-                                    <button class="btn btn-sm btn-danger"
-                                        onclick="openPdf('{{ route('files.view', $inv->file_faktur) }}')"
-                                        title="Lihat">
-                                        <i class="bi bi-file-earmark-pdf"></i>
-                                    </button>
+            <td class="text-center">
+                <div class="d-flex justify-content-center align-items-center gap-1">
+                    @if(!$inv->file_faktur)
+                    <button type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#uploadFakturModal{{ $inv->id }}"
+                        title="Upload">
+                        <i class="bi bi-upload"></i>
+                    </button>
+                    @else
+                    <button class="btn btn-sm btn-danger"
+                        onclick="openPdf('{{ route('files.view', $inv->file_faktur) }}')"
+                        title="Lihat">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </button>
 
-                                    <button type="button"
-                                        class="btn btn-sm btn-warning"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#uploadFakturModal{{ $inv->id }}"
-                                        title="Edit / Ganti File">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    @endif
-                                </div>
-                            </td>
+                    <button type="button"
+                        class="btn btn-sm btn-warning"
+                        data-bs-toggle="modal"
+                        data-bs-target="#uploadFakturModal{{ $inv->id }}"
+                        title="Edit / Ganti File">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    @endif
+                </div>
+            </td>
 
-                            <!-- Modal Invoice -->
-                            <div class="modal fade" id="uploadInvoiceModal{{ $inv->id }}" tabindex="-1" aria-labelledby="uploadInvoiceLabel{{ $inv->id }}" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form action="{{ route('finance.invoice.uploadInvoice', $inv->id) }}" method="POST" enctype="multipart/form-data">
-                                            @csrf
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="uploadInvoiceLabel{{ $inv->id }}">Upload Invoice PDF</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <input type="file" name="file_invoice" accept="application/pdf" class="form-control" required>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <button type="submit" class="btn btn-primary">Upload</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Modal Faktur Pajak -->
-                            <div class="modal fade" id="uploadFakturModal{{ $inv->id }}" tabindex="-1" aria-labelledby="uploadFakturLabel{{ $inv->id }}" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form action="{{ route('finance.invoice.uploadFaktur', $inv->id) }}" method="POST" enctype="multipart/form-data">
-                                            @csrf
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="uploadFakturLabel{{ $inv->id }}">Upload Faktur Pajak PDF</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <input type="file" name="file_faktur" accept="application/pdf" class="form-control" required>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <button type="submit" class="btn btn-primary">Upload</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center align-items-center gap-1">
-                                    <a href="{{ route('finance.invoice.invoice_print', $inv->id) }}"
-                                        class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-printer"></i>
-                                    </a>
-                                    <form action="{{ route('finance.invoice.invoice_destroy', $inv->id) }}"
-                                        method="POST"
-                                        class="form-delete">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                            {{-- <td>{{ $inv->tgl_inv }}</td>
-                            <td>{{ $inv->tgl_jatuh_tempo }}</td>
-                            <td>{{ $inv->po->quotation->nama_bangunan ?? '-' }}</td>
-                            <td>
-                                {{ collect([
-                                            $inv->po->quotation->detail_alamat,
-                                            $inv->po->quotation->kawasan_industri->nama_kawasan ?? null,
-                                            isset($inv->po->quotation->kabupaten->nama)
-                                                ? \Illuminate\Support\Str::title(strtolower($inv->po->quotation->kabupaten->nama))
-                                                : null,
-                                            isset($inv->po->quotation->provinsi->nama)
-                                                ? \Illuminate\Support\Str::title(strtolower($inv->po->quotation->provinsi->nama))
-                                                : null,
-                                        ])->filter()->implode(', ') }}
-                            </td> --}}
-                        </tr>
-                        @endforeach
-
-                    </tbody>
-                </table>
-                <div class="modal fade" id="pdfViewerModal" tabindex="-1">
-                    <div class="modal-dialog modal-xl modal-dialog-centered">
-                        <div class="modal-content">
-
+            <!-- Modal Invoice -->
+            <div class="modal fade" id="uploadInvoiceModal{{ $inv->id }}" tabindex="-1" aria-labelledby="uploadInvoiceLabel{{ $inv->id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form action="{{ route('finance.invoice.uploadInvoice', $inv->id) }}" method="POST" enctype="multipart/form-data">
+                            @csrf
                             <div class="modal-header">
-                                <h5 class="modal-title">Preview PDF</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                <h5 class="modal-title" id="uploadInvoiceLabel{{ $inv->id }}">Upload Invoice PDF</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
-
-                            <div class="modal-body p-0">
-                                <iframe id="pdfViewerFrame"
-                                    src=""
-                                    width="100%"
-                                    height="650px"
-                                    style="border:none;">
-                                </iframe>
+                            <div class="modal-body">
+                                <input type="file" name="file_invoice" accept="application/pdf" class="form-control" required>
                             </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Modal Faktur Pajak -->
+            <div class="modal fade" id="uploadFakturModal{{ $inv->id }}" tabindex="-1" aria-labelledby="uploadFakturLabel{{ $inv->id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form action="{{ route('finance.invoice.uploadFaktur', $inv->id) }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="uploadFakturLabel{{ $inv->id }}">Upload Faktur Pajak PDF</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="file" name="file_faktur" accept="application/pdf" class="form-control" required>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <td class="text-center">
+                <div class="d-flex justify-content-center align-items-center gap-1">
+                    <a href="{{ route('finance.invoice.invoice_print', $inv->id) }}"
+                        class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-printer"></i>
+                    </a>
+                    <form action="{{ route('finance.invoice.invoice_destroy', $inv->id) }}"
+                        method="POST"
+                        class="form-delete">
+                        @csrf
+                        @method('DELETE')
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </td>
+            </tr>
+            @endforeach
+
+            </tbody>
+            </table>
+            <div class="modal fade" id="pdfViewerModal" tabindex="-1">
+                <div class="modal-dialog modal-xl modal-dialog-centered">
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title">Preview PDF</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body p-0">
+                            <iframe id="pdfViewerFrame"
+                                src=""
+                                width="100%"
+                                height="650px"
+                                style="border:none;">
+                            </iframe>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            {{--tgl rencana pembayaran --}}
+            <div class="modal fade" id="tanggalModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Tanggal Rencana Pembayaran</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="date" class="form-control" id="tanggalInput">
+                            <input type="hidden" id="invoiceId">
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-primary" onclick="saveTanggal()">
+                                Simpan
+                            </button>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
+</div>
 
 </div>
 
@@ -431,5 +505,75 @@
         });
 
     });
+
+
+    function openTanggalModal(id, tanggal) {
+        document.getElementById('invoiceId').value = id;
+        document.getElementById('tanggalInput').value = tanggal ? tanggal : '';
+        let modal = new bootstrap.Modal(document.getElementById('tanggalModal'));
+        modal.show();
+    }
+
+    function saveTanggal() {
+        let id = document.getElementById('invoiceId').value;
+        let tanggal = document.getElementById('tanggalInput').value;
+
+        fetch("{{ url('finance/invoice/update-tanggal/', '') }}/" + id, {
+                   method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+        },
+        body: JSON.stringify({
+            tgl_rencana_pembayaran: tanggal
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.success) {
+
+            let span = document.getElementById('tanggal-text-' + id);
+
+            // Format ke dd-mm-yyyy
+            let formatted = '-';
+            if (tanggal) {
+                let parts = tanggal.split('-'); // yyyy-mm-dd
+                formatted = parts[2] + '-' + parts[1] + '-' + parts[0];
+            }
+
+            span.innerText = formatted;
+
+            // 🔥 HITUNG OVERDUE DI JS
+            let today = new Date();
+            today.setHours(0,0,0,0);
+
+            let rencanaDate = new Date(tanggal);
+            rencanaDate.setHours(0,0,0,0);
+
+            if (tanggal && rencanaDate < today) {
+                span.classList.add('text-warning','fw-bold');
+            } else {
+                span.classList.remove('text-warning','fw-bold');
+            }
+
+            // Tutup modal
+            let modalEl = document.getElementById('tanggalModal');
+            let modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            // Toast
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Tanggal berhasil disimpan',
+                showConfirmButton: false,
+                timer: 2000
+            });
+
+        }
+    });
+}
 </script>
 @endsection

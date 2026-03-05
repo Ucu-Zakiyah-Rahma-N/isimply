@@ -254,7 +254,7 @@
                         <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
                             <tr>
                                 <td style="border:none;">
-                                    Nominal Invoice ({{ $invoice->persentase_termin }}%)
+                                    Termin ({{ $invoice->persentase_termin }}%)
                                 </td>
                                 <td style="border:none; text-align:right;">
                                     Rp {{ number_format($calc['nominalInvoice'], 0, ',', '.') }}
