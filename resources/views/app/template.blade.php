@@ -20,8 +20,8 @@
       </div>
 
     </div>
-    @include('pages.finance.operasional.biaya.modal-detail-biaya')
   </div>
+  @include('pages.finance.operasional.biaya.modal-detail-biaya')
 
   @include('app.script')
 
