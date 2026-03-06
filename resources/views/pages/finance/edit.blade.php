@@ -236,7 +236,7 @@
 
                         {{-- Nominal Invoice (Persentase Termin) --}}
                         <div class="mb-2 d-flex justify-content-between">
-                            <span>Nominal Invoice ({{ old('persentase_termin', $invoice->persentase_termin) }}%)</span>
+                            <span>Termin ({{ old('persentase_termin', $invoice->persentase_termin) }}%)</span>
                             <strong id="nominalInvoice"> Rp
                                 {{ number_format(old('nominal_invoice', $invoice->nominal_invoice), 0, ',', '.') }}
                             </strong>

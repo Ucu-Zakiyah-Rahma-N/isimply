@@ -202,7 +202,7 @@
                                 </strong>
                             </div> --}}
                             <div class="mb-2 d-flex justify-content-between">
-                                <span>Nominal Invoice ({{ $persentaseTermin }}%)</span>
+                                <span>Termin ({{ $persentaseTermin }}%)</span>
                                 <strong data-role="nominalInvoice">
                                     Rp {{ number_format($nominalInvoice, 0, ',', '.') }}
                                 </strong>

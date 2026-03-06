@@ -182,7 +182,7 @@ class FinanceController extends Controller
         $invoiceTerbuat = $po->invoices->count(); // jumlah invoice yang sudah dibuat           
         $terminKe = $invoiceTerbuat + 1;          // termin berikutnya
         // Ambil schedule termin dari quotation (misal [50,50] atau [30,40,30])
-        $terminSchedule = json_decode($quotation->termin_persentase, true);
+        $terminSchedule = $quotation->termin_persentase;
         $persentaseTermin = $terminSchedule[$invoiceTerbuat]['persen'] ?? 0;
 
         // Hitung nominal invoice
@@ -773,6 +773,10 @@ class FinanceController extends Controller
     public function update(Request $request, $id)
     {
         $invoice = Invoice::findOrFail($id);
+        //perbandingan harga sebelum dan pas edit inv
+        $oldGrandTotal     = $invoice->grand_total;
+        $oldNominalInvoice = $invoice->nominal_invoice;
+        $oldPpn            = $invoice->ppn;
 
         $validated = $request->validate([
             'tgl_inv' => 'required|date',
@@ -867,7 +871,11 @@ class FinanceController extends Controller
                     $grandTotal = $base + $ppn;
                 }
             }
-
+            //pengecekan cek apakah nilai berubah?
+            $financeChanged =
+                $oldGrandTotal != $grandTotal ||
+                $oldNominalInvoice != $nominalInvoice ||
+                $oldPpn != $ppn;
             /* ===============================
            3️⃣ UPDATE HEADER
         =============================== */
@@ -923,6 +931,54 @@ class FinanceController extends Controller
                 }
             }
 
+            /* ===============================
+6️⃣ UPDATE JURNAL
+================================ */
+
+            $coaPiutangId   = 13;
+            $coaPpnId       = 1;
+            $coaPendapatanId = 56;
+
+            $journal = Journal::where('ref_type', 'invoice')
+                ->where('ref_id', $invoice->id)
+                ->first();
+
+            if ($journal) {
+
+                // update header jurnal (tanggal / keterangan saja)
+                $journal->update([
+                    'tanggal'    => $validated['tgl_inv'],
+                    'keterangan' => 'Invoice ' . $invoice->no_invoice,
+                ]);
+
+                // hanya rebuild detail jika nilai finansial berubah
+                if ($financeChanged) {
+
+                    $journal->journaldetails()->delete();
+
+                    $pendapatan = $totalAfterDiskon ?? $nominalInvoice;
+
+                    $journal->journaldetails()->create([
+                        'coa_id' => $coaPiutangId,
+                        'debit'  => $grandTotal,
+                        'credit' => 0,
+                    ]);
+
+                    $journal->journaldetails()->create([
+                        'coa_id' => $coaPendapatanId,
+                        'debit'  => 0,
+                        'credit' => $pendapatan,
+                    ]);
+
+                    if ($ppn > 0) {
+                        $journal->journaldetails()->create([
+                            'coa_id' => $coaPpnId,
+                            'debit'  => 0,
+                            'credit' => $ppn,
+                        ]);
+                    }
+                }
+            }
             DB::commit();
 
             return redirect()
@@ -1279,6 +1335,18 @@ class FinanceController extends Controller
             ->with('success', 'Pembayaran berhasil');
     }
 
+    public function updateTanggal(Request $request, $id)
+    {
+        $invoice = Invoice::findOrFail($id);
+
+        $invoice->update([
+            'tgl_rencana_pembayaran' => $request->tgl_rencana_pembayaran
+        ]);
+
+        return response()->json([
+            'success' => true
+        ]);
+    }
     public function uploadInvoice(Request $request, $id)
     {
         $request->validate([
@@ -1555,7 +1623,8 @@ class FinanceController extends Controller
                 });
             })
             ->filter(fn($total) => $total > 0)
-            ->sortDesc();
+            // ->sortDesc(); berdasarkan nominal dari gede ke kecil
+            ->sortKeysDesc(); //urut dari tahun
 
         return view(
             'pages.finance.laporan_outstanding',
@@ -1566,7 +1635,7 @@ class FinanceController extends Controller
                 'totalNominalTermin',
                 // 'totalOutstanding',
                 'totalOutstandingKeseluruhan',
-                 'outstandingPerTahun',
+                'outstandingPerTahun',
                 'outstandingPerTahun',
                 'tahunSekarang',
                 'tahunDipilih'

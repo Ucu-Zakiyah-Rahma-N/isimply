@@ -132,13 +132,13 @@
 
             {{-- NOMINAL TERMIN --}}
             <div class="d-flex justify-content-between">
-                <span>Nominal Invoice ({{ $invoice->persentase_termin }}%)</span>
+                <span>Termin ({{ $invoice->persentase_termin }}%)</span>
                 <strong>Rp {{ number_format($nominalTermin, 0, ',', '.') }}</strong>
             </div>
             @else
             {{-- TIDAK ADA DISKON PO --}}
             <div class="d-flex justify-content-between">
-                <span>Nominal Invoice ({{ $invoice->persentase_termin }}%)</span>
+                <span>Termin ({{ $invoice->persentase_termin }}%)</span>
                 <strong>Rp {{ number_format($nominalTermin, 0, ',', '.') }}</strong>
             </div>
             @endif
