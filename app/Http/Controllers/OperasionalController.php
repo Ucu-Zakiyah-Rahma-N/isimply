@@ -20,10 +20,11 @@ class OperasionalController extends Controller
         $data = PengajuanBiaya::with(['items'])
             ->orderByDesc('tgl_pengajuan')
             ->get();
+        $pajakList = Coa::whereNotNull('kategori_pajak')->get();
 
         return view(
             'pages.finance.operasional.biaya.index',
-            compact('title', 'data')
+            compact('title', 'data', 'pajakList')
         );
     }
 

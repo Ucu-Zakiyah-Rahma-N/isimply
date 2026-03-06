@@ -115,301 +115,528 @@
     }
 </style>
 
-<!-- MODAL PENGAJUAN BIAYA -->
-<div class="modal fade" id="modalDetailPengajuan">
+<!-- ================= MODAL DETAIL PENGAJUAN ================= -->
+<div class="modal fade" id="modalDetailPengajuan" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content rounded-4 border-0">
 
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Detail Pengajuan Biaya</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
+            <form id="formDetailPengajuan">
 
                 <!-- ================= HEADER ================= -->
-                <div class="row g-4 mb-4 align-items-stretch">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Detail Pengajuan Biaya</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
 
-                    <!-- LEFT SIDE -->
-                    <div class="col-lg-9">
-                        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <!-- ================= BODY ================= -->
+                <div class="modal-body">
 
-                            <div class="row g-4">
+                    <input type="hidden" name="pengajuan_id" id="pengajuan_id">
 
-                                <!-- Jenis Pengajuan -->
-                                <div class="col-md-4">
-                                    <label class="form-label label-saas">Jenis Pengajuan</label>
-                                    <select class="form-select input-saas" name="jenis_pengajuan">
-                                        <option value="biaya">Biaya</option>
-                                        <option value="pengeluaran">Pengeluaran</option>
-                                    </select>
-                                </div>
+                    <!-- ================= HEADER SECTION ================= -->
+                    <div class="row g-4 mb-4">
 
-                                <!-- Penerima -->
-                                <div class="col-md-4">
-                                    <label class="form-label label-saas">Penerima</label>
+                        <!-- LEFT -->
+                        <div class="col-lg-9">
+                            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                                <div class="row g-4">
 
-                                    <div class="select2-group">
-                                        <select id="kontakSelectEdit"
-                                            name="kontak_id">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Jenis Pengajuan</label>
+                                        <select class="form-select" name="jenis_pengajuan" required>
+                                            <option value="biaya">Biaya</option>
+                                            <option value="pengeluaran">Pengeluaran</option>
                                         </select>
+                                    </div>
 
-                                        <button type="button"
-                                            id="btnOpenKontak"
-                                            class="btn btn-saas-add">
-                                            <i class="bi bi-plus"></i>
-                                        </button>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Penerima</label>
+                                        <div class="d-flex">
+                                            <select id="kontakSelectEdit"
+                                                name="kontak_id"
+                                                class="form-select w-100"
+                                                required>
+                                                <option value=""></option>
+                                            </select>
+                                            <button type="button"
+                                                id="btnOpenKontak"
+                                                class="btn btn-light border ms-2 rounded-3">
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Metode Pembayaran</label>
+                                        <select class="form-select"
+                                            name="metode_pembayaran"
+                                            required>
+                                            <option value="cash">Cash</option>
+                                            <option value="transfer">Transfer</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tanggal Pengajuan</label>
+                                        <input type="date"
+                                            class="form-control"
+                                            name="tanggal_pengajuan"
+                                            required>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Project</label>
+                                        <select id="projectSelectEdit"
+                                            name="project_id"
+                                            class="form-select"
+                                            required>
+                                            <option value=""></option>
+                                        </select>
+                                        <input type="hidden"
+                                            name="jenis_project_detail"
+                                            id="jenis_project_detail">
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT TOTAL -->
+                        <div class="col-lg-3">
+                            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 d-flex flex-column justify-content-between">
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-semibold text-danger small">Urgent</span>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input"
+                                            type="checkbox"
+                                            name="is_urgent"
+                                            value="1">
                                     </div>
                                 </div>
 
-                                <!-- Metode Pembayaran -->
-                                <div class="col-md-4">
-                                    <label class="form-label label-saas">Metode Pembayaran</label>
-                                    <select class="form-select input-saas" name="metode_pembayaran">
-                                        <option value="cash">Cash</option>
-                                        <option value="transfer">Transfer</option>
+                                <div class="mt-4">
+                                    <small class="text-muted">Grand Total</small>
+                                    <h2 class="fw-bold mb-0">
+                                        Rp <span id="grandTotal">0</span>
+                                    </h2>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ================= ITEM SECTION ================= -->
+                    <div class="border rounded-4 p-3 mb-4">
+
+                        <div class="row fw-semibold text-muted mb-2">
+                            <div class="col-md-3">Deskripsi</div>
+                            <div class="col-md-1">Qty</div>
+                            <div class="col-md-2">Harga</div>
+                            <div class="col-md-2">Diskon (%)</div>
+                            <div class="col-md-2">Pajak</div>
+                            <div class="col-md-2 text-end">Jumlah</div>
+                        </div>
+
+                        <div id="itemContainer"></div>
+
+                        <!-- TEMPLATE -->
+                        <template id="itemTemplate">
+                            <div class="row g-2 align-items-center mb-2 item-row">
+
+                                <div class="col-md-3">
+                                    <input type="text"
+                                        class="form-control"
+                                        name="deskripsiEdit[]"
+                                        required>
+                                </div>
+
+                                <div class="col-md-1">
+                                    <input type="number"
+                                        class="form-control qtyEdit"
+                                        name="qtyEdit[]"
+                                        value="1"
+                                        min="1"
+                                        step="1"
+                                        required>
+                                </div>
+
+                                <div class="col-md-2">
+                                    <input type="number"
+                                        class="form-control hargaEdit"
+                                        name="hargaEdit[]"
+                                        min="0"
+                                        step="0.01"
+                                        required>
+                                </div>
+
+                                <div class="col-md-2">
+                                    <input type="number"
+                                        class="form-control diskonEdit"
+                                        name="diskonEdit[]"
+                                        value="0"
+                                        min="0"
+                                        max="100"
+                                        step="0.01">
+                                </div>
+
+                                <div class="col-md-2">
+                                    <select class="form-select pajakEdit"
+                                        name="pajak_idEdit[]">
+                                        <option value="0">Non Pajak</option>
                                     </select>
                                 </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label label-saas">Tanggal Pengajuan</label>
-                                    <input type="date"
-                                        class="form-control input-saas"
-                                        name="tanggal_pengajuan"
-                                        value="{{ date('Y-m-d') }}">
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label label-saas">Project</label>
-                                    <select class="input-saas" id="projectSelectEdit" name="project_id"></select>
-                                    <input type="hidden" name="jenis_project_detail" id="jenis_project_detail">
+                                <div class="col-md-2 d-flex gap-2">
+                                    <input type="text"
+                                        class="form-control jumlah text-end"
+                                        readonly>
+                                    <button type="button"
+                                        class="btn btn-outline-danger btnRemove">
+                                        −
+                                    </button>
                                 </div>
 
                             </div>
+                        </template>
 
-                        </div>
+                        <button type="button"
+                            class="btn btn-sm btn-outline-primary mt-2"
+                            id="btnTambahItem">
+                            + Tambah Item
+                        </button>
+
                     </div>
 
-                    <!-- RIGHT SIDE TOTAL -->
-                    <div class="col-lg-3">
-                        <div class="card border-0 shadow-sm rounded-4 p-4 total-card h-100 d-flex flex-column justify-content-between">
+                    <!-- ================= FOOTER TOTAL ================= -->
+                    <div class="row">
 
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="urgent-label">Urgent</span>
-                                <div class="form-check form-switch m-0">
-                                    <input class="form-check-input" type="checkbox" name="is_urgent">
-                                </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Lampiran</label>
+                            <input type="file"
+                                name="lampiran"
+                                class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="d-flex justify-content-between">
+                                <span>Subtotal</span>
+                                <span>Rp <span id="subtotalEdit">0</span></span>
                             </div>
 
-                            <div class="mt-4">
-                                <small class="text-muted">Grand Total</small>
-                                <h2 class="fw-bold total-amount mb-0">
-                                    <span id="grandTotal">0</span>
-                                </h2>
+                            <div class="d-flex justify-content-between">
+                                <span>Diskon</span>
+                                <span class="text-danger">
+                                    Rp <span id="totalDiskonEdit">0</span>
+                                </span>
+                            </div>
+
+                            <div id="pajakSummaryEdit"></div>
+
+                            <hr>
+
+                            <div class="d-flex justify-content-between fw-bold fs-5">
+                                <span>Total</span>
+                                <span>Rp <span id="summaryTotalEdit">0</span></span>
+                            </div>
+
+                            <div class="text-end mt-3">
+                                <button type="submit"
+                                    id="btnSubmitEdit"
+                                    class="btn btn-warning px-4">
+                                    Simpan Perubahan
+                                </button>
                             </div>
 
                         </div>
+
                     </div>
 
                 </div>
-                <!-- ================= ITEM ================= -->
-                <div class="border rounded p-3 mb-4">
 
-                    <div class="row fw-semibold text-muted mb-2">
-                        <div class="col-md-3">Deskripsi</div>
-                        <div class="col-md-1">Qty</div>
-                        <div class="col-md-2">Harga</div>
-                        <div class="col-md-2">Diskon</div>
-                        <div class="col-md-2">Pajak</div>
-                        <div class="col-md-2 text-end">Jumlah</div>
-                    </div>
+            </form>
 
-                    <div id="itemContainer">
-                        <div class="row g-2 align-items-center mb-2 item-row">
-                            <div class="col-md-3">
-                                <input type="text" class="form-control" name="deskripsi[]">
-                            </div>
-                            <div class="col-md-1">
-                                <input type="number" class="form-control qty" name="qty[]" value="1" min="1">
-                            </div>
-                            <div class="col-md-2">
-                                <input type="number" class="form-control harga" name="harga[]" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <input type="number" class="form-control diskon" name="diskon[]" value="0">
-                            </div>
-                            <div class="col-md-2">
-                                <select class="form-select pajak" name="pajak_id[]">
-                                    <option value="0">Non Pajak</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2 d-flex gap-2">
-                                <input type="text" class="form-control jumlah text-end" readonly>
-                                <button type="button" class="btn btn-outline-danger btnRemove">−</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnTambahItem">
-                        + Tambah Item
-                    </button>
-                </div>
-
-                <!-- ================= FOOTER ================= -->
-                <div class="row mt-4">
-
-                    <div class="col-md-6">
-                        <label class="form-label">Lampiran</label>
-                        <input type="file" class="form-control">
-                    </div>
-
-                    <div class="col-md-6">
-
-                        <div class="d-flex justify-content-between">
-                            <span>Subtotal</span>
-                            <span>Rp <span id="subtotal">0</span></span>
-                        </div>
-
-                        <div class="d-flex justify-content-between">
-                            <span>Diskon</span>
-                            <span class="text-danger">Rp <span id="totalDiskon">0</span></span>
-                        </div>
-
-                        <div id="pajakSummary"></div>
-
-                        <hr>
-
-                        <div class="d-flex justify-content-between fw-bold fs-4">
-                            <span>Total</span>
-                            <span>Rp <span id="summaryTotal">0</span></span>
-                        </div>
-
-                        <div class="text-end mt-3">
-                            <button class="btn btn-warning px-5">
-                                Edit
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
         </div>
     </div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadKontak();
-        });
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
 
-        function loadKontak(selectedId = null) {
-            fetch("{{ url('/finance/get/kontak') }}", {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(res => res.json())
-                .then(data => {
+        /* ================= GUARD ================= */
 
-                    const select = document.querySelector("select[name='kontak_id']");
-                    select.innerHTML = `<option value="">Pilih Penerima</option>`;
+        const modalEl = document.getElementById('modalDetailPengajuan');
+        if (!modalEl) return;
 
-                    data.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.id;
-                        option.text = item.nama;
+        const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-                        if (selectedId && selectedId == item.id) {
-                            option.selected = true;
-                        }
+        const form = document.getElementById('formDetailPengajuan');
+        const itemContainer = document.getElementById('itemContainer');
+        const itemTemplate = document.getElementById('itemTemplate');
+        const btnTambah = document.getElementById('btnTambahItem');
 
-                        select.appendChild(option);
-                    });
-
-                })
-                .catch(err => console.error(err));
-        }
-    </script>
-
-    <script>
-        function loadProject(selectedId = null) {
-
-            fetch("{{ url('/finance/get/project-gabungan') }}", {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(res => res.json())
-                .then(data => {
-
-                    const select = $('#projectSelectEdit');
-                    select.empty();
-                    select.append('<option value="">Pilih Project</option>');
-
-                    data.forEach(item => {
-
-                        const option = new Option(
-                            item.label,
-                            item.id,
-                            false,
-                            selectedId === item.id
-                        );
-
-                        $(option).attr('data-jenis', item.jenis_project);
-                        select.append(option);
-                    });
-
-                    // Refresh Select2
-                    select.trigger('change');
-
-                    // Jika ada selectedId (mode edit), langsung set jenis
-                    if (selectedId) {
-                        const selectedOption = select.find('option:selected');
-                        $('#jenis_project').val(selectedOption.data('jenis') ?? '');
-                    }
-                })
-                .catch(err => console.error(err));
+        if (!form || !itemContainer || !itemTemplate || !btnTambah) {
+            console.error('Element modal tidak lengkap.');
+            return;
         }
 
-        $(document).ready(function() {
+        const kontakSelect = $('#kontakSelectEdit');
+        const projectSelect = $('#projectSelectEdit');
 
-            const select = $('#projectSelectEdit');
+        let pajakList = [];
+        let masterLoaded = false;
+        let debounceTimer = null;
 
-            select.select2({
-                dropdownParent: $('#modalDetailPengajuan'),
-                placeholder: 'Pilih Project',
-                allowClear: true,
-                width: '100%'
-            });
+        /* ================= SELECT2 ================= */
 
-            // Event khusus Select2 (lebih stabil daripada change biasa)
-            select.on('select2:select', function(e) {
-                const jenis = $(e.params.data.element).data('jenis');
-                $('#jenis_project_detail').val(jenis ?? '');
-            });
-
-            // Jika di-clear
-            select.on('select2:clear', function() {
-                $('#jenis_project_detail').val('');
-            });
-
-            loadProject(); // load awal
+        kontakSelect.select2({
+            dropdownParent: $('#modalDetailPengajuan'),
+            placeholder: 'Cari Penerima...',
+            allowClear: true,
+            width: '100%'
         });
-    </script>
 
-    <script>
-        $(document).ready(function() {
+        projectSelect.select2({
+            dropdownParent: $('#modalDetailPengajuan'),
+            placeholder: 'Pilih Project',
+            allowClear: true,
+            width: '100%'
+        });
 
-            // Init Select2 kontak
-            $('#kontakSelectEdit').select2({
-                dropdownParent: $('#modalDetailPengajuan'),
-                placeholder: 'Cari Penerima...',
-                allowClear: true,
-                width: '100%'
+        /* ================= UTIL ================= */
+
+        function formatNumber(num) {
+            return Number(num || 0).toLocaleString('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function resetForm() {
+            form.reset();
+            $('#pengajuan_id').val('');
+            kontakSelect.val(null).trigger('change');
+            projectSelect.val(null).trigger('change');
+            itemContainer.innerHTML = '';
+            $('#pajakSummaryEdit').empty();
+            $('#subtotalEdit').text('0');
+            $('#totalDiskonEdit').text('0');
+            $('#summaryTotalEdit').text('0');
+            $('#grandTotal').text('0');
+        }
+
+        function debounceHitung() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(hitungSemua, 100);
+        }
+
+        /* ================= LOAD MASTER ================= */
+
+        async function loadMaster() {
+
+            if (masterLoaded) return;
+
+            const [kontakRes, projectRes, pajakRes] = await Promise.all([
+                fetch("{{ url('/finance/get/kontak') }}"),
+                fetch("{{ url('/finance/get/project-gabungan') }}"),
+                fetch("{{ url('/finance/get/coa-pajak') }}")
+            ]);
+
+            if (!kontakRes.ok || !projectRes.ok || !pajakRes.ok) {
+                throw new Error('Gagal load master data');
+            }
+
+            const kontakData = await kontakRes.json();
+            const projectData = await projectRes.json();
+            pajakList = await pajakRes.json();
+
+            kontakSelect.empty().append('<option value=""></option>');
+            kontakData.forEach(k => {
+                kontakSelect.append(new Option(k.nama, k.id));
             });
 
-            // Load data setelah select2 aktif
-            loadKontak();
+            projectSelect.empty().append('<option value=""></option>');
+            projectData.forEach(p => {
+                projectSelect.append(new Option(p.label, p.id));
+            });
 
+            masterLoaded = true;
+        }
+
+        /* ================= CREATE ROW ================= */
+
+        function createRow(data = null) {
+
+            const fragment = itemTemplate.content.cloneNode(true);
+            const row = fragment.querySelector('.item-row');
+
+            if (!row) {
+                console.error('Template tidak memiliki .item-row');
+                return null;
+            }
+
+            const pajakSelect = row.querySelector('.pajakEdit');
+
+            // Reset dan isi pajak
+            pajakSelect.innerHTML = '<option value="0" data-nilai="0" data-kategori="">Non Pajak</option>';
+
+            pajakList.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `${p.nama_akun} (${p.nilai_coa}%)`;
+                opt.dataset.nilai = p.nilai_coa ?? 0;
+                opt.dataset.kategori = (p.kategori_pajak ?? '').toUpperCase();
+                pajakSelect.appendChild(opt);
+            });
+
+            if (data) {
+                row.querySelector('[name="deskripsiEdit[]"]').value = data.deskripsi ?? '';
+                row.querySelector('.qtyEdit').value = data.qty ?? 1;
+                row.querySelector('.hargaEdit').value = data.harga ?? 0;
+                row.querySelector('.diskonEdit').value = data.diskon ?? 0;
+                pajakSelect.value = data.pajak_id ?? 0;
+            }
+
+            return row;
+        }
+
+        /* ================= HITUNG ================= */
+
+        function hitungSemua() {
+
+            let subtotal = 0;
+            let totalDiskon = 0;
+            let totalPajak = 0;
+            let pajakMap = {};
+
+            itemContainer.querySelectorAll('.item-row').forEach(row => {
+
+                const qty = parseFloat(row.querySelector('.qtyEdit').value) || 0;
+                const harga = parseFloat(row.querySelector('.hargaEdit').value) || 0;
+                const diskon = parseFloat(row.querySelector('.diskonEdit').value) || 0;
+
+                const select = row.querySelector('.pajakEdit');
+                const opt = select.options[select.selectedIndex];
+
+                const persen = parseFloat(opt?.dataset.nilai) || 0;
+                const kategori = opt?.dataset.kategori || '';
+
+                const total = qty * harga;
+                const nilaiDiskon = total * (diskon / 100);
+
+                let nilaiPajak = (total - nilaiDiskon) * (persen / 100);
+                if (kategori === 'PPH') nilaiPajak *= -1;
+
+                const jumlah = total - nilaiDiskon + nilaiPajak;
+
+                row.querySelector('.jumlah').value = formatNumber(jumlah);
+
+                subtotal += total;
+                totalDiskon += nilaiDiskon;
+                totalPajak += nilaiPajak;
+
+                if (persen > 0) {
+                    pajakMap[opt.text] = (pajakMap[opt.text] || 0) + nilaiPajak;
+                }
+            });
+
+            const grandTotal = subtotal - totalDiskon + totalPajak;
+
+            $('#subtotalEdit').text(formatNumber(subtotal));
+            $('#totalDiskonEdit').text(formatNumber(totalDiskon));
+            $('#summaryTotalEdit').text(formatNumber(grandTotal));
+            $('#grandTotal').text(formatNumber(grandTotal));
+
+            const pajakSummary = $('#pajakSummaryEdit');
+            pajakSummary.empty();
+
+            Object.entries(pajakMap).forEach(([nama, nilai]) => {
+                pajakSummary.append(`
+                <div class="d-flex justify-content-between">
+                    <span>${nama}</span>
+                    <span class="${nilai < 0 ? 'text-danger' : ''}">
+                        Rp ${formatNumber(Math.abs(nilai))}
+                    </span>
+                </div>
+            `);
+            });
+        }
+
+        /* ================= EVENTS ================= */
+
+        btnTambah.addEventListener('click', function() {
+            const row = createRow();
+            if (row) {
+                itemContainer.appendChild(row);
+                hitungSemua();
+            }
         });
-    </script>
+
+        modalEl.addEventListener('input', function(e) {
+            if (e.target.closest('.item-row')) debounceHitung();
+        });
+
+        modalEl.addEventListener('click', function(e) {
+            if (e.target.closest('.btnRemove')) {
+                const rows = itemContainer.querySelectorAll('.item-row');
+                if (rows.length > 1) {
+                    e.target.closest('.item-row').remove();
+                    hitungSemua();
+                }
+            }
+        });
+
+        /* ================= LOAD DETAIL ================= */
+
+        window.loadDetailPengajuan = async function(id) {
+
+            try {
+
+                resetForm();
+                await loadMaster();
+
+                const res = await fetch(`/finance/pengajuan-biaya/detail/${id}`);
+                if (!res.ok) throw new Error('Gagal ambil detail');
+
+                const response = await res.json();
+                if (response.status !== 'success') {
+                    throw new Error('Response tidak valid');
+                }
+
+                const {
+                    header,
+                    items
+                } = response.data;
+
+                $('#pengajuan_id').val(header.id ?? '');
+                form.jenis_pengajuan.value = header.jenis_pengajuan ?? '';
+                form.metode_pembayaran.value = header.metode_pembayaran ?? '';
+                form.tanggal_pengajuan.value = header.tgl_pengajuan ?? '';
+                form.is_urgent.checked = !!header.is_urgent;
+
+                kontakSelect.val(header.kontak_id).trigger('change');
+                projectSelect.val(header.project_id).trigger('change');
+
+                if (!items || items.length === 0) {
+                    const row = createRow();
+                    if (row) itemContainer.appendChild(row);
+                } else {
+                    items.forEach(item => {
+                        const row = createRow(item);
+                        if (row) itemContainer.appendChild(row);
+                    });
+                }
+
+                hitungSemua();
+                bsModal.show();
+
+            } catch (err) {
+                console.error(err);
+                alert('Gagal memuat detail.');
+            }
+        };
+
+    });
+</script>

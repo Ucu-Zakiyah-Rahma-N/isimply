@@ -101,8 +101,8 @@ class PurchasingController extends Controller
 
             $query->where('pengajuan_biaya.status', 'ditolak');
         } elseif ($tab == 'disetujui') {
-
-            $query->whereNotNull('pengajuan_biaya.approved_at');
+            $query->where('pengajuan_biaya.status', 'disetujui');
+            // $query->whereNotNull('pengajuan_biaya.approved_at');
         } else {
             // WAITING LIST
             $query->whereNull('pengajuan_biaya.approved_at')

@@ -466,37 +466,45 @@
         }
 
         /* ================= CREATE ROW ================= */
-
         function createRow(data = null) {
 
             const fragment = itemTemplate.content.cloneNode(true);
             const row = fragment.querySelector('.item-row');
 
-            if (!row) {
-                console.error('Template tidak memiliki .item-row');
-                return null;
-            }
+            if (!row) return null;
 
             const pajakSelect = row.querySelector('.pajakEdit');
 
-            // Reset dan isi pajak
             pajakSelect.innerHTML = '<option value="0" data-nilai="0" data-kategori="">Non Pajak</option>';
 
             pajakList.forEach(p => {
+
                 const opt = document.createElement('option');
+
                 opt.value = p.id;
                 opt.textContent = `${p.nama_akun} (${p.nilai_coa}%)`;
+
                 opt.dataset.nilai = p.nilai_coa ?? 0;
                 opt.dataset.kategori = (p.kategori_pajak ?? '').toUpperCase();
+
                 pajakSelect.appendChild(opt);
+
             });
 
             if (data) {
+
                 row.querySelector('[name="deskripsiEdit[]"]').value = data.deskripsi ?? '';
                 row.querySelector('.qtyEdit').value = data.qty ?? 1;
                 row.querySelector('.hargaEdit').value = data.harga ?? 0;
                 row.querySelector('.diskonEdit').value = data.diskon ?? 0;
-                pajakSelect.value = data.pajak_id ?? 0;
+
+                // SET PAJAK
+                if (data.pajak_id) {
+                    pajakSelect.value = data.pajak_id;
+                } else {
+                    pajakSelect.value = 0;
+                }
+
             }
 
             return row;
@@ -598,9 +606,11 @@
                 await loadMaster();
 
                 const res = await fetch(`/finance/pengajuan-biaya/detail/${id}`);
+
                 if (!res.ok) throw new Error('Gagal ambil detail');
 
                 const response = await res.json();
+
                 if (response.status !== 'success') {
                     throw new Error('Response tidak valid');
                 }
@@ -619,22 +629,39 @@
                 kontakSelect.val(header.kontak_id).trigger('change');
                 projectSelect.val(header.project_id).trigger('change');
 
-                if (!items || items.length === 0) {
-                    const row = createRow();
-                    if (row) itemContainer.appendChild(row);
-                } else {
+                itemContainer.innerHTML = '';
+
+                if (items && items.length > 0) {
+
                     items.forEach(item => {
+
                         const row = createRow(item);
-                        if (row) itemContainer.appendChild(row);
+
+                        if (row) {
+                            itemContainer.appendChild(row);
+                        }
+
                     });
+
+                } else {
+
+                    const row = createRow();
+
+                    if (row) {
+                        itemContainer.appendChild(row);
+                    }
+
                 }
 
                 hitungSemua();
+
                 bsModal.show();
 
             } catch (err) {
+
                 console.error(err);
                 alert('Gagal memuat detail.');
+
             }
         };
 

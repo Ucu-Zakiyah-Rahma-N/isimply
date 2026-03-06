@@ -262,8 +262,14 @@
                             <div class="d-flex flex-column">
 
                                 @if($row->approved_at)
-                                <button class="btn btn-success action-btn" disabled>
-                                    Disetujui
+                                <button class="btn btn-success action-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalBayarkan"
+                                    data-id="{{ $row->id }}"
+                                    data-no="{{ $row->nomor_pengajuan }}"
+                                    data-total="{{ number_format($row->grand_total,0,',','.') }}"
+                                    data-tgl="{{ \Carbon\Carbon::parse($row->tgl_pengajuan)->format('d/m/Y') }}">
+                                    Bayarkan
                                 </button>
 
                                 @elseif($row->status == 'ditolak')
@@ -272,7 +278,7 @@
                                 </button>
 
                                 @elseif($row->scheduling)
-                                <button class="btn btn-success action-btn" disabled>
+                                <button class="btn btn-success action-btn">
                                     Dijadwalkan
                                 </button>
                                 <button class="btn btn-secondary action-btn" disabled>
@@ -316,6 +322,7 @@
 </div>
 
 @include('pages.finance.purchasing.modal-jadwalkan')
+@include('pages.finance.purchasing.modal-bayarkan')
 @endsection
 
 <script>
@@ -345,6 +352,29 @@
             document.getElementById('modalTotal').innerText =
                 'Rp ' + button.getAttribute('data-total');
 
+        });
+
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const modal = document.getElementById('modalBayarkan');
+
+        modal.addEventListener('show.bs.modal', function(event) {
+
+            const button = event.relatedTarget;
+
+            document.getElementById('modalTextPengajuanBayarkan').innerText =
+                button.getAttribute('data-no');
+
+            document.getElementById('modalNoPengajuanBayarkan').value =
+                button.getAttribute('data-no');
+            document.getElementById('modalTglPengajuanBayarkan').innerText =
+                button.getAttribute('data-tgl');
+
+            document.getElementById('modalTotalBayarkan').innerText =
+                'Rp ' + button.getAttribute('data-total');
         });
 
     });
