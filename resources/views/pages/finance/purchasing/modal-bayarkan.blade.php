@@ -15,12 +15,9 @@
 
                 <div class="modal-body">
 
-                    <!-- SUMMARY TRANSACTION -->
                     <div class="p-4 rounded-3 mb-4" style="background:#f8fafc">
 
                         <div class="row align-items-center">
-
-                            <!-- Left Info -->
                             <div class="col-md-7">
 
                                 <div class="small text-muted mb-1">
