@@ -792,7 +792,7 @@ class FinanceController extends Controller
 
             'items' => 'required|array|min:1',
             'items.*.perizinan_id' => 'nullable|exists:perizinans,id',
-            'items.*.perizinan_lainnya' => 'nullable|string|required_without:items.*.perizinan_id',
+            'items..perizinan_lainnya' => 'nullable|string|required_without:items..perizinan_id',
             'items.*.qty' => 'nullable|numeric',
             'items.*.harga_satuan' => 'nullable|numeric',
 
