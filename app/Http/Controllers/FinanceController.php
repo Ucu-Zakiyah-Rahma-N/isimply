@@ -15,6 +15,7 @@ use App\Models\TaxInvoice;
 use App\Models\InvoicePayment;
 use App\Models\Journal;
 use App\Models\JournalDetail;
+use App\Models\QuotationPerizinan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\TotalInvoiceHelper;
@@ -309,12 +310,35 @@ class FinanceController extends Controller
 
         // 3️⃣ Hitung nominal invoice
         // Ambil PO dulu
-        $po        = PO::with('quotation')->findOrFail($request->po_id);
+        $po        = PO::with('quotation', 'perizinan')->findOrFail($request->po_id);
         $quotation = $po->quotation;
 
         $isGabungan = $po->harga_gabungan != null;
+
         // Ambil subtotal dari request
         $subtotal = $request->subtotal ?? 0;
+
+        //validasi nominal subtotal manual harus sama dengan subtotal PO
+        $subtotalPO = QuotationPerizinan::where('quotation_id', $po->quotation_id)
+            ->sum(DB::raw('qty * harga_satuan'));
+
+        // jika tidak ada item → pakai harga gabungan
+        if ($subtotalPO == 0 && $po->quotation) {
+            $subtotalPO = $po->quotation->harga_gabungan ?? 0;
+        }
+
+        // hanya validasi jika manual mode
+        if (!$request->has('is_same_with_po')) {
+
+            if ((float)$subtotal !== (float)$subtotalPO) {
+
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'subtotal' => 'Subtotal item manual harus sama dengan subtotal PO (Rp ' . number_format($subtotalPO, 0, ',', '.') . ')'
+                    ]);
+            }
+        }
 
         // Diskon PO dari quotation
         $diskonPo = $quotation->diskon_nilai ?? 0;
@@ -326,6 +350,7 @@ class FinanceController extends Controller
         $nominalInvoice = $nominalPo * $request->persentase_termin / 100;
 
         $nilaiDiskon = $request->nilai_diskon ?? 0;
+        $tipeDiskon = null;
 
         if ($nilaiDiskon > 0) {
 
@@ -334,15 +359,21 @@ class FinanceController extends Controller
                 : $nilaiDiskon;
 
             $totalAfterDiscountInv = max($nominalInvoice - $diskonInvoice, 0);
+
+            $tipeDiskon = $request->tipe_diskon;
+            $nilaiDiskon = $nilaiDiskon;
         } else {
 
             $diskonInvoice = 0;
             $totalAfterDiscountInv = null; //  tidak disimpan
+            $tipeDiskon = null;
+            $nilaiDiskon = null;
         }
 
         $base = ($totalAfterDiscountInv > 0 && $totalAfterDiscountInv != $nominalInvoice)
             ? $totalAfterDiscountInv
             : $nominalInvoice;
+
         // // DPP
         // $dpp = round(($base * 11) / 12);
         // $ppn = round(($dpp * 12) / 100);
@@ -421,8 +452,8 @@ class FinanceController extends Controller
                 'nominal_po'           => $nominalPo,
                 'persentase_termin' => $request->persentase_termin,
                 'nominal_invoice'   => $nominalInvoice,
-                'tipe_diskon'       => $request->tipe_diskon ?? NULL,
-                'nilai_diskon'      => $request->nilai_diskon ?? 0,
+                'tipe_diskon' => $tipeDiskon,
+                'nilai_diskon' => $nilaiDiskon,
                 'total_after_diskon_inv' => $totalAfterDiscountInv,
                 'dpp'                  => $dpp ?? NULL,
                 'ppn'                   => $ppn ?? NULL,
@@ -469,52 +500,6 @@ class FinanceController extends Controller
                     'harga_satuan'      => $item['harga_satuan'] ?? null,
                 ]);
             }
-            // $isInvoiceGabungan = $isSameWithPo && $quotation->harga_tipe === 'gabungan';
-
-            //     foreach ($request->items as $index => $item) {
-
-            //         $input = $item['perizinan_input'] ?? null;
-
-            //         $perizinan_id = null;
-            //         $perizinan_lainnya = null;
-
-            //         if ($input && str_starts_with($input, 'id:')) {
-            //             $perizinan_id = str_replace('id:', '', $input);
-            //         } else {
-            //             $perizinan_lainnya = $input;
-            //         }
-
-            //         // 🔹 MODE GABUNGAN (ONLY if same with PO)
-            //         if ($isInvoiceGabungan) {
-
-            //             ProdukInvoice::create([
-            //                 'invoice_id'        => $invoice->id,
-            //                 'perizinan_id'      => $perizinan_id,
-            //                 'perizinan_lainnya' => $perizinan_lainnya,
-            //                 'deskripsi'         => $item['deskripsi'] ?? null,
-            //                 'qty'               => $item['qty'],
-            //                 'harga_satuan'      => null,
-            //             ]);
-
-            //             continue;
-            //         }
-
-            //         // 🔹 MODE SATUAN (default fallback)
-            //         if ($item['qty'] === null || $item['harga_satuan'] === null) {
-            //             continue;
-            //         }
-
-            //         ProdukInvoice::create([
-            //             'invoice_id'        => $invoice->id,
-            //             'perizinan_id'      => $perizinan_id,
-            //             'perizinan_lainnya' => $perizinan_lainnya,
-            //             'deskripsi'         => $item['deskripsi'] ?? null,
-            //             'qty'               => $item['qty'],
-            //             'harga_satuan'      => $item['harga_satuan'],
-            //         ]);
-            //     }
-
-
 
             // 8️⃣ Pajak
             if ($request->filled('tax')) {
@@ -704,6 +689,7 @@ class FinanceController extends Controller
         $isSameWithPo = $invoice->is_same_with_po;
 
         $perizinans = $quotation ? $quotation->perizinan : collect();
+          $perizinan = Perizinan::orderBy('jenis')->get();
 
         $ppnList = Coa::where('id', 1)->get();
 
@@ -755,6 +741,7 @@ class FinanceController extends Controller
             'invoice',
             'invoice_sebelumnya',
             'perizinans',
+            'perizinan',
             'ppnList',
             'invoiceData',
             'subtotal',
@@ -772,6 +759,7 @@ class FinanceController extends Controller
     // Update invoice
     public function update(Request $request, $id)
     {
+        dd($request->all());
         $invoice = Invoice::findOrFail($id);
         //perbandingan harga sebelum dan pas edit inv
         $oldGrandTotal     = $invoice->grand_total;

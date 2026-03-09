@@ -91,18 +91,53 @@
                 <th>Jumlah</th>
             </tr>
         </thead>
+       @php
+        $isGabungan = !empty($invoice->harga_gabungan);
+        $rowspan = $invoice->produk->count();
+        @endphp
+
         <tbody>
-            @foreach ($invoice->produk as $item)
-            <tr>
-                <td>{{ $item->perizinan->jenis ?? $item->perizinan_lainnya ?? '-' }}</td>
-                <td>{{ $item->deskripsi ?? '-' }}</td>
-                <td class="text-end">{{ $item->qty }}</td>
-                <td class="text-end">Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
-                <td class="text-end">Rp
-                    {{ number_format(($item->qty ?? 0) * ($item->harga_satuan ?? 0), 0, ',', '.') }}
+        @foreach ($invoice->produk as $i => $item)
+        <tr>
+
+            <td>
+                {{ $item->perizinan->jenis ?? $item->perizinan_lainnya ?? '-' }}
+            </td>
+
+            <td>
+                {{ $item->deskripsi ?? '-' }}
+            </td>
+
+            <td class="text-end">
+                {{ $item->qty }}
+            </td>
+
+            @if($isGabungan)
+
+                @if($i === 0)
+                <td class="text-end align-middle" rowspan="{{ $rowspan }}">
+                    Rp {{ number_format($invoice->harga_gabungan,0,',','.') }}
                 </td>
-            </tr>
-            @endforeach
+
+                <td class="text-end align-middle" rowspan="{{ $rowspan }}">
+                    Rp {{ number_format($invoice->harga_gabungan,0,',','.') }}
+                </td>
+                @endif
+
+            @else
+
+                <td class="text-end">
+                    Rp {{ number_format($item->harga_satuan,0,',','.') }}
+                </td>
+
+                <td class="text-end">
+                    Rp {{ number_format(($item->qty ?? 0) * ($item->harga_satuan ?? 0),0,',','.') }}
+                </td>
+
+            @endif
+
+        </tr>
+        @endforeach
         </tbody>
     </table>
 
@@ -184,7 +219,7 @@
     <div class="mt-4">
         <a href="{{ url()->previous() }}" class="btn btn-secondary">Kembali</a>
         <a href="{{ route('finance.invoice.edit', $invoice->id) }}" class="btn btn-warning">Edit</a>
-       <a href="{{ route('finance.invoice.terima_pembayaran', $invoice->id) }}" class="btn btn-success">Terima Pembayaran</a>
+        <a href="{{ route('finance.invoice.terima_pembayaran', $invoice->id) }}" class="btn btn-success">Terima Pembayaran</a>
 
     </div>
 </div>

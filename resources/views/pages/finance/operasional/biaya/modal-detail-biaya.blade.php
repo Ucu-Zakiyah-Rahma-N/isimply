@@ -468,47 +468,99 @@
         /* ================= CREATE ROW ================= */
         function createRow(data = null) {
 
-            const fragment = itemTemplate.content.cloneNode(true);
+            const template = document.getElementById('itemTemplate');
+            const fragment = template.content.cloneNode(true);
             const row = fragment.querySelector('.item-row');
-
+            document.getElementById('itemContainer').appendChild(row);
             if (!row) return null;
 
             const pajakSelect = row.querySelector('.pajakEdit');
 
             pajakSelect.innerHTML = '<option value="0" data-nilai="0" data-kategori="">Non Pajak</option>';
 
-            pajakList.forEach(p => {
+            if (Array.isArray(pajakList)) {
+                pajakList.forEach(p => {
+                    const opt = document.createElement('option');
 
-                const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = `${p.nama_akun || p.nama || ''} (${p.nilai_coa || p.nilai || 0}%)`;
 
-                opt.value = p.id;
-                opt.textContent = `${p.nama_akun} (${p.nilai_coa}%)`;
+                    opt.dataset.nilai = p.nilai_coa || p.nilai || 0;
+                    opt.dataset.kategori = (p.kategori_pajak || '').toUpperCase();
 
-                opt.dataset.nilai = p.nilai_coa ?? 0;
-                opt.dataset.kategori = (p.kategori_pajak ?? '').toUpperCase();
-
-                pajakSelect.appendChild(opt);
-
-            });
+                    pajakSelect.appendChild(opt);
+                });
+            }
 
             if (data) {
-
                 row.querySelector('[name="deskripsiEdit[]"]').value = data.deskripsi ?? '';
                 row.querySelector('.qtyEdit').value = data.qty ?? 1;
                 row.querySelector('.hargaEdit').value = data.harga ?? 0;
                 row.querySelector('.diskonEdit').value = data.diskon ?? 0;
+                row.querySelector('.jumlah').value = data.jumlah ?? 0;
 
-                // SET PAJAK
                 if (data.pajak_id) {
                     pajakSelect.value = data.pajak_id;
-                } else {
-                    pajakSelect.value = 0;
                 }
-
             }
 
-            return row;
+            row.querySelector('.btnRemove').addEventListener('click', function() {
+                row.remove();
+                hitungSemua();
+            });
+
+            return row; // ✅ RETURN ROW
         }
+        // /* ================= CREATE ROW ================= */
+        // function createRow(data = null) {
+
+        //     const fragment = itemTemplate.content.cloneNode(true);
+        //     const row = fragment.querySelector('.item-row');
+
+        //     if (!row) return null;
+
+        //     const pajakSelect = row.querySelector('.pajakEdit');
+
+        //     pajakSelect.innerHTML = '<option value="0" data-nilai="0" data-kategori="">Non Pajak</option>';
+
+        //     pajakList.forEach(p => {
+
+        //         const opt = document.createElement('option');
+
+        //         opt.value = p.id;
+        //         // opt.textContent = `${p.nama_akun} (${p.nilai_coa}%)`;
+
+        //         // opt.dataset.nilai = p.nilai_coa ?? 0;
+        //         // opt.dataset.kategori = (p.kategori_pajak ?? '').toUpperCase();
+        //         opt.textContent = `${p.nama_akun || p.nama} (${p.nilai_coa || p.nilai || 0}%)`;
+
+        //         opt.dataset.nilai = p.nilai_coa || p.nilai || 0;
+
+        //         opt.dataset.kategori = (p.kategori_pajak || '').toUpperCase();
+
+        //         pajakSelect.appendChild(opt);
+
+        //     }
+        // );
+
+        //     if (data) {
+
+        //         row.querySelector('[name="deskripsiEdit[]"]').value = data.deskripsi ?? '';
+        //         row.querySelector('.qtyEdit').value = data.qty ?? 1;
+        //         row.querySelector('.hargaEdit').value = data.harga ?? 0;
+        //         row.querySelector('.diskonEdit').value = data.diskon ?? 0;
+
+        //         // SET PAJAK
+        //         if (data.pajak_id) {
+        //             pajakSelect.value = data.pajak_id;
+        //         } else {
+        //             pajakSelect.value = 0;
+        //         }
+
+        //     }
+
+        //     return row;
+        // }
 
         /* ================= HITUNG ================= */
 
@@ -595,30 +647,33 @@
                 }
             }
         });
-
-        /* ================= LOAD DETAIL ================= */
-
         window.loadDetailPengajuan = async function(id) {
+            console.log('Load Detail Pengajuan ID:', id); // pastikan ID ada
 
             try {
-
                 resetForm();
                 await loadMaster();
 
                 const res = await fetch(`/finance/pengajuan-biaya/detail/${id}`);
-
+                console.log('Fetch status:', res.status); // cek 200?
                 if (!res.ok) throw new Error('Gagal ambil detail');
 
                 const response = await res.json();
+                console.log('Response data:', response); // cek apakah data header/items ada
 
                 if (response.status !== 'success') {
                     throw new Error('Response tidak valid');
                 }
 
+                // ✅ Hanya setelah ini items bisa diakses
                 const {
                     header,
                     items
                 } = response.data;
+                console.log("ITEMS:", items); // pindahkan di sini
+                console.log("ITEM CONTAINER:", itemContainer);
+                console.log("ITEM DATA:", items);
+                console.log("TEMPLATE:", itemTemplate);
 
                 $('#pengajuan_id').val(header.id ?? '');
                 form.jenis_pengajuan.value = header.jenis_pengajuan ?? '';
@@ -632,38 +687,27 @@
                 itemContainer.innerHTML = '';
 
                 if (items && items.length > 0) {
-
                     items.forEach(item => {
 
                         const row = createRow(item);
 
-                        if (row) {
-                            itemContainer.appendChild(row);
-                        }
+                        console.log("ROW:", row);
+
+                        if (row) itemContainer.appendChild(row);
 
                     });
-
                 } else {
-
-                    const row = createRow();
-
-                    if (row) {
-                        itemContainer.appendChild(row);
-                    }
-
+                    const rowFragment = createRow();
+                    if (rowFragment) itemContainer.appendChild(rowFragment);
                 }
 
                 hitungSemua();
-
                 bsModal.show();
 
             } catch (err) {
-
                 console.error(err);
                 alert('Gagal memuat detail.');
-
             }
         };
-
     });
 </script>
