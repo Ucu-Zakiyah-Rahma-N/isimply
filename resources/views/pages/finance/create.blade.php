@@ -188,8 +188,7 @@
                         </strong>
                     </div>
 
-                    <div id="warningSubtotal" class="text-danger mt-2" style="display:none;"></div>
-
+<div id="warningSubtotal" class="alert alert-warning" style="display:none;"></div>
                     <hr>
                     <div class="mb-2 d-flex justify-content-between">
                         <span>Termin ({{ $persentaseTermin }}%)</span>
@@ -285,72 +284,75 @@
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-    const poItems = @json($perizinans);
 
-    document.addEventListener('DOMContentLoaded', function() {
+   <script>
 
-        const checkbox = document.getElementById('sameWithPo');
-        const itemsContainer = document.getElementById('items');
-        const addButton = document.querySelector('.add-item');
-        const poItems = @json($perizinans);
+            const quotation = @json($po->quotation);
+            const poItems = @json($perizinans);
 
-        function loadPoItems() {
+            document.addEventListener('DOMContentLoaded', function() {
 
-            itemsContainer.innerHTML = '';
-            addButton.style.display = 'none';
+                const checkbox = document.getElementById('sameWithPo');
+                const itemsContainer = document.getElementById('items');
+                const addButton = document.querySelector('.add-item');
+                const poItems = @json($perizinans);
 
-            const hargaGabunganInput = document.getElementById('hargaGabunganInput');
-            const isGabungan = Boolean(hargaGabunganInput?.value);
-            const hargaGabungan = parseFloat(hargaGabunganInput?.value || 0);
+                function loadPoItems() {
 
-            let totalQty = 0;
+                    itemsContainer.innerHTML = '';
+                    addButton.style.display = 'none';
 
-            poItems.forEach(item => {
-                totalQty += item.pivot?.qty ?? 1;
-            });
+                    const hargaGabunganInput = document.getElementById('hargaGabunganInput');
+                    const isGabungan = Boolean(hargaGabunganInput?.value);
+                    const hargaGabungan = parseFloat(hargaGabunganInput?.value || 0);
 
-            const jumlahGabungan = hargaGabungan;
+                    let totalQty = 0;
 
-            poItems.forEach((item, i) => {
+                    poItems.forEach(item => {
+                        totalQty += item.pivot?.qty ?? 1;
+                    });
 
-                const qty = item.pivot?.qty ?? 1;
-                const harga = item.pivot?.harga_satuan ?? '';
-                const jumlah = qty * harga;
+                    const jumlahGabungan = hargaGabungan;
 
-                let hargaCell = '';
-                let jumlahCell = '';
+                    poItems.forEach((item, i) => {
 
-                if (isGabungan) {
-                    if (i === 0) {
-                        hargaCell = `
+                        const qty = item.pivot?.qty ?? 1;
+                        const harga = item.pivot?.harga_satuan ?? '';
+                        const jumlah = qty * harga;
+
+                        let hargaCell = '';
+                        let jumlahCell = '';
+
+                        if (isGabungan) {
+                            if (i === 0) {
+                                hargaCell = `
                                     <td rowspan="${poItems.length}" class="align-middle text-center">
                                         ${rupiah(hargaGabungan)}
                                     </td>
                                 `;
 
-                        jumlahCell = `
+                                jumlahCell = `
                                     <td rowspan="${poItems.length}" class="align-middle text-center">
                                     ${rupiah(jumlahGabungan)}
                                     </td>
                                 `;
-                    }
-                } else {
-                    hargaCell = `
+                            }
+                    } else {
+                            hargaCell = `
                                 <td>
                                     <input type="text" class="form-control" value="${rupiah(harga)}" readonly>
                                     <input type="hidden" name="items[${i}][harga_satuan]" value="${harga}">
                                 </td>
                             `;
 
-                    jumlahCell = `
+                            jumlahCell = `
                                 <td>
                                     <input type="text" class="form-control" value="${rupiah(jumlah)}" readonly>
                                 </td>
                             `;
-                }
+                        }
 
-                itemsContainer.insertAdjacentHTML('beforeend', `
+                        itemsContainer.insertAdjacentHTML('beforeend', `
                         <tr class="item-row">
                             <input type="hidden" name="items[${i}][perizinan_id]" value="${item.id}">
                             <td><input type="text" class="form-control" value="${item.jenis}" readonly></td>
@@ -361,108 +363,101 @@
                             <td class="text-center"></td>
                         </tr>
                         `);
-            });
-        }
-
-        function restorePoNominal() {
-
-            let subtotal = 0;
-
-            const hargaGabunganInput = document.getElementById('hargaGabunganInput');
-            const isGabungan = Boolean(hargaGabunganInput?.value);
-
-            if (isGabungan) {
-                subtotal = parseFloat(hargaGabunganInput.value) || 0;
-            } else {
-                poItems.forEach(item => {
-                    const qty = parseFloat(item.pivot?.qty) || 0;
-                    const harga = parseFloat(item.pivot?.harga_satuan) || 0;
-                    subtotal += qty * harga;
-                });
-            }
-
-            // =====================
-            // UPDATE SUBTOTAL
-            // =====================
-            document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
-            document.getElementById('subtotalInput').value = subtotal;
-
-            // =====================
-            // DISKON PO
-            // =====================
-            const diskonPO = parseFloat({
-                {
-                    $diskonQuotation ?? 0
+                    });
                 }
-            }) || 0;
-            const terminPersen = parseFloat({
-                {
-                    $persentaseTermin ?? 0
+
+                function restorePoNominal() {
+
+                    let subtotal = 0;
+
+                    const hargaGabunganInput = document.getElementById('hargaGabunganInput');
+                    const isGabungan = Boolean(hargaGabunganInput?.value);
+                    
+                    if (isGabungan) {
+                       subtotal = parseFloat(hargaGabunganInput.value) || 0;
+                    } else {
+                        poItems.forEach(item => {
+                        const qty = parseFloat(item.pivot?.qty) || 0;
+                        const harga = parseFloat(item.pivot?.harga_satuan) || 0;
+                        subtotal += qty * harga;
+                        });
+                    }
+
+                    // =====================
+                    // UPDATE SUBTOTAL
+                    // =====================
+                    document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
+                    document.getElementById('subtotalInput').value = subtotal;
+
+                    // =====================
+                    // DISKON PO
+                    // =====================
+                    const diskonPO = parseFloat({{ $diskonQuotation ?? 0 }}) || 0;
+                    const terminPersen = parseFloat({{ $persentaseTermin ?? 0 }}) || 0;
+
+                    // =====================
+                    // NOMINAL PO
+                    // =====================
+                    let nominalPO = subtotal - diskonPO;
+                    if (nominalPO < 0) nominalPO = 0;
+
+                    // Update tampilan Nominal PO
+                    const nominalPoDisplay = document.getElementById('nominalPoDisplay');
+                    if (nominalPoDisplay) {
+                        nominalPoDisplay.innerText = 'Rp ' + rupiah(nominalPO);
+                    }
+
+                    // =====================
+                    // NOMINAL INVOICE (TERMIN)
+                    // =====================
+                    let nominalInvoice = nominalPO * terminPersen / 100;
+                    nominalInvoice = Math.round(nominalInvoice);
+
+                    // Update hidden input
+                    document.querySelector('input[name="nominal_invoice"]').value = nominalInvoice;
+
+                    // Update tampilan invoice
+                    document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el => {
+                        el.innerText = 'Rp ' + rupiah(nominalInvoice);
+                    });
+
+                    // =====================
+                    // RESET DISKON INVOICE
+                    // =====================
+                    document.getElementById('nilai_diskon').value = 0;
+                    document.getElementById('jumlah_diskon').innerText = '0';
+
+                    document.getElementById('discountTypeInput').value = '';
+                    document.getElementById('discountValueInput').value = '';
+
+                    // Set after discount default = nominal invoice
+                    document.getElementById('totalAfterDiscountInput').value = nominalInvoice;
+                    document.getElementById('total_after_discount').innerText = rupiah(nominalInvoice);
+
+                    // =====================
+                    // HITUNG ULANG PAJAK & TOTAL
+                    // =====================
+                    // hitungPajak();
+                    // hitungTotalAkhir();
+                    recalculateInvoice();
                 }
-            }) || 0;
 
-            // =====================
-            // NOMINAL PO
-            // =====================
-            let nominalPO = subtotal - diskonPO;
-            if (nominalPO < 0) nominalPO = 0;
+                // =====================
+                // Event checkbox manual
+                // =====================
+                function loadManualForm() {
+                    itemsContainer.innerHTML = '';
+                    addButton.style.display = 'inline-block';
+                    addManualRow();
+                    resetManualValues();
+                }
 
-            // Update tampilan Nominal PO
-            const nominalPoDisplay = document.getElementById('nominalPoDisplay');
-            if (nominalPoDisplay) {
-                nominalPoDisplay.innerText = 'Rp ' + rupiah(nominalPO);
-            }
+                function addManualRow() {
 
-            // =====================
-            // NOMINAL INVOICE (TERMIN)
-            // =====================
-            let nominalInvoice = nominalPO * terminPersen / 100;
-            nominalInvoice = Math.round(nominalInvoice);
+                    const index = itemsContainer.querySelectorAll('.item-row').length;
 
-            // Update hidden input
-            document.querySelector('input[name="nominal_invoice"]').value = nominalInvoice;
-
-            // Update tampilan invoice
-            document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el => {
-                el.innerText = 'Rp ' + rupiah(nominalInvoice);
-            });
-
-            // =====================
-            // RESET DISKON INVOICE
-            // =====================
-            document.getElementById('nilai_diskon').value = 0;
-            document.getElementById('jumlah_diskon').innerText = '0';
-
-            document.getElementById('discountTypeInput').value = '';
-            document.getElementById('discountValueInput').value = '';
-
-            // Set after discount default = nominal invoice
-            document.getElementById('totalAfterDiscountInput').value = nominalInvoice;
-            document.getElementById('total_after_discount').innerText = rupiah(nominalInvoice);
-
-            // =====================
-            // HITUNG ULANG PAJAK & TOTAL
-            // =====================
-            hitungPajak();
-            hitungTotalAkhir();
-        }
-
-        // =====================
-        // Event checkbox manual
-        // =====================
-        function loadManualForm() {
-            itemsContainer.innerHTML = '';
-            addButton.style.display = 'inline-block';
-            addManualRow();
-            resetManualValues();
-        }
-
-        function addManualRow() {
-
-            const index = itemsContainer.querySelectorAll('.item-row').length;
-
-            // untuk item manual
-            itemsContainer.insertAdjacentHTML('beforeend', `
+                    // untuk item manual
+                    itemsContainer.insertAdjacentHTML('beforeend', `
                     <tr class="item-row">
                         <td>
                             <select name="items[${index}][perizinan_input]" class="form-control perizinan-select">
@@ -481,381 +476,476 @@
                         </td>
                     </tr>
                     `);
-        }
+                }
 
-        $(document).on('focus', '.perizinan-select', function() {
-            if (!$(this).hasClass("select2-hidden-accessible")) {
-                $(this).select2({
-                    tags: true,
-                    width: '100%',
-                    placeholder: "Pilih atau ketik",
-                });
-            }
-        });
-
-        function resetManualValues() {
-            // Reset subtotal, nominal invoice, diskon, DPP, pajak, total
-            document.getElementById('subtotal').innerText = 'Rp 0';
-            document.getElementById('subtotalInput').value = 0;
-            document.querySelector('input[name="nominal_invoice"]').value = 0;
-            document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el => el.innerText = 'Rp 0');
-
-            document.getElementById('nilai_diskon').value = 0;
-            document.getElementById('jumlah_diskon').innerText = '0';
-            document.getElementById('total_after_discount').innerText = '0';
-            document.getElementById('totalAfterDiscountInput').value = 0;
-
-            document.getElementById('dppContainer').innerHTML = '';
-            document.getElementById('taxContainer').innerHTML = '';
-            document.getElementById('finalTotal').innerText = '0';
-            document.getElementById('totalInput').value = 0;
-
-            document.querySelectorAll('#items .jumlah').forEach(j => j.value = 0);
-        }
-
-        // =====================
-        // Hitung subtotal & nominal manual
-        // =====================
-        document.addEventListener('input', function(e) {
-            if (e.target.classList.contains('qty') || e.target.classList.contains('price')) {
-
-                let subtotal = 0;
-
-                document.querySelectorAll('#items .item-row').forEach(row => {
-                    const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
-                    const harga = parseFloat(row.querySelector('.price')?.value) || 0;
-                    const jumlah = qty * harga;
-
-                    row.querySelector('.jumlah').value = jumlah;
-                    subtotal += jumlah;
+                $(document).on('focus', '.perizinan-select', function () {
+                    if (!$(this).hasClass("select2-hidden-accessible")) {
+                        $(this).select2({
+                            tags: true,
+                            width: '100%',
+                            placeholder: "Pilih atau ketik",
+                        });
+                    }
                 });
 
-                // =====================
-                // UPDATE SUBTOTAL
-                // =====================
-                document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
-                document.getElementById('subtotalInput').value = subtotal;
+                function resetManualValues() {
+                    // Reset subtotal, nominal invoice, diskon, DPP, pajak, total
+                    document.getElementById('subtotal').innerText = 'Rp 0';
+                    document.getElementById('subtotalInput').value = 0;
+                    document.querySelector('input[name="nominal_invoice"]').value = 0;
+                    document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el => el.innerText = 'Rp 0');
 
-                // =====================
-                // WARNING SUBTOTAL PO
-                // =====================
-                const warning = document.getElementById('warningSubtotal');
+                    document.getElementById('nilai_diskon').value = 0;
+                    document.getElementById('jumlah_diskon').innerText = '0';
+                    document.getElementById('total_after_discount').innerText = '0';
+                    document.getElementById('totalAfterDiscountInput').value = 0;
 
-                let subtotalPO = 0;
-                poItems.forEach(item => {
-                    const qty = parseFloat(item.pivot?.qty) || 0;
-                    const harga = parseFloat(item.pivot?.harga_satuan) || 0;
-                    subtotalPO += qty * harga;
-                });
+                    document.getElementById('dppContainer').innerHTML = '';
+                    document.getElementById('taxContainer').innerHTML = '';
+                    document.getElementById('finalTotal').innerText = '0';
+                    document.getElementById('totalInput').value = 0;
 
-                if (!checkbox.checked && subtotal !== subtotalPO) {
-                    warning.style.display = 'block';
-                    warning.innerText =
-                        '⚠ Total item manual harus sama dengan subtotal PO (Rp ' + rupiah(subtotalPO) + ')';
-                } else {
-                    warning.style.display = 'none';
+                    document.querySelectorAll('#items .jumlah').forEach(j => j.value = 0);
                 }
 
                 // =====================
-                // LANJUT LOGIKA NOMINAL PO
+                // Hitung subtotal & nominal manual
                 // =====================
-                let diskonPO = parseFloat(document.getElementById('diskonPoInput')?.value) || 0;
+               document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('qty') || e.target.classList.contains('price')) {
 
-                let nominalPO = subtotal - diskonPO;
-                if (nominalPO < 0) nominalPO = 0;
+        let subtotal = 0;
 
-                document.getElementById('nominalPoDisplay').innerText = 'Rp ' + rupiah(nominalPO);
+        document.querySelectorAll('#items .item-row').forEach(row => {
+            const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
+            const harga = parseFloat(row.querySelector('.price')?.value) || 0;
+            const jumlah = qty * harga;
 
-                const terminPersen = {
-                    {
-                        $persentaseTermin ?? 0
-                    }
-                };
-                const nominalInvoice = nominalPO * terminPersen / 100;
-
-                document.querySelector('input[name="nominal_invoice"]').value = nominalInvoice;
-
-                document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el =>
-                    el.innerText = 'Rp ' + rupiah(nominalInvoice)
-                );
-
-                hitungDiskon();
-            }
+            row.querySelector('.jumlah').value = jumlah;
+            subtotal += jumlah;
         });
-        checkbox.addEventListener('change', function() {
 
-            if (this.checked) {
+        // =====================
+        // UPDATE SUBTOTAL
+        // =====================
+        document.getElementById('subtotal').innerText = 'Rp ' + rupiah(subtotal);
+        document.getElementById('subtotalInput').value = subtotal;
+
+        // =====================
+        // WARNING SUBTOTAL PO
+        // =====================
+      const warning = document.getElementById('warningSubtotal');
+
+let subtotalPO = 0;
+
+poItems.forEach(item => {
+    const qty = parseFloat(item.pivot?.qty) || 0;
+    const harga = parseFloat(item.pivot?.harga_satuan) || 0;
+    subtotalPO += qty * harga;
+});
+
+if (subtotalPO === 0) {
+    subtotalPO = parseFloat(document.getElementById('hargaGabunganInput')?.value) || 0;
+}
+
+if (checkbox && !checkbox.checked && Math.round(subtotal) !== Math.round(subtotalPO)) {
+
+    if (warning) {
+        warning.style.display = 'block';
+        warning.classList.add('alert','alert-warning','mt-2');
+        warning.innerText =
+            '⚠ Nilai subtotal harus sama dengan subtotal PO (Rp ' + rupiah(subtotalPO) + ')';
+    }
+
+} else {
+
+    if (warning) {
+        warning.style.display = 'none';
+        warning.classList.remove('alert','alert-warning');
+    }
+
+}
+        // =====================
+        // LANJUT LOGIKA NOMINAL PO
+        // =====================
+        let diskonPO = parseFloat(document.getElementById('diskonPoInput')?.value) || 0;
+
+        let nominalPO = subtotal - diskonPO;
+        if (nominalPO < 0) nominalPO = 0;
+
+        document.getElementById('nominalPoDisplay').innerText = 'Rp ' + rupiah(nominalPO);
+
+        const terminPersen = {{ $persentaseTermin ?? 0 }};
+       const nominalInvoice = nominalPO * terminPersen / 100;
+
+document.querySelector('input[name="nominal_invoice"]').value = nominalInvoice;
+
+document.querySelectorAll('[data-role="nominalInvoice"]').forEach(el =>
+    el.innerText = 'Rp ' + rupiah(nominalInvoice)
+);
+
+// sync after discount default
+document.getElementById('totalAfterDiscountInput').value = nominalInvoice;
+document.getElementById('total_after_discount').innerText = rupiah(nominalInvoice);
+
+// hitung ulang semua
+recalculateInvoice();
+    }
+});
+
+                checkbox.addEventListener('change', function() {
+
+                    if (this.checked) {
+                        loadPoItems();
+                        restorePoNominal();
+                        document.getElementById('warningSubtotal').style.display = 'none';
+
+                    } else {
+                        loadManualForm();
+                    }
+
+                });
+
+                document.addEventListener('click', function(e) {
+
+                    if (e.target.classList.contains('remove-item')) {
+                        e.target.closest('.item-row').remove();
+                    }
+
+                    if (e.target.classList.contains('add-item')) {
+                        addManualRow();
+                    }
+                });
+
+                // Default: Sama dengan PO aktif
+                checkbox.checked = true;
                 loadPoItems();
                 restorePoNominal();
-                document.getElementById('warningSubtotal').style.display = 'none';
 
-            } else {
-                loadManualForm();
+            });
+
+
+            function rupiah(n) {
+                return Math.round(n).toLocaleString('id-ID');
             }
 
-        });
+            function recalculateInvoice() {
 
-        document.addEventListener('click', function(e) {
+    const nominalInvoice = getNominalInvoice();
 
-            if (e.target.classList.contains('remove-item')) {
-                e.target.closest('.item-row').remove();
-            }
+    // =====================
+    // DISKON
+    // =====================
+    const jenis = document.getElementById('tipe_diskon').value;
+    const nilai = parseFloat(document.getElementById('nilai_diskon').value) || 0;
 
-            if (e.target.classList.contains('add-item')) {
-                addManualRow();
-            }
-        });
+    let diskon = 0;
 
-        // Default: Sama dengan PO aktif
-        checkbox.checked = true;
-        loadPoItems();
-        restorePoNominal();
+    if (jenis === 'persen') {
+        diskon = nominalInvoice * nilai / 100;
+    } else {
+        diskon = nilai;
+    }
+
+    if (diskon > nominalInvoice) diskon = nominalInvoice;
+
+    const afterDiscount = nominalInvoice - diskon;
+
+    document.getElementById('jumlah_diskon').innerText = rupiah(diskon);
+    document.getElementById('total_after_discount').innerText = rupiah(afterDiscount);
+    document.getElementById('totalAfterDiscountInput').value = afterDiscount;
+
+    // =====================
+    // DPP
+    // =====================
+    const dpp = Math.round((afterDiscount * 11) / 12);
+
+    // =====================
+    // PAJAK
+    // =====================
+    const taxes = document.querySelectorAll('.tax-checkbox:checked');
+
+    let totalPPN = 0;
+    let totalPPH = 0;
+
+    taxes.forEach(tax => {
+
+        const rate = parseFloat(tax.dataset.rate) || 0;
+        const type = tax.dataset.type;
+
+        if (type === 'ppn') {
+            totalPPN += Math.round((dpp * 12) / 100);
+        } else {
+            totalPPH += Math.round((afterDiscount * rate) / 100);
+        }
 
     });
 
+    // =====================
+    // TOTAL
+    // =====================
+    const finalTotal = afterDiscount + totalPPN - totalPPH;
 
-    function rupiah(n) {
-        return Math.round(n).toLocaleString('id-ID');
-    }
+    document.getElementById('finalTotal').innerText = rupiah(finalTotal);
+    document.getElementById('totalInput').value = finalTotal;
 
     // =====================
-    // Ambil Base Nominal Invoice
+    // TAMPILKAN DPP
     // =====================
-    function getNominalInvoice() {
-        return parseFloat(document.querySelector('input[name="nominal_invoice"]').value) || 0;
-    }
+    const dppContainer = document.getElementById('dppContainer');
 
-    // =====================
-    // Diskon
-    // =====================
-    function hitungDiskon() {
-
-        const nominalInvoice = getNominalInvoice();
-        const jenis = document.getElementById('tipe_diskon').value;
-        const nilai = parseFloat(document.getElementById('nilai_diskon').value) || 0;
-
-        let diskon = 0;
-
-        if (jenis === 'persen') {
-            diskon = nominalInvoice * nilai / 100;
-        } else {
-            diskon = nilai;
-        }
-
-        if (diskon > nominalInvoice) diskon = nominalInvoice;
-
-        const totalAfterDiscount = nominalInvoice - diskon;
-
-        document.getElementById('jumlah_diskon').innerText = rupiah(diskon);
-        document.getElementById('total_after_discount').innerText = rupiah(totalAfterDiscount);
-
-        document.getElementById('discountTypeInput').value = jenis;
-        document.getElementById('discountValueInput').value = nilai;
-        document.getElementById('totalAfterDiscountInput').value = totalAfterDiscount;
-
-        hitungDPP();
-        hitungPajak();
-        hitungTotalAkhir();
-    }
-
-    document.getElementById('tipe_diskon').addEventListener('change', hitungDiskon);
-    document.getElementById('nilai_diskon').addEventListener('input', hitungDiskon);
-
-    //     function hitungDPP() {
-
-    //         const nominalInvoice = getNominalInvoice();
-    //         const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
-
-    //         // Tentukan base
-    //         const base = afterDiscount > 0 && afterDiscount !== nominalInvoice ?
-    //             afterDiscount :
-    //             nominalInvoice;
-
-    //         // const dpp = base * 11 / 12; ini bilangan bulat
-    //         const dpp = Math.round((base * 11) / 12); // ini nominal asli
-
-    //         const container = document.getElementById('dppContainer');
-
-    //         container.innerHTML = `
-    //     <div class="d-flex justify-content-between mb-1">
-    //         <span>DPP</span>
-    //         <strong>Rp ${rupiah(dpp)}</strong>
-    //     </div>
-    // `;
-
-    //         return dpp;
-    //     }
-
-    // =====================
-    // Pajak
-    // =====================
-    // function hitungPajak() {
-
-    //     const nominalInvoice = getNominalInvoice();
-    //     const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
-
-    //     const base = (afterDiscount > 0 && afterDiscount !== nominalInvoice) ?
-    //         afterDiscount :
-    //         nominalInvoice;
-
-    //     // DPP = base × 11/12 (truncate)
-    //     const dpp = Math.round((base * 11) / 12);
-
-    //     const taxes = document.querySelectorAll('.tax-checkbox:checked');
-    //     const container = document.getElementById('taxContainer');
-
-    //     container.innerHTML = '';
-
-    //     taxes.forEach(el => {
-
-    //         const rate = parseFloat(el.dataset.rate) || 0;
-    //         const name = el.dataset.name;
-    //         const type = el.dataset.type;
-
-    //         let amount = 0;
-
-    //         if (type === 'ppn') {
-    //             // PPN = DPP × 12%
-    //             amount = Math.round((dpp * 12) / 100);
-    //         } else {
-    //             // PPh = base × rate%
-    //             amount = Math.round((base * rate) / 100);
-    //         }
-
-    //         container.innerHTML += `
-    // <div class="d-flex justify-content-between mb-1">
-    //     <span>${name}</span>
-    //     <strong>Rp ${rupiah(amount)}</strong>
-    // </div>`;
-    //     });
-    // }
-
-
-    //dpp dan pajak di satukan
-    function hitungPajak() {
-
-        const nominalInvoice = getNominalInvoice();
-        const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
-
-        const base = (afterDiscount > 0 && afterDiscount !== nominalInvoice) ?
-            afterDiscount :
-            nominalInvoice;
-
-        const taxes = document.querySelectorAll('.tax-checkbox:checked');
-        const dppContainer = document.getElementById('dppContainer');
-        const taxContainer = document.getElementById('taxContainer');
-
-        dppContainer.innerHTML = '';
-        taxContainer.innerHTML = '';
-
-        // ❌ Kalau tidak ada pajak → jangan tampilkan DPP
-        if (taxes.length === 0) {
-            return;
-        }
-
-        // =====================
-        // HITUNG DPP
-        // =====================
-        const dpp = Math.round((base * 11) / 12);
+    if (taxes.length > 0) {
 
         dppContainer.innerHTML = `
+        <div class="d-flex justify-content-between mb-1">
+            <span>DPP</span>
+            <strong>Rp ${rupiah(dpp)}</strong>
+        </div>
+        `;
+
+    } else {
+
+        dppContainer.innerHTML = '';
+
+    }
+
+}
+            // =====================
+            // Ambil Base Nominal Invoice
+            // =====================
+            function getNominalInvoice() {
+                return parseFloat(document.querySelector('input[name="nominal_invoice"]').value) || 0;
+            }
+
+            // =====================
+            // Diskon
+            // =====================
+            function hitungDiskon() {
+
+                const nominalInvoice = getNominalInvoice();
+                const jenis = document.getElementById('tipe_diskon').value;
+                const nilai = parseFloat(document.getElementById('nilai_diskon').value) || 0;
+
+                let diskon = 0;
+
+                if (jenis === 'persen') {
+                    diskon = nominalInvoice * nilai / 100;
+                } else {
+                    diskon = nilai;
+                }
+
+                if (diskon > nominalInvoice) diskon = nominalInvoice;
+
+                const totalAfterDiscount = nominalInvoice - diskon;
+
+                document.getElementById('jumlah_diskon').innerText = rupiah(diskon);
+                document.getElementById('total_after_discount').innerText = rupiah(totalAfterDiscount);
+
+                document.getElementById('discountTypeInput').value = jenis;
+                document.getElementById('discountValueInput').value = nilai;
+                document.getElementById('totalAfterDiscountInput').value = totalAfterDiscount;
+
+                // hitungDPP();
+                // hitungPajak();
+                // hitungTotalAkhir();
+                recalculateInvoice();
+            }
+
+document.getElementById('tipe_diskon').addEventListener('change', recalculateInvoice);
+document.getElementById('nilai_diskon').addEventListener('input', recalculateInvoice);
+            //     function hitungDPP() {
+
+            //         const nominalInvoice = getNominalInvoice();
+            //         const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
+
+            //         // Tentukan base
+            //         const base = afterDiscount > 0 && afterDiscount !== nominalInvoice ?
+            //             afterDiscount :
+            //             nominalInvoice;
+
+            //         // const dpp = base * 11 / 12; ini bilangan bulat
+            //         const dpp = Math.round((base * 11) / 12); // ini nominal asli
+
+            //         const container = document.getElementById('dppContainer');
+
+            //         container.innerHTML = `
+        //     <div class="d-flex justify-content-between mb-1">
+        //         <span>DPP</span>
+        //         <strong>Rp ${rupiah(dpp)}</strong>
+        //     </div>
+        // `;
+
+            //         return dpp;
+            //     }
+
+            // =====================
+            // Pajak
+            // =====================
+            // function hitungPajak() {
+
+            //     const nominalInvoice = getNominalInvoice();
+            //     const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
+
+            //     const base = (afterDiscount > 0 && afterDiscount !== nominalInvoice) ?
+            //         afterDiscount :
+            //         nominalInvoice;
+
+            //     // DPP = base × 11/12 (truncate)
+            //     const dpp = Math.round((base * 11) / 12);
+
+            //     const taxes = document.querySelectorAll('.tax-checkbox:checked');
+            //     const container = document.getElementById('taxContainer');
+
+            //     container.innerHTML = '';
+
+            //     taxes.forEach(el => {
+
+            //         const rate = parseFloat(el.dataset.rate) || 0;
+            //         const name = el.dataset.name;
+            //         const type = el.dataset.type;
+
+            //         let amount = 0;
+
+            //         if (type === 'ppn') {
+            //             // PPN = DPP × 12%
+            //             amount = Math.round((dpp * 12) / 100);
+            //         } else {
+            //             // PPh = base × rate%
+            //             amount = Math.round((base * rate) / 100);
+            //         }
+
+            //         container.innerHTML += `
+        // <div class="d-flex justify-content-between mb-1">
+        //     <span>${name}</span>
+        //     <strong>Rp ${rupiah(amount)}</strong>
+        // </div>`;
+            //     });
+            // }
+
+
+            //dpp dan pajak di satukan
+            function hitungPajak() {
+
+                const nominalInvoice = getNominalInvoice();
+                const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
+
+                const base = (afterDiscount > 0 && afterDiscount !== nominalInvoice) ?
+                    afterDiscount :
+                    nominalInvoice;
+
+                const taxes = document.querySelectorAll('.tax-checkbox:checked');
+                const dppContainer = document.getElementById('dppContainer');
+                const taxContainer = document.getElementById('taxContainer');
+
+                dppContainer.innerHTML = '';
+                taxContainer.innerHTML = '';
+
+                // ❌ Kalau tidak ada pajak → jangan tampilkan DPP
+                if (taxes.length === 0) {
+                    return;
+                }
+
+                // =====================
+                // HITUNG DPP
+                // =====================
+                const dpp = Math.round((base * 11) / 12);
+
+                dppContainer.innerHTML = `
             <div class="d-flex justify-content-between mb-1">
                 <span>DPP</span>
                 <strong>Rp ${rupiah(dpp)}</strong>
             </div>
         `;
 
-        // =====================
-        // HITUNG PAJAK
-        // =====================
-        taxes.forEach(el => {
+                // =====================
+                // HITUNG PAJAK
+                // =====================
+                taxes.forEach(el => {
 
-            const rate = parseFloat(el.dataset.rate) || 0;
-            const name = el.dataset.name;
-            const type = el.dataset.type;
+                    const rate = parseFloat(el.dataset.rate) || 0;
+                    const name = el.dataset.name;
+                    const type = el.dataset.type;
 
-            let amount = 0;
+                    let amount = 0;
 
-            if (type === 'ppn') {
-                amount = Math.round((dpp * 12) / 100);
-            } else {
-                amount = Math.round((base * rate) / 100);
-            }
+                    if (type === 'ppn') {
+                        amount = Math.round((dpp * 12) / 100);
+                    } else {
+                        amount = Math.round((base * rate) / 100);
+                    }
 
-            taxContainer.innerHTML += `
+                    taxContainer.innerHTML += `
                 <div class="d-flex justify-content-between mb-1">
                     <span>${name}</span>
                     <strong>Rp ${rupiah(amount)}</strong>
                 </div>
             `;
-        });
-    }
-    document.querySelectorAll('.tax-checkbox').forEach(el => {
-        el.addEventListener('change', function() {
-            hitungPajak();
-        });
-    });
-    // =====================
-    // Total Akhir
-    // =====================
-    function hitungTotalAkhir() {
-
-        const nominalInvoice = getNominalInvoice();
-        const afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput').value) || 0;
-
-        const base = (afterDiscount > 0 && afterDiscount !== nominalInvoice) ?
-            afterDiscount :
-            nominalInvoice;
-
-        // DPP truncate
-        const dpp = Math.round((base * 11) / 12);
-
-        const taxes = document.querySelectorAll('.tax-checkbox:checked');
-
-        let totalPPN = 0;
-        let totalPPH = 0;
-
-        taxes.forEach(tax => {
-
-            const rate = parseFloat(tax.dataset.rate) || 0;
-            const type = tax.dataset.type;
-
-            if (type === 'ppn') {
-                totalPPN += Math.round((dpp * 12) / 100);
-            } else {
-                totalPPH += Math.round((base * rate) / 100);
+                });
             }
-        });
+            document.querySelectorAll('.tax-checkbox').forEach(el => {
+                el.addEventListener('change', function() {
+                    hitungPajak();
+                });
+            });
+            // =====================
+            // Total Akhir
+            // =====================
+function hitungTotalAkhir() {
 
-        // Total akhir
-        const finalTotal = base + totalPPN - totalPPH;
+    const nominalInvoice = getNominalInvoice();
 
-        document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-        document.getElementById('totalInput').value = finalTotal;
+    let afterDiscount = parseFloat(document.getElementById('totalAfterDiscountInput')?.value);
+
+    if (isNaN(afterDiscount) || afterDiscount === 0) {
+        afterDiscount = nominalInvoice;
     }
 
-    document.querySelectorAll('.tax-checkbox').forEach(el =>
-        el.addEventListener('change', () => {
-            // hitungDPP();
-            hitungPajak();
-            hitungTotalAkhir();
-        })
-    );
+    const base = afterDiscount;
 
-    // =====================
-    // INIT
-    // =====================
-    document.addEventListener('DOMContentLoaded', function() {
+    // DPP
+    const dpp = Math.round((base * 11) / 12);
 
-        // set default after discount = nominal invoice
-        document.getElementById('totalAfterDiscountInput').value = getNominalInvoice();
-        document.getElementById('total_after_discount').innerText = rupiah(getNominalInvoice());
-        // hitungDPP();
-        hitungPajak();
-        hitungTotalAkhir();
+    const taxes = document.querySelectorAll('.tax-checkbox:checked');
+
+    let totalPPN = 0;
+    let totalPPH = 0;
+
+    taxes.forEach(tax => {
+
+        const rate = parseFloat(tax.dataset.rate) || 0;
+        const type = tax.dataset.type;
+
+        if (type === 'ppn') {
+            totalPPN += Math.round((dpp * 12) / 100);
+        } else {
+            totalPPH += Math.round((base * rate) / 100);
+        }
     });
-</script>
 
+    const finalTotal = base + totalPPN - totalPPH;
+
+    document.getElementById('finalTotal').innerText = rupiah(finalTotal);
+    document.getElementById('totalInput').value = finalTotal;
+}
+   document.querySelectorAll('.tax-checkbox').forEach(el =>
+    el.addEventListener('change', recalculateInvoice)
+);
+
+            // =====================
+            // INIT
+            // =====================
+            document.addEventListener('DOMContentLoaded', function() {
+
+                // set default after discount = nominal invoice
+                document.getElementById('totalAfterDiscountInput').value = getNominalInvoice();
+                document.getElementById('total_after_discount').innerText = rupiah(getNominalInvoice());
+                // // hitungDPP();
+                // hitungPajak();
+                // hitungTotalAkhir();
+                recalculateInvoice();
+            });
+
+        </script>
 @endsection
 
 
