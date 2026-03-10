@@ -91,12 +91,17 @@
                 <th>Jumlah</th>
             </tr>
         </thead>
+<<<<<<< HEAD
         @php
+=======
+       @php
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
         $isGabungan = !empty($invoice->harga_gabungan);
         $rowspan = $invoice->produk->count();
         @endphp
 
         <tbody>
+<<<<<<< HEAD
             @foreach ($invoice->produk as $i => $item)
             <tr>
 
@@ -119,12 +124,40 @@
                     Rp {{ number_format($invoice->harga_gabungan,0,',','.') }}
                 </td>
 
+=======
+        @foreach ($invoice->produk as $i => $item)
+        <tr>
+
+            <td>
+                {{ $item->perizinan->jenis ?? $item->perizinan_lainnya ?? '-' }}
+            </td>
+
+            <td>
+                {{ $item->deskripsi ?? '-' }}
+            </td>
+
+            <td class="text-end">
+                {{ $item->qty }}
+            </td>
+
+            @if($isGabungan)
+
+                @if($i === 0)
+                <td class="text-end align-middle" rowspan="{{ $rowspan }}">
+                    Rp {{ number_format($invoice->harga_gabungan,0,',','.') }}
+                </td>
+
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
                 <td class="text-end align-middle" rowspan="{{ $rowspan }}">
                     Rp {{ number_format($invoice->harga_gabungan,0,',','.') }}
                 </td>
                 @endif
 
+<<<<<<< HEAD
                 @else
+=======
+            @else
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
 
                 <td class="text-end">
                     Rp {{ number_format($item->harga_satuan,0,',','.') }}
@@ -134,10 +167,17 @@
                     Rp {{ number_format(($item->qty ?? 0) * ($item->harga_satuan ?? 0),0,',','.') }}
                 </td>
 
+<<<<<<< HEAD
                 @endif
 
             </tr>
             @endforeach
+=======
+            @endif
+
+        </tr>
+        @endforeach
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
         </tbody>
     </table>
 

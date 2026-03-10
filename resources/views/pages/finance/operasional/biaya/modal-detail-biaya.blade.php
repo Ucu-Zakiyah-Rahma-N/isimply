@@ -396,12 +396,21 @@
         }
 
 
+<<<<<<< HEAD
         /* ================= BUILD ROW ================= */
 
         function buildRow(data = {}) {
+=======
+            const template = document.getElementById('itemTemplate');
+            const fragment = template.content.cloneNode(true);
+            const row = fragment.querySelector('.item-row');
+            document.getElementById('itemContainer').appendChild(row);
+            if (!row) return null;
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
 
             let pajakOptions = `<option value="0" data-nilai="0" data-kategori="">Non Pajak</option>`;
 
+<<<<<<< HEAD
             pajakList.forEach(p => {
                 pajakOptions += `
 <option value="${p.id}"
@@ -469,7 +478,91 @@ class="btn btn-outline-danger btnRemove">
 
 </div>
 `;
+=======
+            if (Array.isArray(pajakList)) {
+                pajakList.forEach(p => {
+                    const opt = document.createElement('option');
+
+                    opt.value = p.id;
+                    opt.textContent = `${p.nama_akun || p.nama || ''} (${p.nilai_coa || p.nilai || 0}%)`;
+
+                    opt.dataset.nilai = p.nilai_coa || p.nilai || 0;
+                    opt.dataset.kategori = (p.kategori_pajak || '').toUpperCase();
+
+                    pajakSelect.appendChild(opt);
+                });
+            }
+
+            if (data) {
+                row.querySelector('[name="deskripsiEdit[]"]').value = data.deskripsi ?? '';
+                row.querySelector('.qtyEdit').value = data.qty ?? 1;
+                row.querySelector('.hargaEdit').value = data.harga ?? 0;
+                row.querySelector('.diskonEdit').value = data.diskon ?? 0;
+                row.querySelector('.jumlah').value = data.jumlah ?? 0;
+
+                if (data.pajak_id) {
+                    pajakSelect.value = data.pajak_id;
+                }
+            }
+
+            row.querySelector('.btnRemove').addEventListener('click', function() {
+                row.remove();
+                hitungSemua();
+            });
+
+            return row; // ✅ RETURN ROW
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
         }
+        // /* ================= CREATE ROW ================= */
+        // function createRow(data = null) {
+
+        //     const fragment = itemTemplate.content.cloneNode(true);
+        //     const row = fragment.querySelector('.item-row');
+
+        //     if (!row) return null;
+
+        //     const pajakSelect = row.querySelector('.pajakEdit');
+
+        //     pajakSelect.innerHTML = '<option value="0" data-nilai="0" data-kategori="">Non Pajak</option>';
+
+        //     pajakList.forEach(p => {
+
+        //         const opt = document.createElement('option');
+
+        //         opt.value = p.id;
+        //         // opt.textContent = `${p.nama_akun} (${p.nilai_coa}%)`;
+
+        //         // opt.dataset.nilai = p.nilai_coa ?? 0;
+        //         // opt.dataset.kategori = (p.kategori_pajak ?? '').toUpperCase();
+        //         opt.textContent = `${p.nama_akun || p.nama} (${p.nilai_coa || p.nilai || 0}%)`;
+
+        //         opt.dataset.nilai = p.nilai_coa || p.nilai || 0;
+
+        //         opt.dataset.kategori = (p.kategori_pajak || '').toUpperCase();
+
+        //         pajakSelect.appendChild(opt);
+
+        //     }
+        // );
+
+        //     if (data) {
+
+        //         row.querySelector('[name="deskripsiEdit[]"]').value = data.deskripsi ?? '';
+        //         row.querySelector('.qtyEdit').value = data.qty ?? 1;
+        //         row.querySelector('.hargaEdit').value = data.harga ?? 0;
+        //         row.querySelector('.diskonEdit').value = data.diskon ?? 0;
+
+        //         // SET PAJAK
+        //         if (data.pajak_id) {
+        //             pajakSelect.value = data.pajak_id;
+        //         } else {
+        //             pajakSelect.value = 0;
+        //         }
+
+        //     }
+
+        //     return row;
+        // }
 
 
         /* ================= HITUNG ================= */
@@ -577,6 +670,7 @@ class="btn btn-outline-danger btnRemove">
             }
 
         });
+<<<<<<< HEAD
 
 
         /* auto hitung saat edit */
@@ -604,28 +698,42 @@ class="btn btn-outline-danger btnRemove">
 
         /* ================= LOAD DETAIL ================= */
 
+=======
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
         window.loadDetailPengajuan = async function(id) {
+            console.log('Load Detail Pengajuan ID:', id); // pastikan ID ada
 
             console.log("Load detail pengajuan:", id);
 
             try {
-
                 resetForm();
 
                 await loadMaster();
 
                 const res = await fetch(`/finance/pengajuan-biaya/detail/${id}`);
+<<<<<<< HEAD
+=======
+                console.log('Fetch status:', res.status); // cek 200?
+                if (!res.ok) throw new Error('Gagal ambil detail');
+
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
                 const response = await res.json();
+                console.log('Response data:', response); // cek apakah data header/items ada
 
                 if (response.status !== 'success') {
                     alert('Data tidak ditemukan');
                     return;
                 }
 
+                // ✅ Hanya setelah ini items bisa diakses
                 const {
                     header,
                     items
                 } = response.data;
+                console.log("ITEMS:", items); // pindahkan di sini
+                console.log("ITEM CONTAINER:", itemContainer);
+                console.log("ITEM DATA:", items);
+                console.log("TEMPLATE:", itemTemplate);
 
                 $('#pengajuan_id').val(header.id ?? '');
 
@@ -640,30 +748,47 @@ class="btn btn-outline-danger btnRemove">
 
                 itemContainer.innerHTML = '';
 
+<<<<<<< HEAD
                 if (Array.isArray(items) && items.length) {
 
                     items.forEach(item => {
                         itemContainer.insertAdjacentHTML('beforeend', buildRow(item));
-                    });
+=======
+                if (items && items.length > 0) {
+                    items.forEach(item => {
 
+                        const row = createRow(item);
+
+                        console.log("ROW:", row);
+
+                        if (row) itemContainer.appendChild(row);
+
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
+                    });
                 } else {
+<<<<<<< HEAD
 
                     itemContainer.insertAdjacentHTML('beforeend', buildRow());
 
+=======
+                    const rowFragment = createRow();
+                    if (rowFragment) itemContainer.appendChild(rowFragment);
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
                 }
 
                 hitungSemua();
-
                 bsModal.show();
 
             } catch (err) {
-
                 console.error(err);
+<<<<<<< HEAD
                 alert('Gagal memuat detail pengajuan');
 
+=======
+                alert('Gagal memuat detail.');
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
             }
 
         };
-
     });
 </script>

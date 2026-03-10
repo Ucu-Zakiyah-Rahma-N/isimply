@@ -689,7 +689,11 @@ class FinanceController extends Controller
         $isSameWithPo = $invoice->is_same_with_po;
 
         $perizinans = $quotation ? $quotation->perizinan : collect();
+<<<<<<< HEAD
         $perizinan = Perizinan::orderBy('jenis')->get();
+=======
+          $perizinan = Perizinan::orderBy('jenis')->get();
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
 
         $ppnList = Coa::where('id', 1)->get();
 

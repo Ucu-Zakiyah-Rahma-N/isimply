@@ -354,7 +354,11 @@
         const addButton = document.querySelector('.add-item');
 
         const poItems = @json($perizinans ?? []);
+<<<<<<< HEAD
         const invoiceItems = @json($invoice - > produk ?? []);
+=======
+        const invoiceItems = @json($invoice -> produk ?? []);
+>>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
         const isSameWithPo = @json($isSameWithPo ?? false);
         const perizinanList = @json($perizinan);
         const isGabunganEl = document.getElementById('isGabunganInput');
