@@ -187,50 +187,73 @@ class OperasionalController extends Controller
 
             $pengajuan = PengajuanBiaya::with([
                 'kontak:id,nama',
+                'items',
                 'items.coa:id,nama_akun,nilai_coa,kategori_pajak'
             ])->findOrFail($id);
 
             /** ================= HEADER ================= */
+
             $header = [
                 'id'                => $pengajuan->id,
                 'nomor_pengajuan'   => $pengajuan->nomor_pengajuan,
                 'jenis_pengajuan'   => $pengajuan->jenis_pengajuan,
-                'tgl_pengajuan' => $pengajuan->tgl_pengajuan
-                    ? $pengajuan->tgl_pengajuan->format('Y-m-d')
+
+                'tgl_pengajuan'     => $pengajuan->tgl_pengajuan
+                    ? \Carbon\Carbon::parse($pengajuan->tgl_pengajuan)->format('Y-m-d')
                     : null,
+
                 'metode_pembayaran' => $pengajuan->metode_pembayaran,
                 'project_id'        => $pengajuan->project_id,
                 'jenis_project'     => $pengajuan->jenis_project,
+
                 'kontak_id'         => $pengajuan->kontak_id,
                 'kontak_nama'       => optional($pengajuan->kontak)->nama,
+
                 'is_urgent'         => (bool) $pengajuan->is_urgent,
-                'subtotal'          => $pengajuan->subtotal,
-                'total_diskon'      => $pengajuan->total_diskon,
-                'total_ppn'         => $pengajuan->total_ppn,
-                'grand_total'       => $pengajuan->grand_total,
+
+                'subtotal'          => $pengajuan->subtotal ?? 0,
+                'total_diskon'      => $pengajuan->total_diskon ?? 0,
+                'total_ppn'         => $pengajuan->total_ppn ?? 0,
+                'grand_total'       => $pengajuan->grand_total ?? 0,
+
                 'lampiran'          => $pengajuan->lampiran
                     ? asset('storage/' . $pengajuan->lampiran)
                     : null,
+
                 'status'            => $pengajuan->status,
             ];
 
             /** ================= ITEMS ================= */
+
             $items = $pengajuan->items->map(function ($item) {
 
                 return [
+
                     'item_id'        => $item->id,
-                    'deskripsi'      => $item->deskripsi,
-                    'qty'            => $item->qty,
-                    'harga'          => $item->harga,
-                    'diskon'         => $item->diskon,
-                    'pajak_id'       => $item->pajak_id,
+
+                    'deskripsi'      => $item->deskripsi ?? '',
+
+                    'qty'            => (float) ($item->qty ?? 0),
+
+                    'harga'          => (float) ($item->harga ?? 0),
+
+                    'diskon'         => (float) ($item->diskon ?? 0),
+
+                    'pajak_id'       => $item->pajak_id ?? 0,
+
                     'pajak_nama'     => optional($item->coa)->nama_akun,
-                    'pajak_persen'   => optional($item->coa)->nilai_coa ?? 0,
+
+                    'pajak_persen'   => (float) (optional($item->coa)->nilai_coa ?? 0),
+
                     'kategori_pajak' => optional($item->coa)->kategori_pajak,
-                    'nilai_pajak'    => $item->nilai_pajak,
-                    'jumlah'         => $item->jumlah,
+
+                    'nilai_pajak'    => (float) ($item->nilai_pajak ?? 0),
+
+                    'jumlah'         => (float) ($item->jumlah ?? 0),
                 ];
-            });
+            })->values()->toArray();
+
+            /** ================= RESPONSE ================= */
 
             return response()->json([
                 'status' => 'success',
@@ -243,11 +266,12 @@ class OperasionalController extends Controller
 
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Data tidak ditemukan'
+                'message' => 'Data pengajuan tidak ditemukan'
             ], 404);
         } catch (\Throwable $e) {
 
             Log::error('SHOW PENGAJUAN BIAYA ERROR', [
+                'id'    => $id,
                 'error' => $e->getMessage(),
                 'line'  => $e->getLine(),
                 'file'  => $e->getFile()
