@@ -92,17 +92,16 @@
             font-weight: bold;
             border-top: 1px solid #000;
         }
+
         table tr td {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-}
+            padding-top: 2px !important;
+            padding-bottom: 2px !important;
+        }
 
-.summary-inner td {
-    padding: 2px 0 !important;
-    line-height: 1.2 !important;
-}
-
-        
+        .summary-inner td {
+            padding: 2px 0 !important;
+            line-height: 1.2 !important;
+        }
     </style>
 </head>
 
@@ -113,7 +112,16 @@
 
         {{-- LOGO --}}
         <div style="position:absolute; left:0; top:0;">
-            <img src="{{ $logo }}" width="70">
+            <div>
+                <img src="{{ $logo }}" width="70">
+            </div>
+            <div class="company-info" style="margin-left:0px;">
+                <strong>PT SIMPLY DIMENSI INDONESIA</strong><br>
+                Jl. Jakarta No. 13 A Kelurahan Karangpawitan<br>
+                Karawang Barat, Kabupaten Karawang, Jawa Barat<br>
+                Telp: 0267-8407776<br>
+                Email: simplydimensiindonesia@gmail.com
+            </div>
         </div>
 
         {{-- TITLE --}}
@@ -128,11 +136,6 @@
                 {{-- KIRI --}}
                 <td width="60%" valign="top" style="padding-top:40px;">
                     <div style="margin-left:0; margin-top:5px;">
-                        <strong>PT SIMPLY DIMENSI INDONESIA</strong><br>
-                        Jl. Jakarta No. 13 A Kelurahan Karangpawitan<br>
-                        Karawang Barat, Kabupaten Karawang, Jawa Barat<br>
-                        Telp: 0267-8407776<br>
-                        Email: simplydimensiindonesia@gmail.com
                     </div>
                 </td>
 
@@ -149,17 +152,17 @@
                             <td>:</td>
                             <td>{{ \Carbon\Carbon::parse($invoice->tgl_inv)->format('d/m/Y') }}</td>
                         </tr>
-                        <tr>
+                        <!-- <tr>
                             <td>PIC Keuangan</td>
                             <td>:</td>
                             <td>{{ $invoice->po->nama_pic_keuangan ?? '-' }}</td>
-                        </tr>
+                        </tr> -->
                         <tr>
                             <td>Page</td>
                             <td>:</td>
                             <td>
                                 <script type="text/php">
-                                if (isset($pdf)) {
+                                    if (isset($pdf)) {
                                     echo $PAGE_NUM . " / " . $PAGE_COUNT;
                                 }
                             </script>
@@ -172,7 +175,7 @@
         </table>
 
         <table>
-            <div style="margin-top:10px; font-size:12px;"> <strong>To:</strong><br>
+            <div style="margin-top:40px; font-size:12px;"> <strong>To:</strong><br>
                 <strong>{{ strtoupper($invoice->customer->nama_perusahaan) }}</strong><br>
                 {{ $invoice->customer->detail_alamat ?? '-' }},
                 {{ $invoice->po->quotation->kawasan_industri->nama_kawasan ?? '-' }},
@@ -194,77 +197,77 @@
             <tbody>
 
                 @php
-                    $maxRows = 10; // atur supaya pas 1 halaman A4
-                    $currentRows = $invoice->produk->count();
+                $maxRows = 10; // atur supaya pas 1 halaman A4
+                $currentRows = $invoice->produk->count();
                 @endphp
 
                 {{-- Produk --}}
                 @foreach ($invoice->produk as $item)
-                    <tr>
+                <tr>
                     <td>
                         {{ $item->perizinan_id 
                             ? $item->perizinan->jenis ?? '-' 
                             : $item->perizinan_lainnya ?? '-' 
                         }}
-                    </td>                        
-                        <td class="text-right">{{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
-                        <td class="text-center">{{ $item->qty }}</td>
-                        <td class="text-right">{{ number_format($item->qty * $item->harga_satuan, 0, ',', '.') }}</td>
-                    </tr>
+                    </td>
+                    <td class="text-right">{{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
+                    <td class="text-center">{{ $item->qty }}</td>
+                    <td class="text-right">{{ number_format($item->qty * $item->harga_satuan, 0, ',', '.') }}</td>
+                </tr>
                 @endforeach
 
                 {{-- Baris kosong supaya tabel manjang --}}
                 @for ($i = $currentRows; $i < $maxRows; $i++)
                     <tr>
-                        <td style="height:25px;"></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                    <td style="height:25px;"></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
                     </tr>
-                @endfor
+                    @endfor
 
-                <tr>
-                    <td colspan="4" style="border-top: 2px solid #000; padding: 0;"></td>
-                </tr>
-                {{-- Remarks --}}
-                <tr>
-                    <td colspan="4">
-                        <strong>Remarks:</strong> {{ $invoice->remarks ?? '-' }}
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="4" style="border-top: 2px solid #000; padding: 0;"></td>
+                    </tr>
+                    {{-- Remarks --}}
+                    <tr>
+                        <td colspan="4">
+                            <strong>Remarks:</strong> {{ $invoice->remarks ?? '-' }}
+                        </td>
+                    </tr>
 
-                {{-- Summary --}}
-                <tr>
-                    <td></td>
-                    <td colspan="3">
-                        <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
-                            <tr>
-                                <td style="border:none;">Subtotal</td>
-                                <td style="border:none; text-align:right;">
-                                    Rp {{ number_format($calc['subtotal'], 0, ',', '.') }}
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
+                    {{-- Summary --}}
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
+                                <tr>
+                                    <td style="border:none;">Subtotal</td>
+                                    <td style="border:none; text-align:right;">
+                                        Rp {{ number_format($calc['subtotal'], 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-                <tr>
-                    <td></td>
-                    <td colspan="3">
-                        <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
-                            <tr>
-                                <td style="border:none;">
-                                    Termin ({{ $invoice->persentase_termin }}%)
-                                </td>
-                                <td style="border:none; text-align:right;">
-                                    Rp {{ number_format($calc['nominalInvoice'], 0, ',', '.') }}
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
+                                <tr>
+                                    <td style="border:none;">
+                                        Termin ({{ $invoice->persentase_termin }}%)
+                                    </td>
+                                    <td style="border:none; text-align:right;">
+                                        Rp {{ number_format($calc['nominalInvoice'], 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-                @if (!empty($calc['diskon']) && $calc['diskon'] > 0)
+                    @if (!empty($calc['diskon']) && $calc['diskon'] > 0)
                     <tr>
                         <td></td>
                         <td colspan="3">
@@ -296,9 +299,9 @@
                             </table>
                         </td>
                     </tr>
-                @endif
+                    @endif
 
-                @if (!empty($calc['ppn']) && $calc['ppn'] > 0)
+                    @if (!empty($calc['ppn']) && $calc['ppn'] > 0)
                     <tr>
                         <td></td>
                         <td colspan="3">
@@ -314,9 +317,9 @@
                             </table>
                         </td>
                     </tr>
-                @endif
+                    @endif
 
-                @if (!empty($calc['pph']) && $calc['pph'] > 0)
+                    @if (!empty($calc['pph']) && $calc['pph'] > 0)
                     <tr>
                         <td></td>
                         <td colspan="3">
@@ -332,67 +335,57 @@
                             </table>
                         </td>
                     </tr>
-                @endif
+                    @endif
 
-                <tr>
-                    <td></td>
-                    <td colspan="3">
-                        <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
-                            <tr>
-                                <td style="border:none;">
-                                    <strong>TOTAL</strong>
-                                </td>
-                                <td style="border:none; text-align:right;">
-                                    <strong>
-                                        Rp {{ number_format($calc['totalAkhir'], 0, ',', '.') }}
-                                    </strong>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
+                                <tr>
+                                    <td style="border:none;">
+                                        <strong>TOTAL</strong>
+                                    </td>
+                                    <td style="border:none; text-align:right;">
+                                        <strong>
+                                            Rp {{ number_format($calc['totalAkhir'], 0, ',', '.') }}
+                                        </strong>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
             </tbody>
         </table>
 
+<div style="width:100%; margin-top:25px; display:flex; justify-content:space-between; font-size:12px; align-items:flex-end;">
 
-        <div style="width:100%; margin-top:25px;">
+    <!-- NOTE KIRI -->
+    <div style="width:50%;">
+        <strong>Note:</strong>
+        <ul style="margin-top:5px; padding-left:15px;">
+            <li>PPh PT. Simply Dimensi Indonesia menggunakan tarif PPh Final Pasal 4 ayat (2) - 3,5% (Jasa Konsultan Konstruksi)</li>
+            <li><strong>Account Payment:</strong><br>Bank Mandiri<br>No. Rekening 1730012944519<br>a.n PT. Simply Dimensi Indonesia</li>
+            <li>Pembayaran dilakukan paling lambat 14 hari setelah dokumen invoice diserahkan.</li>
+        </ul>
+    </div>
 
-            {{-- NOTE KIRI --}}
-            <div style="width:55%; float:left; font-size:12px;">
-                <strong>Note:</strong>
-                <ul style="margin-top:5px; padding-left:15px;">
-                    <li>
-                        PPh PT. Simply Dimensi Indonesia menggunakan tarif
-                        PPh Final Pasal 4 ayat (2) - 3,5% (Jasa Konsultan Konstruksi)
-                    </li>
-                    <li>
-                        <strong>Account Payment:</strong><br>
-                        Bank Mandiri<br>
-                        No. Rekening 1730012944519<br>
-                        a.n PT. Simply Dimensi Indonesia
-                    </li>
-                    <li>
-                        Pembayaran dilakukan paling lambat 14 hari setelah dokumen invoice diserahkan.
-                    </li>
-                </ul>
-            </div>
+    <!-- SIGNATURE KANAN -->
+    <div style="width:40%; text-align:center;">
+        <p><strong>Issued by Signature</strong></p>
+        <p><strong>PT Simply Dimensi Indonesia</strong></p>
 
-                {{-- SIGNATURE --}}
-                <div style="margin-top:40px; text-align:center;">
-                    <p><strong>Issued by Signature</strong></p>
-                    <p><strong>PT Simply Dimensi Indonesia</strong></p>
+        <div style="height:80px;"></div>
 
-                    <div style="height:80px;"></div>
+        <p style="margin:0; text-decoration:underline;">Melasari Nugraha</p>
+        <p style="margin:0;">Staff Accounting</p>
+    </div>
 
-                    <p style="margin:0; text-decoration:underline;">
-                        Melasari Nugraha
-                    </p>
-                    <p style="margin:0;">Staff Accounting</p>
-                </div>
-            </div>
+</div>
+        
+    </div>
 
-            <div style="clear:both;"></div>
-        </div>
+    <div style="clear:both;"></div>
+    </div>
 
 </body>
 

@@ -10,14 +10,15 @@ use App\Models\Perizinan;
 use App\Models\Coa;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\ProdukInvoice;
 use App\Models\TaxInvoice;
 use App\Models\InvoicePayment;
 use App\Models\Journal;
 use App\Models\JournalDetail;
 use App\Models\QuotationPerizinan;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+
 use App\Helpers\TotalInvoiceHelper;
 use App\Helpers\InvoiceCalculatorHelper;
 use App\Helpers\JournalHelper;
@@ -655,6 +656,8 @@ class FinanceController extends Controller
             'po.quotation'
         ])->findOrFail($id);
 
+        $invoiceItems = $invoice->produk()->get();
+
         $subtotal = 0;
         foreach ($invoice->produk as $item) {
             if ($item->harga_tipe !== 'gabungan') {
@@ -689,11 +692,7 @@ class FinanceController extends Controller
         $isSameWithPo = $invoice->is_same_with_po;
 
         $perizinans = $quotation ? $quotation->perizinan : collect();
-<<<<<<< HEAD
         $perizinan = Perizinan::orderBy('jenis')->get();
-=======
-          $perizinan = Perizinan::orderBy('jenis')->get();
->>>>>>> a1705e4888b50cb06f86cb15e710ec823f6922f3
 
         $ppnList = Coa::where('id', 1)->get();
 
@@ -755,7 +754,9 @@ class FinanceController extends Controller
             'dppOld',
             'isSameWithPo',
             'isGabungan',
-            'quotation'
+            'quotation',
+            'invoiceItems'
+
         ));
     }
 
@@ -763,9 +764,8 @@ class FinanceController extends Controller
     // Update invoice
     public function update(Request $request, $id)
     {
-        dd($request->all());
         $invoice = Invoice::findOrFail($id);
-        //perbandingan harga sebelum dan pas edit inv
+
         $oldGrandTotal     = $invoice->grand_total;
         $oldNominalInvoice = $invoice->nominal_invoice;
         $oldPpn            = $invoice->ppn;
@@ -782,50 +782,62 @@ class FinanceController extends Controller
             'tipe_diskon' => 'nullable|string',
             'nilai_diskon' => 'nullable|numeric',
 
-            'items' => 'required|array|min:1',
-            'items.*.perizinan_id' => 'nullable|exists:perizinans,id',
-            'items..perizinan_lainnya' => 'nullable|string|required_without:items..perizinan_id',
-            'items.*.qty' => 'nullable|numeric',
-            'items.*.harga_satuan' => 'nullable|numeric',
+            'is_same_with_po' => 'nullable|boolean',
 
-            'tax' => 'nullable|array'
+
+            // 'items' => 'required|array|min:1',
+            'items' => 'required|array',
+            'items.*.id' => 'nullable|exists:produk_invoice,id',
+            'items.*.perizinan_input' => 'nullable|string',
+            'items.*.qty' => 'required|numeric|min:1',
+            'items.*.harga_satuan' => 'required|numeric|min:0',
+
+            'tax' => 'nullable|array',
+
         ]);
 
         DB::beginTransaction();
 
         try {
 
-            /* ===============================
-           1️⃣ HITUNG ULANG TOTAL
-        =============================== */
+            Log::info("Mulai update invoice ID: {$invoice->id}", [
+                'old' => [
+                    'grand_total' => $oldGrandTotal,
+                    'nominal_invoice' => $oldNominalInvoice,
+                    'ppn' => $oldPpn,
+                ],
+                'request' => $validated,
+            ]);
+
+            //cek is samewith po
+            $isSameWithPo = (int) $request->input('is_same_with_po', 0);
+
+            // ===============================
+            // 1️⃣ HITUNG ULANG TOTAL
+            // ===============================
             $isGabungan = $request->input('is_gabungan') == 1;
             $hargaGabungan = (float) $request->input('harga_gabungan', 0);
 
             if ($isGabungan) {
-                // 🔥 pakai harga gabungan sebagai acuan
                 $subtotal = $hargaGabungan;
                 $nominalPo = max($subtotal - ($validated['diskon_po'] ?? 0), 0);
+                Log::info("Menggunakan harga gabungan: $hargaGabungan");
             } else {
-                // Normal mode: hitung dari items
                 $subtotal = collect($validated['items'])->sum(function ($item) {
                     return ($item['qty'] ?? 1) * ($item['harga_satuan'] ?? 0);
                 });
                 $nominalPo = max($subtotal - ($validated['diskon_po'] ?? 0), 0);
+                Log::info("Menghitung subtotal dari items", ['subtotal' => $subtotal]);
             }
 
             $diskonPo = $validated['diskon_po'] ?? 0;
             $nominalPo = max($subtotal - $diskonPo, 0);
 
             $persenTermin = $validated['persentase_termin'];
-
             $nominalInvoice = $nominalPo * $persenTermin / 100;
             $tipeDiskon = $request->tipe_diskon;
             $nilaiDiskon = $request->nilai_diskon ?? 0;
-            /*
-        |--------------------------------------------------------------------------
-        | Kalau tidak ada diskon, NULL-kan semuanya
-        |--------------------------------------------------------------------------
-        */
+
             if (!$nilaiDiskon || $nilaiDiskon == 0) {
                 $tipeDiskon = null;
                 $nilaiDiskon = null;
@@ -841,37 +853,44 @@ class FinanceController extends Controller
             }
 
             $base = $totalAfterDiskon ?? $nominalInvoice;
-            /* ===============================
-           2️⃣ HITUNG PAJAK
-        =============================== */
+
+            // ===============================
+            // 2️⃣ HITUNG PAJAK
+            // ===============================
             $dpp = 0;
             $ppn = 0;
             $grandTotal = $base;
 
             if ($request->filled('tax')) {
-
                 $selectedTaxes = $request->tax;
-
-                // misal ID COA PPN kamu
-                $ppnCoaId = 1; // ganti sesuai ID PPN kamu
+                $ppnCoaId = 1;
 
                 if (in_array($ppnCoaId, $selectedTaxes)) {
-
                     $dpp = round(($base * 11) / 12);
                     $ppn = round(($dpp * 12) / 100);
-
                     $grandTotal = $base + $ppn;
                 }
             }
-            //pengecekan cek apakah nilai berubah?
+
             $financeChanged =
                 $oldGrandTotal != $grandTotal ||
                 $oldNominalInvoice != $nominalInvoice ||
                 $oldPpn != $ppn;
-            /* ===============================
-           3️⃣ UPDATE HEADER
-        =============================== */
 
+            Log::info("Hasil perhitungan invoice", [
+                'subtotal' => $subtotal,
+                'nominal_po' => $nominalPo,
+                'nominal_invoice' => $nominalInvoice,
+                'diskon' => $jumlahDiskon,
+                'total_after_diskon' => $totalAfterDiskon,
+                'ppn' => $ppn,
+                'grand_total' => $grandTotal,
+                'finance_changed' => $financeChanged
+            ]);
+
+            // ===============================
+            // 3️⃣ UPDATE HEADER
+            // ===============================
             $invoice->update([
                 'tgl_inv' => $validated['tgl_inv'],
                 'tgl_jatuh_tempo' => $validated['tgl_jatuh_tempo'],
@@ -891,29 +910,110 @@ class FinanceController extends Controller
                 'ppn' => $ppn,
                 'grand_total' => $grandTotal,
                 'harga_gabungan' => $isGabungan ? $hargaGabungan : null,
+
+                'is_same_with_po' => $isSameWithPo,
             ]);
 
-            /* ===============================
-           4️⃣ REPLACE PRODUK
-        =============================== */
+            Log::info("Header invoice diperbarui", ['invoice_id' => $invoice->id]);
+            Log::info("Status same with PO", [
+                'invoice_id' => $invoice->id,
+                'is_same_with_po' => $isSameWithPo
+            ]);
 
-            $invoice->produk()->delete();
+            // // ===============================
+            // // 4️⃣ CEK PERUBAHAN PRODUK
+            // // ===============================
+            $existingIds = $invoice->produk()->pluck('id')->toArray();
+            $submittedIds = [];
+            Log::info('ITEMS RAW', $request->items);
 
             foreach ($validated['items'] as $item) {
-                $invoice->produk()->create([
-                    'perizinan_id' => $item['perizinan_id'] ?? null,
-                    'perizinan_lainnya' => $item['perizinan_lainnya'] ?? null,
+
+                $perizinan_id = null;
+                $perizinan_lainnya = null;
+
+                // Ambil input user
+                $input = $item['perizinan_input'] ?? null;
+
+                if ($input) {
+                    if (str_starts_with($input, 'id:')) {
+                        $perizinan_id = str_replace('id:', '', $input);
+                    } else {
+                        $perizinan_lainnya = $input;
+                    }
+                } elseif (!empty($item['perizinan_id'])) {
+                    // fallback: ambil dari hidden input PO
+                    $perizinan_id = $item['perizinan_id'];
+                }
+
+                $data = [
+                    'perizinan_id' => $perizinan_id,
+                    'perizinan_lainnya' => $perizinan_lainnya,
                     'qty' => $item['qty'] ?? 1,
                     'deskripsi' => $item['deskripsi'] ?? null,
                     'harga_satuan' => $item['harga_satuan'] ?? 0,
-                ]);
+                ];
+
+                if (!empty($item['id'])) {
+                    $produk = $invoice->produk()->where('id', $item['id'])->first();
+                    if ($produk) {
+                        $produk->update($data);
+                        $submittedIds[] = $produk->id;
+                    }
+                } else {
+                    $produk = $invoice->produk()->create($data);
+                    $submittedIds[] = $produk->id;
+                }
             }
 
-            /* ===============================
-           5️⃣ REPLACE PAJAK
-        =============================== */
+            $deletedIds = array_diff($existingIds, $submittedIds);
 
+            if (!empty($deletedIds)) {
+                $invoice->produk()->whereIn('id', $deletedIds)->delete();
+            }
+
+            // // ===============================
+            // // 4️⃣ REPLACE PRODUK
+            // // ===============================
+            // $invoice->produk()->delete();
+            // Log::info("Semua produk invoice dihapus");
+
+            // foreach ($validated['items'] as $item) {
+
+            //     $perizinan_id = null;
+            //     $perizinan_lainnya = null;
+
+            //     $input = $item['perizinan_input'] ?? null;
+
+            //     if ($input) {
+
+            //         if (str_starts_with($input, 'id:')) {
+            //             $perizinan_id = str_replace('id:', '', $input);
+            //         } else {
+            //             $perizinan_lainnya = $input;
+            //         }
+            //     }
+
+            //     // fallback jika dari PO
+            //     if (!$input && !empty($item['perizinan_id'])) {
+            //         $perizinan_id = $item['perizinan_id'];
+            //     }
+
+            //     $invoice->produk()->create([
+            //         'perizinan_id'      => $perizinan_id,
+            //         'perizinan_lainnya' => $perizinan_lainnya,
+            //         'qty'               => $item['qty'] ?? 1,
+            //         'deskripsi'         => $item['deskripsi'] ?? null,
+            //         'harga_satuan'      => $item['harga_satuan'] ?? 0,
+            //     ]);
+            // }
+            // Log::info("Produk invoice diganti dengan items baru", ['items' => $validated['items']]);
+
+            // ===============================
+            // 5️⃣ REPLACE PAJAK
+            // ===============================
             $invoice->pajak()->delete();
+            Log::info("Semua pajak invoice dihapus");
 
             if (!empty($validated['tax'])) {
                 foreach ($validated['tax'] as $coaId) {
@@ -921,12 +1021,12 @@ class FinanceController extends Controller
                         'coa_id' => $coaId
                     ]);
                 }
+                Log::info("Pajak invoice diperbarui", ['tax' => $validated['tax']]);
             }
 
-            /* ===============================
-6️⃣ UPDATE JURNAL
-================================ */
-
+            // ===============================
+            // 6️⃣ UPDATE JURNAL
+            // ===============================
             $coaPiutangId   = 13;
             $coaPpnId       = 1;
             $coaPendapatanId = 56;
@@ -936,17 +1036,15 @@ class FinanceController extends Controller
                 ->first();
 
             if ($journal) {
-
-                // update header jurnal (tanggal / keterangan saja)
                 $journal->update([
                     'tanggal'    => $validated['tgl_inv'],
                     'keterangan' => 'Invoice ' . $invoice->no_invoice,
                 ]);
+                Log::info("Header jurnal diperbarui", ['journal_id' => $journal->id]);
 
-                // hanya rebuild detail jika nilai finansial berubah
                 if ($financeChanged) {
-
                     $journal->journaldetails()->delete();
+                    Log::info("Detail jurnal dihapus karena ada perubahan finansial");
 
                     $pendapatan = $totalAfterDiskon ?? $nominalInvoice;
 
@@ -969,21 +1067,31 @@ class FinanceController extends Controller
                             'credit' => $ppn,
                         ]);
                     }
+
+                    Log::info("Detail jurnal diperbarui", [
+                        'grand_total' => $grandTotal,
+                        'pendapatan' => $pendapatan,
+                        'ppn' => $ppn
+                    ]);
                 }
             }
+
             DB::commit();
+            Log::info("Invoice update berhasil", ['invoice_id' => $invoice->id]);
 
             return redirect()
                 ->route('finance.invoice_index')
                 ->with('success', 'Invoice berhasil diperbarui');
         } catch (\Throwable $e) {
-
             DB::rollBack();
+            Log::error("Gagal update invoice", [
+                'invoice_id' => $id,
+                'error' => $e->getMessage()
+            ]);
 
             return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
-
     public function print($id)
     {
         $invoice = Invoice::with([
@@ -999,7 +1107,7 @@ class FinanceController extends Controller
             'po.quotation.customer',
         ])->findOrFail($id);
 
-        // 🔥 SIMPAN HASIL KE VARIABEL LAIN
+        // SIMPAN HASIL KE VARIABEL LAIN
         $calc = InvoiceCalculatorHelper::from($invoice)->calculate();
         // dd($calc);
         // LOGO BASE64
@@ -1192,10 +1300,144 @@ class FinanceController extends Controller
         return redirect()->back()->with('success', 'Akun berhasil ditambahkan');
     }
 
+    // public function terima_pembayaran($id)
+    // {
+
+    //     $title = 'terima pembayaran';
+
+    //     $invoice = Invoice::with([
+    //         'customer',
+    //         'quotations.kawasan_industri',
+    //         'quotations.kabupaten',
+    //         'quotations.provinsi',
+    //         'po',
+    //         'produk.perizinan',
+    //         'pajak',
+    //         'po.quotation'
+    //     ])->findOrFail($id);
+    //     $coaPendapatan = Coa::find(56);
+
+    //     // ambil semua akun kas & bank (anak header)
+    //     $banks = Coa::whereIn('parent_akun_id', [3, 9])->get();
+
+    //     return view('pages.finance.terima_pembayaran', [
+    //         'title' => $title,
+    //         'invoice' => $invoice,
+    //         'coaPendapatan' => $coaPendapatan,
+    //         'banks' => $banks
+    //     ]);
+    // }
+
+    // public function storePembayaran(Request $request)
+    // {
+    //    $request->validate([
+    //         'invoice_id'   => 'required',
+    //         'coa_bank_id'  => 'required',
+    //         'nominal'      => 'required|numeric|min:1',
+    //         'tanggal'      => 'required|date',
+    //         'pph_rate'     => 'required|numeric'
+    //     ]);
+
+    //     DB::transaction(function () use ($request) {
+
+    //         $invoice = Invoice::findOrFail($request->invoice_id);
+
+    //         $grandTotal = $invoice->grand_total;
+
+    //         $pphRate = (float) $request->pph_rate;
+
+    //         $dpp = $invoice->total_after_diskon_inv
+    //             ?? $invoice->nominal_invoice;
+
+    //         // =========================
+    //         // HITUNG PPH OTOMATIS
+    //         // =========================
+    //         $nilaiPph = 0;
+    //         $coaPphId = null;
+
+    //         if ($pphRate == 2) {
+    //             $nilaiPph = round($dpp * 0.02);
+    //             $coaPphId = 103; // COA PPH 2%
+    //         }
+
+    //         if ($pphRate == 3.5) {
+    //             $nilaiPph = round($dpp * 0.035);
+    //             $coaPphId = 104; // COA PPH 3.5%
+    //         }
+
+    //         // Uang masuk ke bank
+    //         $nominalMasuk = $grandTotal - $nilaiPph;
+
+    //         $payment = InvoicePayment::create([
+    //             'invoice_id'       => $invoice->id,
+    //             'coa_bank_id'      => $request->coa_bank_id,
+    //             'nominal'          => $nominalMasuk,
+    //             'nilai_pph'        => $nilaiPph,
+    //             'coa_pph_id'       => $coaPphId,
+    //             'metode_pembayaran' => $request->metode_pembayaran,
+    //             'tanggal'          => $request->tanggal,
+    //             'keterangan'       => $request->keterangan,
+    //         ]);
+
+    //         $journal = Journal::create([
+    //             'tanggal'     => $request->tanggal,
+    //             'no_jurnal'   => Journal::generateNo(),
+    //             'keterangan'  => 'Penerimaan Invoice ' . $invoice->no_invoice,
+    //             'ref_type'    => 'invoice_payment',
+    //             'ref_id'      => $payment->id,
+    //         ]);
+
+    //         $details = [];
+
+    //         // 1️⃣ Debit Bank
+    //         $details[] = [
+    //             'journal_id' => $journal->id,
+    //             'coa_id'     => $request->coa_bank_id,
+    //             'debit'      => $nominalMasuk,
+    //             'credit'     => 0
+    //         ];
+
+    //         // 2️⃣ Debit PPH jika ada
+    //         if ($nilaiPph > 0) {
+    //             $details[] = [
+    //                 'journal_id' => $journal->id,
+    //                 'coa_id'     => $coaPphId,
+    //                 'debit'      => $nilaiPph,
+    //                 'credit'     => 0
+    //             ];
+    //         }
+
+    //         // 3️⃣ Credit Piutang
+    //         $details[] = [
+    //             'journal_id' => $journal->id,
+    //             // 'coa_id'     => 13, // Piutang Usaha
+    //             'coa_id' => $invoice->coa_piutang_id,
+    //             'debit'      => 0,
+    //             'credit'     => $grandTotal
+    //         ];
+
+    //         //timestamp juga disini menjadi loop
+    //         foreach ($details as $detail) {
+    //             JournalDetail::create($detail);
+    //         }
+
+    //         //update status invoice
+    //         $totalPaid = $invoice->payments()->sum('nominal') + $nominalMasuk;
+
+    //         if ($totalPaid >= $grandTotal) {
+    //             $invoice->update(['status' => 'paid']);
+    //         } else {
+    //             $invoice->update(['status' => 'posted']);
+    //         }
+    //     });
+    //     return redirect()
+    //         ->route('finance.invoice_index')
+    //         ->with('success', 'Pembayaran berhasil');
+    // }
+
     public function terima_pembayaran($id)
     {
-
-        $title = 'terima pembayaran';
+        $title = 'Terima Pembayaran';
 
         $invoice = Invoice::with([
             'customer',
@@ -1205,28 +1447,38 @@ class FinanceController extends Controller
             'po',
             'produk.perizinan',
             'pajak',
-            'po.quotation'
+            'po.quotation',
+            'payments'
         ])->findOrFail($id);
+
         $coaPendapatan = Coa::find(56);
 
-        // ambil semua akun kas & bank (anak header)
+        // ambil akun kas & bank
         $banks = Coa::whereIn('parent_akun_id', [3, 9])->get();
+
+        // total sudah dibayar
+        $totalPaid = $invoice->payments()->sum('nominal');
+
+        // sisa piutang
+        $sisaPiutang = $invoice->grand_total - $totalPaid;
 
         return view('pages.finance.terima_pembayaran', [
             'title' => $title,
             'invoice' => $invoice,
             'coaPendapatan' => $coaPendapatan,
-            'banks' => $banks
+            'banks' => $banks,
+            'totalPaid' => $totalPaid,
+            'sisaPiutang' => $sisaPiutang
         ]);
     }
 
     public function storePembayaran(Request $request)
     {
         $request->validate([
-            'invoice_id'   => 'required',
-            'coa_bank_id'  => 'required',
-            'nominal'      => 'required',
-            'tanggal'      => 'required',
+            'invoice_id'   => 'required|exists:invoice,id',
+            'coa_bank_id'  => 'required|exists:coa,id',
+            'nominal'      => 'required|numeric|min:1',
+            'tanggal'      => 'required|date',
             'pph_rate'     => 'required|numeric'
         ]);
 
@@ -1234,97 +1486,110 @@ class FinanceController extends Controller
 
             $invoice = Invoice::findOrFail($request->invoice_id);
 
-            $grandTotal = $invoice->grand_total;
+            // =========================
+            // HITUNG SISA PIUTANG
+            // =========================
+            $totalPaid = $invoice->payments()->sum('nominal');
+            $sisaPiutang = $invoice->grand_total - $totalPaid;
+            if ($request->nominal > $sisaPiutang) {
+                return back()->withErrors([
+                    'nominal' => 'Nominal pembayaran melebihi sisa piutang.'
+                ])->withInput();
+            }
+            $nominalBayar = $request->nominal;
 
+            // cegah overpayment
+            if ($nominalBayar > $sisaPiutang) {
+                throw new \Exception('Nominal pembayaran melebihi sisa piutang.');
+            }
+
+            // =========================
+            // HITUNG PPH
+            // =========================
             $pphRate = (float) $request->pph_rate;
 
-            $dpp = $invoice->total_after_diskon_inv
-                ?? $invoice->nominal_invoice;
-
-            // =========================
-            // HITUNG PPH OTOMATIS
-            // =========================
             $nilaiPph = 0;
             $coaPphId = null;
 
             if ($pphRate == 2) {
-                $nilaiPph = round($dpp * 0.02);
-                $coaPphId = 103; // COA PPH 2%
+                $nilaiPph = round($nominalBayar * 0.02);
+                $coaPphId = 103;
             }
 
             if ($pphRate == 3.5) {
-                $nilaiPph = round($dpp * 0.035);
-                $coaPphId = 104; // COA PPH 3.5%
+                $nilaiPph = round($nominalBayar * 0.035);
+                $coaPphId = 104;
             }
 
-            // Uang masuk ke bank
-            $nominalMasuk = $grandTotal - $nilaiPph;
+            // uang masuk ke bank
+            $nominalMasuk = $nominalBayar - $nilaiPph;
 
+            // =========================
+            // SIMPAN PEMBAYARAN
+            // =========================
             $payment = InvoicePayment::create([
-                'invoice_id'       => $invoice->id,
-                'coa_bank_id'      => $request->coa_bank_id,
-                'nominal'          => $nominalMasuk,
-                'nilai_pph'        => $nilaiPph,
-                'coa_pph_id'       => $coaPphId,
+                'invoice_id'        => $invoice->id,
+                'coa_bank_id'       => $request->coa_bank_id,
+                'nominal'           => $nominalBayar,
+                'nilai_pph'         => $nilaiPph,
+                'coa_pph_id'        => $coaPphId,
                 'metode_pembayaran' => $request->metode_pembayaran,
-                'tanggal'          => $request->tanggal,
-                'keterangan'       => $request->keterangan,
+                'tanggal'           => $request->tanggal,
+                'keterangan'        => $request->keterangan,
             ]);
 
+            // =========================
+            // BUAT JURNAL
+            // =========================
             $journal = Journal::create([
-                'tanggal'     => $request->tanggal,
-                'no_jurnal'   => Journal::generateNo(),
-                'keterangan'  => 'Penerimaan Invoice ' . $invoice->no_invoice,
-                'ref_type'    => 'invoice_payment',
-                'ref_id'      => $payment->id,
+                'tanggal'    => $request->tanggal,
+                'no_jurnal'  => Journal::generateNo(),
+                'keterangan' => 'Penerimaan Invoice ' . $invoice->no_invoice,
+                'ref_type'   => 'invoice_payment',
+                'ref_id'     => $payment->id,
             ]);
 
-            $details = [];
-
-            // 1️⃣ Debit Bank
-            $details[] = [
+            // Debit Bank
+            JournalDetail::create([
                 'journal_id' => $journal->id,
                 'coa_id'     => $request->coa_bank_id,
                 'debit'      => $nominalMasuk,
                 'credit'     => 0
-            ];
+            ]);
 
-            // 2️⃣ Debit PPH jika ada
+            // Debit PPH
             if ($nilaiPph > 0) {
-                $details[] = [
+                JournalDetail::create([
                     'journal_id' => $journal->id,
                     'coa_id'     => $coaPphId,
                     'debit'      => $nilaiPph,
                     'credit'     => 0
-                ];
+                ]);
             }
 
-            // 3️⃣ Credit Piutang
-            $details[] = [
+            // Credit Piutang
+            JournalDetail::create([
                 'journal_id' => $journal->id,
-                // 'coa_id'     => 13, // Piutang Usaha
-                'coa_id' => $invoice->coa_piutang_id,
+                'coa_id'     => $invoice->coa_piutang_id,
                 'debit'      => 0,
-                'credit'     => $grandTotal
-            ];
+                'credit'     => $nominalBayar
+            ]);
 
-            //timestamp juga disini menjadi loop
-            foreach ($details as $detail) {
-                JournalDetail::create($detail);
-            }
+            // =========================
+            // UPDATE STATUS INVOICE
+            // =========================
+            $totalPaid = $invoice->payments()->sum('nominal') + $nominalBayar;
 
-            //update status invoice
-            $totalPaid = $invoice->payments()->sum('nominal') + $nominalMasuk;
-
-            if ($totalPaid >= $grandTotal) {
+            if ($totalPaid >= $invoice->grand_total) {
                 $invoice->update(['status' => 'paid']);
             } else {
-                $invoice->update(['status' => 'posted']);
+                $invoice->update(['status' => 'partial']);
             }
         });
+
         return redirect()
             ->route('finance.invoice_index')
-            ->with('success', 'Pembayaran berhasil');
+            ->with('success', 'Pembayaran berhasil disimpan');
     }
 
     public function updateTanggal(Request $request, $id)

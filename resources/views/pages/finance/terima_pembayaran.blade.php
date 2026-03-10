@@ -151,7 +151,7 @@
                 </div> 
                 <div class="col-md-3">
                     <label class="form-label">Nominal diterima</label>
-                    <input type="text" name="nominal" id="nominal_diterima" class="form-control" readonly>
+                    <input type="text" name="nominal" id="nominal_diterima" class="form-control">
                 </div>
             </div>
 
@@ -171,37 +171,56 @@
 
 
 <script>
+// function hitungPph() {
+
+//     let rate = parseFloat(document.getElementById('pph_rate').value) || 0;
+
+//     let grandTotal = {{ $invoice->grand_total }};
+//     let nominalInvoice = {{ $invoice->nominal_invoice }};
+//     let totalAfterDiskonInv = {{ $invoice->total_after_diskon_inv ?? 0 }};
+
+//     // Tentukan DPP yang benar
+//     let dpp = totalAfterDiskonInv > 0 ? totalAfterDiskonInv : nominalInvoice;
+
+//     let nilaiPph = 0;
+//     let diterima = grandTotal;
+
+//     // Kalau pakai PPh
+//     if (rate > 0) {
+//         nilaiPph = dpp * rate / 100;
+//         diterima = grandTotal - nilaiPph;
+//     }
+
+//     document.getElementById('nilai_pph').value = nilaiPph.toFixed(2);
+//     document.getElementById('nominal_diterima').value = diterima.toFixed(2);
+// }
+
+
 function hitungPph() {
 
     let rate = parseFloat(document.getElementById('pph_rate').value) || 0;
-
-    let grandTotal = {{ $invoice->grand_total }};
-    let nominalInvoice = {{ $invoice->nominal_invoice }};
-    let totalAfterDiskonInv = {{ $invoice->total_after_diskon_inv ?? 0 }};
-
-    // Tentukan DPP yang benar
-    let dpp = totalAfterDiskonInv > 0 ? totalAfterDiskonInv : nominalInvoice;
+    let bayar = parseFloat(document.getElementById('nominal_diterima').value) || 0;
 
     let nilaiPph = 0;
-    let diterima = grandTotal;
+    let diterima = bayar;
 
-    // Kalau pakai PPh
     if (rate > 0) {
-        nilaiPph = dpp * rate / 100;
-        diterima = grandTotal - nilaiPph;
+        nilaiPph = bayar * rate / 100;
+        diterima = bayar - nilaiPph;
     }
 
     document.getElementById('nilai_pph').value = nilaiPph.toFixed(2);
-    document.getElementById('nominal_diterima').value = diterima.toFixed(2);
 }
+
 
 // Trigger saat dropdown berubah
 document.getElementById('pph_rate').addEventListener('change', hitungPph);
+document.getElementById('nominal_diterima').addEventListener('input', hitungPph);
 
 // Hitung saat pertama load
 window.addEventListener('load', hitungPph);
 </script>
-
+@endsection
 <!-- <script>
 document.getElementById('pph_rate').addEventListener('change', function () {
     let rate = parseFloat(this.value);
@@ -224,4 +243,3 @@ document.getElementById('pph_rate').addEventListener('change', function () {
     document.getElementById('nominal_diterima').value = diterima.toFixed(2);
 });
 </script> -->
-@endsection
