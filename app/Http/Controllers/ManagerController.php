@@ -20,9 +20,13 @@ class ManagerController extends Controller
     public function managerIndex(Request $request)
     {
         $title = 'Manager';
-        $tab = $request->get('tab', 'disetujui');
 
-        $countApprovedToday = PengajuanBiaya::whereHas('scheduling', function ($q) {
+        // default tab pertama = dijadwalkan
+        $tab = $request->get('tab', 'dijadwalkan');
+
+        // ================= COUNT =================
+
+        $countToday = PengajuanBiaya::whereHas('scheduling', function ($q) {
             $q->whereDate('tgl_pembayaran', Carbon::today());
         })->count();
 
@@ -30,32 +34,45 @@ class ManagerController extends Controller
             $q->whereDate('tgl_pembayaran', '!=', Carbon::today());
         })->count();
 
-        $countReject = PengajuanBiaya::where('status', 'ditolak')->count();
+        $countPending = PengajuanBiaya::where('status', 'pending')->count();
+
+        $countHistory = PengajuanBiaya::whereIn('status', ['disetujui', 'ditolak'])->count();
+
+
+        // ================= QUERY =================
 
         $query = PengajuanBiaya::with(['items', 'scheduling'])
             ->leftJoin('kontak', 'pengajuan_biaya.kontak_id', '=', 'kontak.id')
             ->select('pengajuan_biaya.*', 'kontak.nama as penerima');
 
-        if ($tab == 'disetujui') {
 
-            // pembayaran hari ini
-            $query->whereHas('scheduling', function ($q) {
-                $q->whereDate('tgl_pembayaran', Carbon::today());
-            });
-        } elseif ($tab == 'dijadwalkan') {
+        // ================= FILTER TAB =================
 
-            // pembayaran bukan hari ini
+        if ($tab == 'dijadwalkan') {
+
             $query->whereHas('scheduling', function ($q) {
                 $q->whereDate('tgl_pembayaran', '!=', Carbon::today());
             });
-        } elseif ($tab == 'ditolak') {
+        } elseif ($tab == 'hari_ini') {
 
-            $query->where('pengajuan_biaya.status', 'ditolak');
+            $query->whereHas('scheduling', function ($q) {
+                $q->whereDate('tgl_pembayaran', Carbon::today());
+            });
+        } elseif ($tab == 'pending') {
+
+            $query->where('pengajuan_biaya.status', 'pending');
+        } elseif ($tab == 'history') {
+
+            $query->whereIn('pengajuan_biaya.status', ['disetujui', 'ditolak']);
         }
+
+
+        // ================= GET DATA =================
 
         $data = $query
             ->orderByDesc('pengajuan_biaya.tgl_pengajuan')
             ->get();
+
 
         return view(
             'pages.finance.manager.index',
@@ -63,9 +80,10 @@ class ManagerController extends Controller
                 'title',
                 'data',
                 'tab',
-                'countApprovedToday',
+                'countToday',
                 'countScheduled',
-                'countReject'
+                'countPending',
+                'countHistory'
             )
         );
     }

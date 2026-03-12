@@ -116,16 +116,7 @@
     <div class="px-4">
         <ul class="nav custom-tabs">
 
-            <li class="nav-item">
-                <a class="nav-link {{ $tab == 'disetujui' ? 'active' : '' }}"
-                    href="{{ route('finance.manager_index', ['tab' => 'disetujui']) }}">
-                    Disetujui (Hari Ini)
-                    @if($countApprovedToday > 0)
-                    <span class="badge bg-success ms-1">{{ $countApprovedToday }}</span>
-                    @endif
-                </a>
-            </li>
-
+            <!-- DIJADWALKAN (DEFAULT) -->
             <li class="nav-item">
                 <a class="nav-link {{ $tab == 'dijadwalkan' ? 'active' : '' }}"
                     href="{{ route('finance.manager_index', ['tab' => 'dijadwalkan']) }}">
@@ -136,12 +127,35 @@
                 </a>
             </li>
 
+            <!-- HARI INI -->
             <li class="nav-item">
-                <a class="nav-link {{ $tab == 'ditolak' ? 'active' : '' }}"
-                    href="{{ route('finance.manager_index', ['tab' => 'ditolak']) }}">
-                    Ditolak
-                    @if($countReject > 0)
-                    <span class="badge bg-danger ms-1">{{ $countReject }}</span>
+                <a class="nav-link {{ $tab == 'hari_ini' ? 'active' : '' }}"
+                    href="{{ route('finance.manager_index', ['tab' => 'hari_ini']) }}">
+                    Hari Ini
+                    @if($countToday > 0)
+                    <span class="badge bg-success ms-1">{{ $countToday }}</span>
+                    @endif
+                </a>
+            </li>
+
+            <!-- PENDING -->
+            <li class="nav-item">
+                <a class="nav-link {{ $tab == 'pending' ? 'active' : '' }}"
+                    href="{{ route('finance.manager_index', ['tab' => 'pending']) }}">
+                    Pending
+                    @if($countPending > 0)
+                    <span class="badge bg-warning ms-1">{{ $countPending }}</span>
+                    @endif
+                </a>
+            </li>
+
+            <!-- HISTORY -->
+            <li class="nav-item">
+                <a class="nav-link {{ $tab == 'history' ? 'active' : '' }}"
+                    href="{{ route('finance.manager_index', ['tab' => 'history']) }}">
+                    History
+                    @if($countHistory > 0)
+                    <span class="badge bg-secondary ms-1">{{ $countHistory }}</span>
                     @endif
                 </a>
             </li>
@@ -217,20 +231,30 @@
                         </td>
 
                         <td>
-                            <div class="d-flex flex-column">
+                            <div class="d-flex flex-column gap-1">
 
-                                {{-- Jika Ditolak --}}
+                                {{-- Jika sudah ditolak --}}
                                 @if($row->status == 'ditolak')
                                 <button class="btn btn-danger action-btn" disabled>
                                     Ditolak
                                 </button>
 
-                                {{-- Jika Ada Scheduling --}}
-                                @elseif(optional($row->scheduling)->tgl_pembayaran)
+                                {{-- Jika sudah disetujui --}}
+                                @elseif($row->status == 'disetujui')
+                                <button class="btn btn-success action-btn" disabled>
+                                    Disetujui
+                                </button>
 
-                                {{-- Jika Pembayaran Hari Ini --}}
-                                @if(\Carbon\Carbon::parse($row->scheduling->tgl_pembayaran)->isToday())
+                                {{-- Jika pending --}}
+                                @elseif($row->status == 'pending')
+                                <button class="btn btn-warning action-btn" disabled>
+                                    Pending
+                                </button>
 
+                                {{-- Jika masih bisa diproses --}}
+                                @else
+
+                                {{-- APPROVE --}}
                                 <form id="form-approve-{{ $row->id }}"
                                     action="{{ route('finance.manager.approve', $row->id) }}"
                                     method="POST">
@@ -242,7 +266,15 @@
                                     </button>
                                 </form>
 
-                                {{-- BUTTON DITOLAK --}}
+                                {{-- PENDING --}}
+                                <button class="btn btn-warning action-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalPending"
+                                    data-id="{{ $row->id }}">
+                                    Pending
+                                </button>
+
+                                {{-- REJECT --}}
                                 <button class="btn btn-danger action-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#modalTolak"
@@ -250,15 +282,6 @@
                                     Ditolak
                                 </button>
 
-                                @else
-                                <button class="btn btn-primary action-btn" disabled>
-                                    Dijadwalkan
-                                </button>
-                                @endif
-
-                                {{-- Safety fallback --}}
-                                @else
-                                <span class="text-muted small">-</span>
                                 @endif
 
                             </div>
@@ -280,6 +303,7 @@
 </div>
 
 @include('pages.finance.manager.modal-tolak')
+@include('pages.finance.manager.modal-pending')
 @endsection
 
 <script>
@@ -324,6 +348,22 @@
 
             document.getElementById('modalFormTolak').action =
                 `/finance/manager/${button.getAttribute('data-id')}/tolak`;
+
+        });
+
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const modal = document.getElementById('modalPending');
+
+        modal.addEventListener('show.bs.modal', function(event) {
+
+            const button = event.relatedTarget;
+
+            document.getElementById('modalFormPending').action =
+                `/finance/manager/${button.getAttribute('data-id')}/pending`;
 
         });
 
