@@ -115,7 +115,7 @@
                             <th>Tgl Pembayaran</th>
                             <th>Bulan</th>
 
-                            <th>Status Payment</th>
+                            <!-- <th>Status Payment</th> -->
                             <th>Status</th>
                             <th>File Invoice</th>
                             <th>File Faktur</th>
@@ -174,27 +174,27 @@
                             <td class="text-center">
 
                                 @php
-                                    $isOverdue = false;
+                                $isOverdue = false;
 
-                                    if ($inv->tgl_rencana_pembayaran) {
+                                if ($inv->tgl_rencana_pembayaran) {
 
-                                        $rencana = \Carbon\Carbon::parse($inv->tgl_rencana_pembayaran)->startOfDay();
-                                        $today = now()->startOfDay();
+                                $rencana = \Carbon\Carbon::parse($inv->tgl_rencana_pembayaran)->startOfDay();
+                                $today = now()->startOfDay();
 
-                                        // Kalau belum ada pembayaran & sudah lewat
-                                        if ($inv->payments->isEmpty() && $rencana->lt($today)) {
-                                            $isOverdue = true;
-                                        }
+                                // Kalau belum ada pembayaran & sudah lewat
+                                if ($inv->payments->isEmpty() && $rencana->lt($today)) {
+                                $isOverdue = true;
+                                }
 
-                                        // Kalau sudah bayar tapi bayar lebih lambat dari rencana
-                                        if ($inv->payments->isNotEmpty()) {
-                                            $tanggalBayarTerakhir = \Carbon\Carbon::parse($inv->payments->last()->tanggal)->startOfDay();
+                                // Kalau sudah bayar tapi bayar lebih lambat dari rencana
+                                if ($inv->payments->isNotEmpty()) {
+                                $tanggalBayarTerakhir = \Carbon\Carbon::parse($inv->payments->last()->tanggal)->startOfDay();
 
-                                            if ($tanggalBayarTerakhir->gt($rencana)) {
-                                                $isOverdue = true;
-                                            }
-                                        }
-                                    }
+                                if ($tanggalBayarTerakhir->gt($rencana)) {
+                                $isOverdue = true;
+                                }
+                                }
+                                }
                                 @endphp
 
                                 <div class="d-flex justify-content-between align-items-center">
@@ -242,20 +242,36 @@
 
             </td> --}}
 
-            <td>
+            <!-- <td>
                 {{ $inv->nilai_pph > 0 ? 'Rp ' . number_format($inv->nilai_pph,0,',','.') : '-' }}
-            </td>
+            </td> -->
             <td>
+                {{ $inv->payments->sum('nilai_pph') > 0 
+                    ? 'Rp ' . number_format($inv->payments->sum('nilai_pph'),0,',','.') 
+                    : '-' }}
+            </td>
+            <!-- <td>
                 {{ $inv->nominal > 0 ? 'Rp ' . number_format($inv->nominal,0,',','.') : '-' }}
+            </td> -->
+            <td>
+                {{ $inv->payments->sum('nominal') > 0 
+                ? 'Rp ' . number_format($inv->payments->sum('nominal'),0,',','.') 
+                : '-' }}
             </td>
             {{-- tgl pembayaran --}}
 
-            <td>{{ $inv->payments->isNotEmpty() 
+            <!-- <td>{{ $inv->payments->isNotEmpty() 
                                     ? $inv->payments->pluck('tanggal')
                                         ->map(fn($t) => \Carbon\Carbon::parse($t)->format('d-m-Y'))
                                         ->implode(', ') 
                                     : '-' 
                                 }}
+            </td> -->
+            <td>
+                {{ $inv->payments->isNotEmpty() 
+                    ? \Carbon\Carbon::parse($inv->payments->last()->tanggal)->format('d-m-Y')
+                    : '-' 
+                }}  
             </td>
             {{-- bulan pembayaran --}}
             <td>
@@ -264,16 +280,25 @@
                                     : '-' 
                                 }}
             </td>
+            <!-- @php
+            $totalPaid = $inv->payments->sum(function($p){
+            return $p->nominal + $p->nilai_pph;
+            });
+            @endphp
+
             <td>
-                @if($inv->payments->count() > 0)
+                @if($totalPaid >= $inv->grand_total)
                 <span class="badge bg-success">Done</span>
                 @else
                 <span class="badge bg-warning text-dark">Menunggu Pembayaran</span>
                 @endif
-            </td>
+            </td> -->
             <td>
                 @if($inv->status === 'posted')
-                <span class="badge bg-primary">Posted</span>
+                <span class="">Posted</span>
+
+                @elseif($inv->status === 'partial')
+                <span class="badge bg-warning">Partial</span>
 
                 @elseif($inv->status === 'paid')
                 <span class="badge bg-success">Paid</span>
@@ -519,61 +544,61 @@
         let tanggal = document.getElementById('tanggalInput').value;
 
         fetch("{{ url('finance/invoice/update-tanggal/', '') }}/" + id, {
-                   method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRF-TOKEN": "{{ csrf_token() }}"
-        },
-        body: JSON.stringify({
-            tgl_rencana_pembayaran: tanggal
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({
+                    tgl_rencana_pembayaran: tanggal
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
 
-        if (data.success) {
+                if (data.success) {
 
-            let span = document.getElementById('tanggal-text-' + id);
+                    let span = document.getElementById('tanggal-text-' + id);
 
-            // Format ke dd-mm-yyyy
-            let formatted = '-';
-            if (tanggal) {
-                let parts = tanggal.split('-'); // yyyy-mm-dd
-                formatted = parts[2] + '-' + parts[1] + '-' + parts[0];
-            }
+                    // Format ke dd-mm-yyyy
+                    let formatted = '-';
+                    if (tanggal) {
+                        let parts = tanggal.split('-'); // yyyy-mm-dd
+                        formatted = parts[2] + '-' + parts[1] + '-' + parts[0];
+                    }
 
-            span.innerText = formatted;
+                    span.innerText = formatted;
 
-            // 🔥 HITUNG OVERDUE DI JS
-            let today = new Date();
-            today.setHours(0,0,0,0);
+                    // 🔥 HITUNG OVERDUE DI JS
+                    let today = new Date();
+                    today.setHours(0, 0, 0, 0);
 
-            let rencanaDate = new Date(tanggal);
-            rencanaDate.setHours(0,0,0,0);
+                    let rencanaDate = new Date(tanggal);
+                    rencanaDate.setHours(0, 0, 0, 0);
 
-            if (tanggal && rencanaDate < today) {
-                span.classList.add('text-warning','fw-bold');
-            } else {
-                span.classList.remove('text-warning','fw-bold');
-            }
+                    if (tanggal && rencanaDate < today) {
+                        span.classList.add('text-warning', 'fw-bold');
+                    } else {
+                        span.classList.remove('text-warning', 'fw-bold');
+                    }
 
-            // Tutup modal
-            let modalEl = document.getElementById('tanggalModal');
-            let modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
+                    // Tutup modal
+                    let modalEl = document.getElementById('tanggalModal');
+                    let modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
 
-            // Toast
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Tanggal berhasil disimpan',
-                showConfirmButton: false,
-                timer: 2000
+                    // Toast
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Tanggal berhasil disimpan',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+
+                }
             });
-
-        }
-    });
-}
+    }
 </script>
 @endsection

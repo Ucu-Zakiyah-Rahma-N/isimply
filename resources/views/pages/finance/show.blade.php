@@ -212,6 +212,13 @@
                 <strong>Rp {{ number_format($grandTotal, 0, ',', '.') }}</strong>
             </div>
 
+             <div class="d-flex justify-content-between">
+            <strong>Sisa Tagihan</strong>
+            <strong class="text-danger">
+                Rp {{ number_format($sisaTagihan,0,',','.') }}
+            </strong>
+        </div>
+
         </div>
     </div>
 
@@ -222,6 +229,102 @@
         <a href="{{ route('finance.invoice.terima_pembayaran', $invoice->id) }}" class="btn btn-success">Terima Pembayaran</a>
 
     </div>
+
+
+<hr>
+
+<h5 class="mb-3">History Pembayaran</h5>
+
+<table class="table table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th width="40">No</th>
+            <th>Tanggal Pembayaran</th>
+            <th>Metode Pembayaran</th>
+            <th>Nominal Diterima</th>
+            <th>PPh</th>
+            <th>Total Piutang Tertutup</th>
+            <th>Keterangan</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        @forelse($payments as $i => $p)
+        <tr>
+            <td>{{ $i+1 }}</td>
+            <td>{{ date('d-m-Y', strtotime($p->tanggal)) }}</td>
+            <td>{{ ucfirst($p->metode_pembayaran) }}</td>
+
+            <td class="text-end">
+                Rp {{ number_format($p->nominal,0,',','.') }}
+            </td>
+
+            <td class="text-end">
+                Rp {{ number_format($p->nilai_pph,0,',','.') }}
+            </td>
+
+            <td class="text-end">
+                Rp {{ number_format($p->nominal + $p->nilai_pph,0,',','.') }}
+            </td>
+
+            <td>{{ $p->keterangan }}</td>
+        </tr>
+        @empty
+        <tr>
+            <td colspan="7" class="text-center text-muted">
+                Belum ada pembayaran
+            </td>
+        </tr>
+        @endforelse
+
+    </tbody>
+</table>
+
+<div class="row justify-content-end mt-3">
+
+    <div class="col-md-4">
+
+        <div class="d-flex justify-content-between mb-1">
+            <span>Total Ditagihkan</span>
+            <span>
+                Rp {{ number_format($invoice->grand_total,0,',','.') }}
+            </span>
+        </div>
+
+        <div class="d-flex justify-content-between mb-1">
+            <span>Total Diterima</span>
+            <span>
+                Rp {{ number_format($totalCash,0,',','.') }}
+            </span>
+        </div>
+
+        <div class="d-flex justify-content-between mb-1">
+            <span>Total PPH</span>
+            <span>
+                Rp {{ number_format($totalPph,0,',','.') }}
+            </span>
+        </div>
+
+        <hr>
+
+        <div class="d-flex justify-content-between mb-1">
+            <strong>Total Piutang Tertutup</strong>
+            <strong>
+                Rp {{ number_format($totalTertutup,0,',','.') }}
+            </strong>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <strong>Sisa Tagihan</strong>
+            <strong class="text-danger">
+                Rp {{ number_format($sisaTagihan,0,',','.') }}
+            </strong>
+        </div>
+
+    </div>
+
+</div>
+<br>
 </div>
 </div>
 @endsection
