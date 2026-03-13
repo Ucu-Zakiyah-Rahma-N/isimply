@@ -82,6 +82,11 @@
         color: #b91c1c;
     }
 
+    .badge-pending {
+        background: #fffbeb;
+        color: #b45309;
+    }
+
     /* ACTION BUTTON */
     .action-btn {
         font-size: 11px;
@@ -140,8 +145,8 @@
 
             <!-- PENDING -->
             <li class="nav-item">
-                <a class="nav-link {{ $tab == 'pending' ? 'active' : '' }}"
-                    href="{{ route('finance.manager_index', ['tab' => 'pending']) }}">
+                <a class="nav-link {{ $tab == 'dipending' ? 'active' : '' }}"
+                    href="{{ route('finance.manager_index', ['tab' => 'dipending']) }}">
                     Pending
                     @if($countPending > 0)
                     <span class="badge bg-warning ms-1">{{ $countPending }}</span>
@@ -217,7 +222,8 @@
                         <td>
                             @if($row->status == 'ditolak')
                             <span class="status-badge badge-reject">Ditolak</span>
-
+                            @elseif($row->status == 'dipending')
+                            <span class="status-badge badge-pending">Dipending</span>
                             @elseif(optional($row->scheduling)->tgl_pembayaran == \Carbon\Carbon::today()->toDateString())
                             <span class="status-badge badge-approved">Disetujui</span>
 
@@ -246,7 +252,7 @@
                                 </button>
 
                                 {{-- Jika pending --}}
-                                @elseif($row->status == 'pending')
+                                @elseif($row->status == 'dipending')
                                 <button class="btn btn-warning action-btn" disabled>
                                     Pending
                                 </button>

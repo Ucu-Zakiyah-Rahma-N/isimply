@@ -26,15 +26,17 @@ class ManagerController extends Controller
 
         // ================= COUNT =================
 
-        $countToday = PengajuanBiaya::whereHas('scheduling', function ($q) {
-            $q->whereDate('tgl_pembayaran', Carbon::today());
-        })->count();
+        $countToday = PengajuanBiaya::where('status', '!=', 'dipending')
+            ->whereHas('scheduling', function ($q) {
+                $q->whereDate('tgl_pembayaran', Carbon::today());
+            })->count();
 
-        $countScheduled = PengajuanBiaya::whereHas('scheduling', function ($q) {
-            $q->whereDate('tgl_pembayaran', '!=', Carbon::today());
-        })->count();
+        $countScheduled = PengajuanBiaya::where('status', '!=', 'dipending')
+            ->whereHas('scheduling', function ($q) {
+                $q->whereDate('tgl_pembayaran', '!=', Carbon::today());
+            })->count();
 
-        $countPending = PengajuanBiaya::where('status', 'pending')->count();
+        $countPending = PengajuanBiaya::where('status', 'dipending')->count();
 
         $countHistory = PengajuanBiaya::whereIn('status', ['disetujui', 'ditolak'])->count();
 
@@ -50,17 +52,19 @@ class ManagerController extends Controller
 
         if ($tab == 'dijadwalkan') {
 
-            $query->whereHas('scheduling', function ($q) {
-                $q->whereDate('tgl_pembayaran', '!=', Carbon::today());
-            });
+            $query->where('pengajuan_biaya.status', '!=', 'dipending')
+                ->whereHas('scheduling', function ($q) {
+                    $q->whereDate('tgl_pembayaran', '!=', Carbon::today());
+                });
         } elseif ($tab == 'hari_ini') {
 
-            $query->whereHas('scheduling', function ($q) {
-                $q->whereDate('tgl_pembayaran', Carbon::today());
-            });
-        } elseif ($tab == 'pending') {
+            $query->where('pengajuan_biaya.status', '!=', 'dipending')
+                ->whereHas('scheduling', function ($q) {
+                    $q->whereDate('tgl_pembayaran', Carbon::today());
+                });
+        } elseif ($tab == 'dipending') {
 
-            $query->where('pengajuan_biaya.status', 'pending');
+            $query->where('pengajuan_biaya.status', 'dipending');
         } elseif ($tab == 'history') {
 
             $query->whereIn('pengajuan_biaya.status', ['disetujui', 'ditolak']);
@@ -102,17 +106,32 @@ class ManagerController extends Controller
     public function tolak(Request $request, $id)
     {
         $request->validate([
-            'note' => 'required|string|max:1000'
+            'note' => 'required|string'
         ]);
 
         $pengajuan = PengajuanBiaya::findOrFail($id);
 
         $pengajuan->update([
             'status' => 'ditolak',
-            'note_manager' => $request->note
+            'note' => $request->note
         ]);
 
         return redirect()->back()->with('success', 'Pengajuan berhasil ditolak.');
+    }
+    public function pending(Request $request, $id)
+    {
+        $request->validate([
+            'note' => 'required|string'
+        ]);
+
+        $pengajuan = PengajuanBiaya::findOrFail($id);
+
+        $pengajuan->update([
+            'status' => 'dipending',
+            'note' => $request->note
+        ]);
+
+        return redirect()->back()->with('success', 'Pengajuan berhasil dipending.');
     }
 
     public function getCoaKasBank(Request $request)

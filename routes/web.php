@@ -167,7 +167,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/terima_pembayaran/invoice/{id}', [FinanceController::class, 'terima_pembayaran'])->name('invoice.terima_pembayaran');
         Route::post('/payment/store', action: [FinanceController::class, 'storePembayaran'])->name('invoice.storePembayaran');
 
-        Route::post('/invoice/update-tanggal/{id}',[FinanceController::class, 'updateTanggal'])->name('invoice.updateTanggal');
+        Route::post('/invoice/update-tanggal/{id}', [FinanceController::class, 'updateTanggal'])->name('invoice.updateTanggal');
 
         Route::post('/invoice/{id}/upload-invoice', [FinanceController::class, 'uploadInvoice'])->name('invoice.uploadInvoice');
         Route::post('/invoice/{id}/upload-faktur', [FinanceController::class, 'uploadFaktur'])->name('invoice.uploadFaktur');
@@ -199,6 +199,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/manager/approve/{id}', [ManagerController::class, 'approve'])->name('manager.approve');
         Route::post('/manager/{id}/tolak', [ManagerController::class, 'tolak'])
             ->name('manager.tolak');
+        Route::post('/manager/{id}/tolak', [ManagerController::class, 'tolak'])
+            ->name('manager.tolak');
+        Route::post('/manager/{id}/pending', [ManagerController::class, 'pending'])
+            ->name('manager.pending');
         // // index (ALL)
         // Route::get('/bank-cash', [AccountingController::class, 'bankCash'])->name('bank_cash');
 
