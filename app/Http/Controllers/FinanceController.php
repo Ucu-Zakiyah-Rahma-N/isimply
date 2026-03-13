@@ -409,6 +409,50 @@ class FinanceController extends Controller
             }
         }
 
+        $isPpnAllPo = $request->has('ppn_all_po');
+
+$ppnSource = null;
+
+if ($request->has('ppn_all_po')) {
+
+    $ppnSource = 'all_po';
+
+} elseif ($request->filled('tax')) {
+
+    // cek apakah tax yang dipilih adalah PPN
+    $selectedTaxes = $request->tax;
+
+    $ppnCoaId = 1; // ID COA PPN kamu
+
+    if (in_array($ppnCoaId, $selectedTaxes)) {
+        $ppnSource = 'per_termin';
+    }
+
+}
+
+$base = ($totalAfterDiscountInv > 0 && $totalAfterDiscountInv != $nominalInvoice)
+    ? $totalAfterDiscountInv
+    : $nominalInvoice;
+
+if ($isPpnAllPo) {
+    $base = $nominalPo; // hitung PPN dari keseluruhan PO
+}
+
+$dpp = 0;
+$ppn = 0;
+$grandTotal = $base;
+
+if ($request->filled('tax')) {
+    $selectedTaxes = $request->tax;
+    $ppnCoaId = 1;
+
+    if (in_array($ppnCoaId, $selectedTaxes)) {
+        $dpp = round(($base * 11) / 12);
+        $ppn = round(($dpp * 12) / 100);
+        $grandTotal = $base + $ppn;
+    }
+}
+
         // 4️⃣ Hitung termin
         $lastTermin = Invoice::where('po_id', $request->po_id)->max('termin_ke');
         $terminKe   = $lastTermin ? $lastTermin + 1 : 1;
@@ -460,7 +504,8 @@ class FinanceController extends Controller
                 'ppn'                   => $ppn ?? NULL,
                 'grand_total'          => $grandTotal,
 
-                // 🔥 KUNCI
+                'ppn_source' => $ppnSource,
+
                 'harga_gabungan'    => $hargaGabungan,
                 'is_same_with_po'   => $isSameWithPo,
             ]);
@@ -470,6 +515,9 @@ class FinanceController extends Controller
                 'harga_gabungan' => $invoice->harga_gabungan,
             ]);
 
+            Log::info('PPN SOURCE', [
+    'ppn_source' => $ppnSource
+]);
 
             // 7️⃣ Simpan Produk Invoice
             $isInvoiceGabungan = $request->has('is_same_with_po') && $quotation->harga_tipe === 'gabungan';
@@ -518,6 +566,7 @@ class FinanceController extends Controller
                 'keterangan'  => 'Invoice ' . $invoice->no_invoice,
                 'ref_type'    => 'invoice',
                 'ref_id'      => $invoice->id,
+                'invoice_id'  => $invoice->id,
             ]);
 
             // PIUTANG
