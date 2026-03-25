@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\Kontak;
 use App\Models\Coa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\PengajuanBiaya;
-use App\Models\FPengajuanBiayaItem;
+use App\Models\PengajuanBiayaItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Throwable;
+use \Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class OperasionalController extends Controller
 {
@@ -56,7 +59,7 @@ class OperasionalController extends Controller
                 'id'      => $kontak->id,
                 'nama'    => $kontak->nama,
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
 
             return response()->json([
                 'success' => false,
@@ -164,7 +167,7 @@ class OperasionalController extends Controller
                 'status'  => 'success',
                 'message' => 'Pengajuan biaya berhasil dibuat'
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
 
             DB::rollBack();
 
@@ -177,6 +180,141 @@ class OperasionalController extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Gagal menyimpan pengajuan biaya'
+            ], 500);
+        }
+    }
+
+    public function update_pengajuan_biaya(Request $request, $id)
+    {
+        $request->validate([
+            'jenis_pengajuan' => 'required|in:biaya,pengeluaran',
+            'tanggal_pengajuan' => 'required|date',
+            'metode_pembayaran' => 'required|in:cash,transfer',
+            'project_id' => 'nullable',
+            'kontak_id' => 'required|integer',
+
+            'item_id' => 'array',
+            'deskripsi.*' => 'required|string',
+            'qty.*' => 'required|numeric|min:1',
+            'harga.*' => 'required|numeric|min:0',
+            'diskon.*' => 'nullable|numeric|min:0|max:100',
+            'pajak_id.*' => 'nullable|integer'
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+
+            $pengajuan = PengajuanBiaya::findOrFail($id);
+
+            // ================== LOAD PAJAK SEKALI ==================
+            $pajakIds = collect($request->pajak_id)->filter()->unique();
+            $coaList = Coa::whereIn('id', $pajakIds)->get()->keyBy('id');
+
+            // ================== EXISTING ITEMS ==================
+            $existingItems = $pengajuan->items()->get()->keyBy('id');
+            $usedItemIds = [];
+
+            $subtotal = 0;
+            $totalDiskon = 0;
+            $totalPPN = 0;
+
+            // ================== LOOP INPUT ==================
+            foreach ($request->deskripsi as $i => $deskripsi) {
+
+                $itemId = $request->item_id[$i] ?? null;
+
+                $qty = $request->qty[$i];
+                $harga = $request->harga[$i];
+                $diskon = $request->diskon[$i] ?? 0;
+                $pajakId = $request->pajak_id[$i] ?? null;
+
+                $total = $qty * $harga;
+
+                // ✅ DISKON PERSEN
+                $nilaiDiskon = round($total * ($diskon / 100));
+                $afterDiskon = $total - $nilaiDiskon;
+
+                $nilaiPajak = 0;
+                if (!empty($pajakId) && isset($coaList[$pajakId])) {
+                    $nilaiPajak = round($afterDiskon * ($coaList[$pajakId]->nilai_coa / 100));
+                }
+
+                $jumlah = $afterDiskon + $nilaiPajak;
+
+                // ================== AKUMULASI ==================
+                $subtotal += $total;
+                $totalDiskon += $nilaiDiskon;
+                $totalPPN += $nilaiPajak;
+
+                // ================== UPDATE ATAU CREATE ==================
+                if ($itemId && isset($existingItems[$itemId])) {
+
+                    $item = $existingItems[$itemId];
+
+                    $item->update([
+                        'deskripsi' => $deskripsi,
+                        'qty' => $qty,
+                        'harga' => $harga,
+                        'diskon' => $diskon,
+                        'pajak_id' => $pajakId ?: null,
+                        'nilai_pajak' => $nilaiPajak,
+                        'jumlah' => $jumlah
+                    ]);
+
+                    $usedItemIds[] = $itemId;
+                } else {
+
+                    $newItem = $pengajuan->items()->create([
+                        'deskripsi' => $deskripsi,
+                        'qty' => $qty,
+                        'harga' => $harga,
+                        'diskon' => $diskon,
+                        'pajak_id' => $pajakId ?: null,
+                        'nilai_pajak' => $nilaiPajak,
+                        'jumlah' => $jumlah
+                    ]);
+
+                    $usedItemIds[] = $newItem->id;
+                }
+            }
+
+            // ================== DELETE ITEM YANG DIHAPUS DI UI ==================
+            $pengajuan->items()
+                ->whereNotIn('id', $usedItemIds)
+                ->delete();
+
+            // ================== UPDATE HEADER ==================
+            $pengajuan->update([
+                'jenis_pengajuan' => $request->jenis_pengajuan,
+                'tgl_pengajuan' => $request->tanggal_pengajuan,
+                'metode_pembayaran' => $request->metode_pembayaran,
+                'project_id' => $request->project_id,
+                'kontak_id' => $request->kontak_id,
+                'subtotal' => $subtotal,
+                'total_diskon' => $totalDiskon,
+                'total_ppn' => $totalPPN,
+                'grand_total' => $subtotal - $totalDiskon + $totalPPN
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan berhasil diperbarui'
+            ]);
+        } catch (Throwable $e) {
+
+            DB::rollBack();
+
+            Log::error('UPDATE PENGAJUAN ERROR', [
+                'error' => $e->getMessage(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal update pengajuan'
             ], 500);
         }
     }
@@ -199,7 +337,7 @@ class OperasionalController extends Controller
                 'jenis_pengajuan'   => $pengajuan->jenis_pengajuan,
 
                 'tgl_pengajuan'     => $pengajuan->tgl_pengajuan
-                    ? \Carbon\Carbon::parse($pengajuan->tgl_pengajuan)->format('Y-m-d')
+                    ? Carbon::parse($pengajuan->tgl_pengajuan)->format('Y-m-d')
                     : null,
 
                 'metode_pembayaran' => $pengajuan->metode_pembayaran,
@@ -241,8 +379,9 @@ class OperasionalController extends Controller
 
                     'pajak_id'       => $item->pajak_id ?? 0,
 
-                    'pajak_nama'     => optional($item->coa)->nama_akun,
-
+                    'nama_pajak' => optional($item->coa)->nama_akun
+                        ? optional($item->coa)->nama_akun . ' (' . rtrim(rtrim($item->coa->nilai_coa, '0'), '.') . '%)'
+                        : null,
                     'pajak_persen'   => (float) (optional($item->coa)->nilai_coa ?? 0),
 
                     'kategori_pajak' => optional($item->coa)->kategori_pajak,
@@ -262,13 +401,13 @@ class OperasionalController extends Controller
                     'items'  => $items
                 ]
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
 
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Data pengajuan tidak ditemukan'
             ], 404);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
 
             Log::error('SHOW PENGAJUAN BIAYA ERROR', [
                 'id'    => $id,
@@ -283,85 +422,80 @@ class OperasionalController extends Controller
             ], 500);
         }
     }
-
-    public function show_pengajuan_biaya1($id)
+    public function get_edit_pengajuan_biaya($id)
     {
         try {
 
-            $rows = DB::table('pengajuan_biaya as pb')
-                ->leftJoin('kontak as p', 'p.id', '=', 'pb.kontak_id')
-                ->leftJoin('pengajuan_biaya_items as item', 'item.pengajuan_biaya_id', '=', 'pb.id')
-                ->leftJoin('coa', 'coa.id', '=', 'item.pajak_id')
-                ->where('pb.id', $id)
-                ->select(
-                    'pb.id as pengajuan_id',
-                    'pb.nomor_pengajuan',
-                    'pb.tgl_pengajuan',
-                    'pb.metode_pembayaran',
-                    'pb.referensi_proyek_id',
-                    'pb.is_urgent',
-                    'pb.subtotal',
-                    'pb.total_diskon',
-                    'pb.total_ppn',
-                    'pb.grand_total',
-                    'pb.lampiran',
+            $pengajuan = PengajuanBiaya::with([
+                'kontak:id,nama',
+                'items',
+                'items.coa:id,nama_akun,nilai_coa,kategori_pajak'
+            ])->findOrFail($id);
 
-                    'p.nama as kontak_nama',
+            /** ================= HEADER ================= */
 
-                    'item.id as item_id',
-                    'item.deskripsi',
-                    'item.qty',
-                    'item.harga',
-                    'item.diskon',
-                    'item.pajak_id',
-                    'item.nilai_pajak',
-                    'item.jumlah',
-
-                    'coa.nama_akun as pajak_nama',
-                    'coa.nilai_coa as pajak_persen'
-                )
-                ->get();
-
-            if ($rows->isEmpty()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Data tidak ditemukan'
-                ], 404);
-            }
-
-            /** ================== FORMAT HEADER ================== */
             $header = [
-                'id'                  => $rows[0]->pengajuan_id,
-                'nomor_pengajuan'     => $rows[0]->nomor_pengajuan,
-                'tgl_pengajuan'       => $rows[0]->tgl_pengajuan,
-                'metode_pembayaran'   => $rows[0]->metode_pembayaran,
-                'kontak_nama'         => $rows[0]->kontak_nama,
-                'referensi_proyek_id' => $rows[0]->referensi_proyek_id,
-                'is_urgent'           => (bool) $rows[0]->is_urgent,
-                'subtotal'            => $rows[0]->subtotal,
-                'total_diskon'        => $rows[0]->total_diskon,
-                'total_ppn'           => $rows[0]->total_ppn,
-                'grand_total'         => $rows[0]->grand_total,
-                'lampiran'            => $rows[0]->lampiran
-                    ? asset('storage/' . $rows[0]->lampiran)
+                'id'                => $pengajuan->id,
+                'nomor_pengajuan'   => $pengajuan->nomor_pengajuan,
+                'jenis_pengajuan'   => $pengajuan->jenis_pengajuan,
+
+                'tgl_pengajuan'     => $pengajuan->tgl_pengajuan
+                    ? Carbon::parse($pengajuan->tgl_pengajuan)->format('Y-m-d')
                     : null,
+
+                'metode_pembayaran' => $pengajuan->metode_pembayaran,
+                'project_id'        => $pengajuan->project_id,
+                'jenis_project'     => $pengajuan->jenis_project,
+
+                'kontak_id'         => $pengajuan->kontak_id,
+                'kontak_nama'       => optional($pengajuan->kontak)->nama,
+
+                'is_urgent'         => (bool) $pengajuan->is_urgent,
+
+                'subtotal'          => $pengajuan->subtotal ?? 0,
+                'total_diskon'      => $pengajuan->total_diskon ?? 0,
+                'total_ppn'         => $pengajuan->total_ppn ?? 0,
+                'grand_total'       => $pengajuan->grand_total ?? 0,
+
+                'lampiran'          => $pengajuan->lampiran
+                    ? asset('storage/' . $pengajuan->lampiran)
+                    : null,
+
+                'status'            => $pengajuan->status,
             ];
 
-            /** ================== FORMAT ITEMS ================== */
-            $items = $rows->map(function ($row) {
+            /** ================= ITEMS ================= */
+
+            $items = $pengajuan->items->map(function ($item) {
+
                 return [
-                    'item_id'      => $row->item_id,
-                    'deskripsi'    => $row->deskripsi,
-                    'qty'          => $row->qty,
-                    'harga'        => $row->harga,
-                    'diskon'       => $row->diskon,
-                    'pajak_id'     => $row->pajak_id,
-                    'pajak_nama'   => $row->pajak_nama,
-                    'pajak_persen' => $row->pajak_persen ?? 0,
-                    'nilai_pajak'  => $row->nilai_pajak,
-                    'jumlah'       => $row->jumlah,
+
+                    'item_id'        => $item->id,
+
+                    'deskripsi'      => $item->deskripsi ?? '',
+
+                    'qty'            => (float) ($item->qty ?? 0),
+
+                    'harga'          => (float) ($item->harga ?? 0),
+
+                    'diskon'         => (float) ($item->diskon ?? 0),
+
+                    'pajak_id'       => $item->pajak_id ?? 0,
+
+                    'nama_pajak' => optional($item->coa)->nama_akun
+                        ? optional($item->coa)->nama_akun . ' (' . rtrim(rtrim($item->coa->nilai_coa, '0'), '.') . '%)'
+                        : null,
+                    'pajak_persen'   => (float) (optional($item->coa)->nilai_coa ?? 0),
+
+                    'kategori_pajak' => optional($item->coa)->kategori_pajak,
+
+                    'nilai_pajak'    => (float) ($item->nilai_pajak ?? 0),
+
+                    'jumlah'         => (float) ($item->jumlah ?? 0),
                 ];
-            })->filter(fn($i) => $i['item_id'] !== null)->values();
+            })->values()->toArray();
+
+            /** ================= RESPONSE ================= */
 
             return response()->json([
                 'status' => 'success',
@@ -370,16 +504,63 @@ class OperasionalController extends Controller
                     'items'  => $items
                 ]
             ]);
-        } catch (\Throwable $e) {
+        } catch (ModelNotFoundException $e) {
 
-            Log::error('SHOW PENGAJUAN BIAYA ERROR', [
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Data pengajuan tidak ditemukan'
+            ], 404);
+        } catch (Throwable $e) {
+
+            Log::error('Get PENGAJUAN BIAYA ERROR', [
+                'id'    => $id,
                 'error' => $e->getMessage(),
-                'line'  => $e->getLine()
+                'line'  => $e->getLine(),
+                'file'  => $e->getFile()
             ]);
 
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Terjadi kesalahan saat mengambil data'
+            ], 500);
+        }
+    }
+
+    public function delete_item($id)
+    {
+        try {
+
+            $item = PengajuanBiayaItem::find($id);
+
+            // ❗ Jika tidak ditemukan
+            if (!$item) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Item tidak ditemukan'
+                ], 404);
+            }
+
+            // (Optional tapi bagus) ambil parent untuk validasi
+            $pengajuanId = $item->pengajuan_biaya_id;
+
+            // =====================
+            // HAPUS ITEM
+            // =====================
+            $item->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Item berhasil dihapus',
+                'data' => [
+                    'pengajuan_biaya_id' => $pengajuanId
+                ]
+            ]);
+        } catch (Throwable $e) {
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menghapus item',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

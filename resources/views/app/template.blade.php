@@ -21,7 +21,9 @@
 
     </div>
   </div>
+
   @include('pages.finance.operasional.biaya.modal-detail-biaya')
+  @include('pages.finance.operasional.biaya.modal-edit-biaya')
 
   @include('app.script')
 

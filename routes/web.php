@@ -184,6 +184,15 @@ Route::middleware('auth')->group(function () {
             ->name('get.project-gabungan');
         Route::post('/pengajuan-biaya/store', [OperasionalController::class, 'store_pengajuan_biaya'])->name('pengajuan-biaya.store');
         Route::get('/pengajuan-biaya/detail/{id}', [OperasionalController::class, 'show_pengajuan_biaya'])->name('pengajuan-biaya.detail');
+        Route::get('/pengajuan-biaya/get-edit/{id}', [OperasionalController::class, 'get_edit_pengajuan_biaya'])->name('pengajuan-biaya.get-edit');
+        Route::delete(
+            '/pengajuan-biaya/delete-item/{id}',
+            [OperasionalController::class, 'delete_item']
+        )->name('pengajuan-biaya.delete-item');
+        Route::put(
+            '/pengajuan-biaya/update/{id}',
+            [OperasionalController::class, 'update_pengajuan_biaya']
+        )->name('pengajuan-biaya.update');
 
         // Operasional (Pembelian)
         Route::get('/pembelian', [PembelianController::class, 'pembelianIndex'])->name('pembelian_index');
