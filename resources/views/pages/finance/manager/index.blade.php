@@ -207,14 +207,21 @@
                         </td>
 
                         <td>
-                            <div class="fw-semibold">
-                                {{ $row->nomor_pengajuan }}
-                            </div>
-                            <small>
-                                @foreach($row->items as $item)
-                                <div>{{ $item->deskripsi }}</div>
-                                @endforeach
-                            </small>
+                            <a href="javascript:void(0)"
+                                class="text-decoration-none text-primary btnDetailPengajuan d-block"
+                                data-id="{{ $row->id }}">
+
+                                <div class="fw-semibold">
+                                    {{ $row->nomor_pengajuan }}
+                                </div>
+
+                                <small class="text-muted">
+                                    @foreach($row->items as $item)
+                                    <div>{{ $item->deskripsi }}</div>
+                                    @endforeach
+                                </small>
+
+                            </a>
                         </td>
 
                         <td>{{ $row->penerima ?? '-' }}</td>
@@ -310,6 +317,7 @@
 
 @include('pages.finance.manager.modal-tolak')
 @include('pages.finance.manager.modal-pending')
+@include('pages.finance.manager.modal-detail-biaya')
 @endsection
 
 <script>
@@ -373,5 +381,17 @@
 
         });
 
+    });
+</script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).on('click', '.btnDetailPengajuan', function() {
+        const id = $(this).attr('data-id');
+
+        if (typeof loadDetailPengajuanOnManager === 'function') {
+            loadDetailPengajuanOnManager(id);
+        } else {
+            console.error('Function loadDetailPengajuanOnManager tidak ditemukan');
+        }
     });
 </script>

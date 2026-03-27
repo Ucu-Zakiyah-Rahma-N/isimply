@@ -26,8 +26,7 @@
 
                 <div class="modal-body">
 
-                    <input type="text" id="edit_id" name="id">
-
+                    <input type="hidden" id="edit_id" name="id">
 
                     <!-- ================= INFORMASI HEADER ================= -->
 

@@ -37,10 +37,10 @@
 
                 <div class="d-flex align-items-center gap-2">
 
-                    <button class="btn btn-sm btn-primary btnEditPengajuan"
+                    <!-- <button class="btn btn-sm btn-primary btnEditPengajuan"
                         id="btnEditFromDetail"
                         data-id="">
-                        Edit</button>
+                        Edit</button> -->
 
                     <button class="btn-close" data-bs-dismiss="modal"></button>
 
@@ -193,22 +193,22 @@
 </div>
 
 <script>
-    let masterLoaded = false;
+    let masterLoadedDetail = false;
 
-    let kontakMap = {};
-    let projectMap = {};
-    let pajakMap = {};
+    let kontakMapDetail = {};
+    let projectMapDetail = {};
+    let pajakMapDetail = {};
 
-    let modalDetail = null;
+    let modalDetailOnPurchasing = null;
 
     document.addEventListener("DOMContentLoaded", function() {
         const modalEl = document.getElementById('modalPengajuanDetailBiaya');
-        modalDetail = new bootstrap.Modal(modalEl);
+        modalDetailOnPurchasing = bootstrap.Modal.getOrCreateInstance(modalEl);
     });
 
     async function loadMaster() {
 
-        if (masterLoaded) return;
+        if (masterLoadedDetail) return;
 
         const [kontakRes, projectRes, pajakRes] = await Promise.all([
             fetch("/finance/get/kontak"),
@@ -220,11 +220,11 @@
         const projectData = await projectRes.json();
         const pajakData = await pajakRes.json();
 
-        kontakData.forEach(k => kontakMap[k.id] = k.nama);
-        projectData.forEach(p => projectMap[p.id] = p.label);
-        pajakData.forEach(p => pajakMap[p.id] = p.nama_akun);
+        kontakData.forEach(k => kontakMapDetail[k.id] = k.nama);
+        projectData.forEach(p => projectMapDetail[p.id] = p.label);
+        pajakData.forEach(p => pajakMapDetail[p.id] = p.nama_akun);
 
-        masterLoaded = true;
+        masterLoadedDetail = true;
 
     }
 
@@ -249,7 +249,7 @@
     }
 
 
-    async function loadDetailPengajuan(id) {
+    async function loadDetailPengajuanOnPurchasing(id) {
 
         showLoading();
 
@@ -284,11 +284,11 @@
             $('#detail_metode_pembayaran').text(header.metode_pembayaran);
 
             $('#detail_kontak_nama').text(
-                kontakMap[header.kontak_id] ?? header.kontak_nama ?? '-'
+                kontakMapDetail[header.kontak_id] ?? header.kontak_nama ?? '-'
             );
 
             $('#detail_project').text(
-                projectMap[header.project_id] ?? '-'
+                projectMapDetail[header.project_id] ?? '-'
             );
 
 
@@ -373,7 +373,7 @@
 
             }
 
-            modalDetail.show();
+            modalDetailOnPurchasing.show();
 
         } catch (err) {
 
@@ -402,5 +402,9 @@
 
         loadEditPengajuan(id);
 
+    });
+
+    $(document).on('click', '.btn-close', function() {
+        modalDetailOnPurchasing.hide();
     });
 </script>
