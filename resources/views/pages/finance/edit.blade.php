@@ -276,6 +276,14 @@
                             </label>
                         </div>
                         @endforeach
+
+                           <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="ppnAllPo" name="ppn_all_po"
+                               {{ old('ppn_source', $invoice->ppn_source ?? 'per_termin') === 'all_po' ? 'checked' : '' }}>
+                        <label class="form-check-label" for="ppnAllPo">
+                            PPN nominal PO
+                        </label>
+                    </div>
                     </div>
 
                     <div id="taxContainer" class="mb-3"></div>
@@ -581,14 +589,39 @@
             }
         });
 
-        document.addEventListener('change', function(e) {
-            if (
-                e.target.id === 'tipe_diskon' ||
-                e.target.classList.contains('tax-checkbox')
-            ) {
-                recalculateAll();
-            }
-        });
+document.addEventListener('change', function(e) {
+    if (
+        e.target.id === 'tipe_diskon' ||
+        e.target.classList.contains('tax-checkbox') ||
+        e.target.id === 'ppnAllPo'
+    ) {
+        recalculateAll();
+    }
+});
+const ppnAllPoEl = document.getElementById('ppnAllPo');
+
+function toggleTaxCheckboxes() {
+    const taxCheckboxes = document.querySelectorAll('.tax-checkbox');
+
+    taxCheckboxes.forEach(cb => {
+        cb.disabled = ppnAllPoEl.checked;
+
+        // kalau all_po aktif → uncheck semua
+        if (ppnAllPoEl.checked) {
+            cb.checked = false;
+        }
+    });
+}
+
+// event change
+    ppnAllPoEl.addEventListener('change', function () {
+        toggleTaxCheckboxes();
+        recalculateAll(); // langsung hitung ulang
+    });
+
+    toggleTaxCheckboxes();
+    recalculateAll(); 
+
 
         document.addEventListener('click', function(e) {
 
@@ -665,61 +698,98 @@
         /* ===============================
            HITUNG PAJAK
         =============================== */
-        function hitungPajak() {
+function hitungPajak() {
 
-            const base = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
-            const taxes = document.querySelectorAll('.tax-checkbox');
-            const container = document.getElementById('taxContainer');
-            const dppContainer = document.getElementById('dppContainer');
+    const base = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
+    const nominalPo = parseFloat(document.getElementById('nominalPoInput')?.value) || 0;
 
-            if (container) container.innerHTML = '';
+    const taxes = document.querySelectorAll('.tax-checkbox');
+    const isAllPo = document.getElementById('ppnAllPo')?.checked;
 
-            let totalPPN = 0;
-            let totalPPH = 0;
+    const container = document.getElementById('taxContainer');
+    const dppContainer = document.getElementById('dppContainer');
 
-            taxes.forEach(el => {
+    if (container) container.innerHTML = '';
 
-                if (el.checked) {
+    let totalPPN = 0;
+    let totalPPH = 0;
+    let dpp = 0;
 
-                    const rate = parseFloat(el.dataset.rate) || 0;
-                    const name = el.dataset.name;
-                    const type = el.dataset.type;
+    // ===============================
+    // 🔥 MODE ALL PO
+    // ===============================
+    if (isAllPo) {
 
-                    const amount = Math.round(base * rate / 100);
+        dpp = Math.round((base * 11) / 12);
+        totalPPN = Math.round((nominalPo * 11) / 100);
 
-                    if (container) {
-                        container.innerHTML += `
+        if (container) {
+            container.innerHTML += `
+                <div class="d-flex justify-content-between mb-1">
+                    <span>PPN 11%</span>
+                    <strong>Rp ${rupiah(totalPPN)}</strong>
+                </div>
+            `;
+        }
+
+    } else {
+
+        // ===============================
+        // MODE NORMAL (checkbox)
+        // ===============================
+        taxes.forEach(el => {
+
+            if (el.checked) {
+
+                const rate = parseFloat(el.dataset.rate) || 0;
+                const name = el.dataset.name;
+                const type = el.dataset.type;
+
+                const amount = Math.round(base * rate / 100);
+
+                if (container) {
+                    container.innerHTML += `
                         <div class="d-flex justify-content-between mb-1">
                             <span>${name}</span>
                             <strong>Rp ${rupiah(amount)}</strong>
                         </div>
                     `;
-                    }
-
-                    if (type === 'pph') totalPPH += amount;
-                    else totalPPN += amount;
                 }
-            });
 
-            if (dppContainer) {
-                if (totalPPN > 0) {
-                    const dpp = Math.round((base * 11) / 12);
-                    dppContainer.innerHTML = `
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>DPP</span>
-                        <strong>Rp ${rupiah(dpp)}</strong>
-                    </div>
-                `;
-                } else {
-                    dppContainer.innerHTML = '';
-                }
+                if (type === 'pph') totalPPH += amount;
+                else totalPPN += amount;
             }
+        });
 
-            const finalTotal = base + totalPPN - totalPPH;
-
-            document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-            document.getElementById('totalInput').value = finalTotal;
+        if (totalPPN > 0) {
+            dpp = Math.round((base * 11) / 12);
         }
+    }
+
+    // ===============================
+    // TAMPILKAN DPP
+    // ===============================
+    if (dppContainer) {
+        if (dpp > 0) {
+            dppContainer.innerHTML = `
+                <div class="d-flex justify-content-between mb-1">
+                    <span>DPP</span>
+                    <strong>Rp ${rupiah(dpp)}</strong>
+                </div>
+            `;
+        } else {
+            dppContainer.innerHTML = '';
+        }
+    }
+
+    // ===============================
+    // FINAL TOTAL
+    // ===============================
+    const finalTotal = base + totalPPN - totalPPH;
+
+    document.getElementById('finalTotal').innerText = rupiah(finalTotal);
+    document.getElementById('totalInput').value = finalTotal;
+}
 
         /* ===============================
            RECALCULATE ALL

@@ -212,20 +212,19 @@
                         <label class="form-label mb-1">Diskon</label>
 
                         <div class="input-group">
-                            <select class="form-select" id="tipe_diskon" style="max-width:70px">
+                            <select class="form-select" id="tipe_diskon" name="tipe_diskon" style="max-width:70px">
                                 <option value="persen">%</option>
                                 <option value="nominal">Rp</option>
                             </select>
 
-                            <input type="number" class="form-control" id="nilai_diskon"
+                            <input type="number" class="form-control" id="nilai_diskon" name="nilai_diskon"
                                 placeholder="Nilai diskon">
                         </div>
 
-                                <!-- REMINDER -->
-        <small id="diskonReminder" class="text-danger d-none">
-            ⚠ Diskon per termin tidak berlaku jika "PPN keseluruhan PO" dipilih
-        </small>
-
+                        <!-- REMINDER
+                            <small id="diskonReminder" class="text-danger d-none">
+                                ⚠ Diskon per termin tidak berlaku jika "PPN keseluruhan PO" dipilih
+                            </small> -->
                     </div>
 
                     <strong>Rp <span id="jumlah_diskon">0</span></strong>
@@ -238,8 +237,9 @@
                     <strong>Rp <span id="total_after_discount">0</span></strong>
                 </div>
 
+                <!-- 
                 <input type="hidden" name="tipe_diskon" id="discountTypeInput">
-                <input type="hidden" name="nilai_diskon" id="discountValueInput">
+                <input type="hidden" name="nilai_diskon" id="discountValueInput"> -->
                 <input type="hidden" name="total_after_discount" id="totalAfterDiscountInput">
 
                 <div id="dppContainer" class="mb-2"></div>
@@ -261,9 +261,10 @@
                     </div>
                     @endforeach
                      <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="ppnAllPo" name="ppn_all_po">
+                        <input class="form-check-input" type="checkbox" id="ppnAllPo" name="ppn_all_po"
+                               {{ old('ppn_source', $invoice->ppn_source ?? 'per_termin') === 'all_po' ? 'checked' : '' }}>
                         <label class="form-check-label" for="ppnAllPo">
-                            Hitung PPN dari keseluruhan PO
+                            PPN nominal PO
                         </label>
                     </div>
                 </div>
@@ -636,7 +637,6 @@ if (checkbox && !checkbox.checked && Math.round(subtotal) !== Math.round(subtota
 
             });
 
-
             function rupiah(n) {
                 return Math.round(n).toLocaleString('id-ID');
             }
@@ -656,14 +656,10 @@ function recalculateInvoice() {
 
     let diskon = 0;
 
-    if (!ppnAllPoChecked) {
-
-        if (jenisDiskon === 'persen') {
-            diskon = nominalInvoice * nilaiDiskon / 100;
-        } else {
-            diskon = nilaiDiskon;
-        }
-
+    if (jenisDiskon === 'persen') {
+        diskon = nominalInvoice * nilaiDiskon / 100;
+    } else {
+        diskon = nilaiDiskon;
     }
 
     if (diskon > nominalInvoice) diskon = nominalInvoice;
@@ -682,13 +678,15 @@ function recalculateInvoice() {
     let totalPPH = 0;
     let dpp = 0;
 
-    if (ppnAllPoChecked) {
+        if (ppnAllPoChecked) {
 
-        // PPN dari TOTAL PO
-        totalPPN = Math.round(nominalPO * 11 / 100);
-        dpp = Math.round(nominalPO * 11 / 12);
+            // ✅ DPP tetap dari TERMIN
+            dpp = Math.round(afterDiscount * 11 / 12);
 
-    } else {
+            // ✅ PPN dari TOTAL PO
+            totalPPN = Math.round(nominalPO * 11 / 100);
+
+        } else {
 
         const taxes = document.querySelectorAll('.tax-checkbox:checked');
 
@@ -734,7 +732,7 @@ function recalculateInvoice() {
 
         taxContainer.innerHTML += `
         <div class="d-flex justify-content-between mb-1">
-            <span>PPN (12%)</span>
+            <span>PPN (11%)</span>
             <strong>Rp ${rupiah(totalPPN)}</strong>
         </div>`;
     }
@@ -765,29 +763,29 @@ const diskonReminder = document.getElementById('diskonReminder');
 
 ppnAllPoCheckbox.addEventListener('change', function () {
 
-    if (this.checked) {
+    // if (this.checked) {
 
-        // disable diskon
-        nilaiDiskonInput.disabled = true;
-        tipeDiskonSelect.disabled = true;
+    //     // disable diskon
+    //     nilaiDiskonInput.disabled = true;
+    //     tipeDiskonSelect.disabled = true;
 
-        // tampilkan reminder
-        diskonReminder.classList.remove('d-none');
+    //     // tampilkan reminder
+    //     diskonReminder.classList.remove('d-none');
 
-    } else {
+    // } else {
 
-        // enable kembali
-        nilaiDiskonInput.disabled = false;
-        tipeDiskonSelect.disabled = false;
+    //     // enable kembali
+    //     nilaiDiskonInput.disabled = false;
+    //     tipeDiskonSelect.disabled = false;
 
-        // sembunyikan reminder
-        diskonReminder.classList.add('d-none');
-    }
+    //     // sembunyikan reminder
+    //     diskonReminder.classList.add('d-none');
+    // }
 
     recalculateInvoice();
 });
 
-//             function recalculateInvoice() {
+//      function recalculateInvoice() {
 
 //     const nominalInvoice = getNominalInvoice();
 
