@@ -21,6 +21,7 @@ use App\Http\Controllers\KontakController;
 use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\AccountingController;
+use App\Http\Controllers\PihakKetigaController;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
 
@@ -196,6 +197,9 @@ Route::middleware('auth')->group(function () {
 
         // Operasional (Pembelian)
         Route::get('/pembelian', [PembelianController::class, 'pembelianIndex'])->name('pembelian_index');
+
+        // Operasional (Pihak Ketiga)
+        Route::get('/pihak-ketiga', [PihakKetigaController::class, 'pihakKetigaIndex'])->name('pihak_ketiga_index');
 
         // Purchasing
         Route::get('/purchasing', [PurchasingController::class, 'purchasingIndex'])->name('purchasing_index');

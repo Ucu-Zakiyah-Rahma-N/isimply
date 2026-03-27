@@ -450,7 +450,7 @@
                     </li>
 
                     <li class="sidebar-item">
-                        <a class="sidebar-link" href="#">
+                        <a class="sidebar-link" href="{{ route('finance.pihak_ketiga_index') }}">
                             <span><i class="bi bi-briefcase"></i></span>
                             <span class="hide-menu">Pihak Ketiga</span>
                         </a>
