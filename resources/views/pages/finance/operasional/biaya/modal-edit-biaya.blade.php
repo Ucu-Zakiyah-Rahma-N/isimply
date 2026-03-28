@@ -37,13 +37,6 @@
                             <div class="row g-3">
 
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold">Tanggal Pengajuan</label>
-                                    <input type="date"
-                                        id="edit_tgl_pengajuan"
-                                        class="form-control" name="tanggal_pengajuan">
-                                </div>
-
-                                <div class="col-md-4">
                                     <label class="form-label fw-semibold">Jenis Pengajuan</label>
                                     <select id="edit_jenis_pengajuan"
                                         class="form-select" name="jenis_pengajuan">
@@ -52,6 +45,14 @@
                                         <option value="pengeluaran">Pengeluaran</option>
 
                                     </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Penerima</label>
+
+                                    <select id="edit_kontak_id"
+                                        class="form-select" name="kontak_id"></select>
+
                                 </div>
 
                                 <div class="col-md-4">
@@ -65,17 +66,17 @@
 
                                     </select>
                                 </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Kontak</label>
-
-                                    <select id="edit_kontak_id"
-                                        class="form-select" name="kontak_id"></select>
-
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Tanggal Pengajuan</label>
+                                    <input type="date"
+                                        id="edit_tgl_pengajuan"
+                                        class="form-control" name="tanggal_pengajuan">
                                 </div>
 
+                                
+
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Project</label>
+                                    <label class="form-label fw-semibold">Projek</label>
 
                                     <select id="edit_project_id"
                                         class="form-select" name="project_id"></select>

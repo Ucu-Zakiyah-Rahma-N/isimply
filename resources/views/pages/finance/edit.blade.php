@@ -398,6 +398,8 @@
                 <input type="text" class="form-control" value="${item.jenis}" readonly>
             </td> --}}
             <td>
+                  <input type="hidden" name="items[${i}][id]" value="${invoiceItems[i]?.id ?? ''}">
+
                 <input type="hidden" name="items[${i}][perizinan_input]" value="id:${item.id}">
                 <input type="text" class="form-control" value="${item.jenis}" readonly>
             </td>

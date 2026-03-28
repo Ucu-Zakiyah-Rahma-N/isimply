@@ -295,9 +295,9 @@ function hitungPph() {
     if(sisa < 0) sisa = 0;
 
     document.getElementById('nilai_pph').value = formatRupiah(nilaiPph);
-    document.getElementById('summary_diterima').innerText = 'Rp ' + formatRupiah(cash);
-    document.getElementById('summary_pph').innerText = 'Rp ' + formatRupiah(nilaiPph);
-    document.getElementById('summary_sisa').innerText = 'Rp ' + formatRupiah(sisa);
+    document.getElementById('summary_diterima').innerText = ' ' + formatRupiah(cash);
+    document.getElementById('summary_pph').innerText = ' ' + formatRupiah(nilaiPph);
+    document.getElementById('summary_sisa').innerText = ' ' + formatRupiah(sisa);
 }
 
 // =========================
@@ -321,8 +321,8 @@ function lunasiInvoice() {
     document.getElementById('nominal_diterima').value = formatRupiah(cash);
     document.getElementById('nilai_pph').value = formatRupiah(pph);
 
-    document.getElementById('summary_diterima').innerText = 'Rp ' + formatRupiah(cash);
-    document.getElementById('summary_pph').innerText = 'Rp ' + formatRupiah(pph);
+    document.getElementById('summary_diterima').innerText = ' ' + formatRupiah(cash);
+    document.getElementById('summary_pph').innerText = ' ' + formatRupiah(pph);
     document.getElementById('summary_pph_row').style.display = pph > 0 ? 'flex' : 'none';
 }
 
