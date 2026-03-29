@@ -47,6 +47,9 @@
                                     <label class="form-label">Referensi Proyek</label>
                                     <select class="form-select" name="referensi_proyek_id">
                                         <option value="">Pilih Proyek</option>
+                                        <option value="MARKETING">MARKETING</option>
+                                        <option value="OFFICE">OFFICE</option>
+                                        <option value="PROJECT">PROJECT</option>
                                     </select>
                                 </div>
                             </div>

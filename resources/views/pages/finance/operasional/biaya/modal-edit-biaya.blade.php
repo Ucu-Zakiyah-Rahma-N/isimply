@@ -73,8 +73,6 @@
                                         class="form-control" name="tanggal_pengajuan">
                                 </div>
 
-                                
-
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold">Projek</label>
 
@@ -123,10 +121,10 @@
 
                                         <tr>
 
-                                            <th width="28%">Deskripsi</th>
+                                            <th width="25%">Deskripsi</th>
                                             <th width="7%">Qty</th>
                                             <th width="13%">Harga</th>
-                                            <th width="10%">Diskon / Item</th>
+                                            <th width="13%">Diskon</th>
                                             <th width="12%">Total Diskon</th>
                                             <th width="15%">Pajak</th>
                                             <th width="12%" class="text-end">Jumlah</th>
@@ -275,7 +273,8 @@
         pajakData.forEach(p => {
             pajakMapEdit[p.id] = {
                 nama: p.nama_akun,
-                persen: parseFloat(p.nilai_coa) || 0
+                persen: parseFloat(p.nilai_coa) || 0,
+                kategori: (p.kategori_pajak || '').toUpperCase()
             };
         });
 
@@ -326,29 +325,12 @@
         return html;
     }
 
-    function renderPajakOptions(selected = 0) {
-
-        let html = `<option value="0">Non Pajak</option>`;
-
-        Object.entries(pajakMapEdit).forEach(([id, p]) => {
-
-            let selectedAttr = selected == id ? 'selected' : '';
-
-            html += `
-        <option value="${id}" ${selectedAttr}>
-            ${p.nama} (${p.persen}%)
-        </option>`;
-        });
-
-        return html;
-    }
-
     function createItemRow(item = {}) {
 
         return `
 <tr>
 
-<input type"hidden" name="item_id[]" class="form-control form-control-sm "
+<input type="hidden" name="item_id[]" class="form-control form-control-sm "
 value="${item.item_id || ''}">
 
 <td>
@@ -369,9 +351,19 @@ value="${item.harga || 0}" name="harga[]">
 </td>
 
 <td>
-<input type="number"
-class="form-control form-control-sm diskon"
-value="${item.diskon || 0}" name="diskon[]">
+<div class="d-flex">
+    <input type="number"
+        class="form-control form-control-sm diskon"
+        value="${item.diskon || 0}" name="diskon[]">
+
+    <select class="form-select form-select-sm diskon-type"
+        name="diskon_type[]" style="max-width:70px">
+
+        <option value="percent" ${item.diskon_type === 'percent' ? 'selected' : ''}>%</option>
+        <option value="nominal" ${item.diskon_type === 'nominal' ? 'selected' : ''}>Rp</option>
+
+    </select>
+</div>
 </td>
 
 <td>
@@ -433,18 +425,37 @@ Rp 0
 
             let qty = toNumber(row.find('.qty').val());
             let harga = toNumber(row.find('.harga').val());
-            let diskon = toNumber(row.find('.diskon').val()); // persen
+            let diskon = toNumber(row.find('.diskon').val());
             let pajakId = row.find('.pajak').val();
 
             let total = qty * harga;
 
             // ✅ DISKON PERSEN
-            let nilaiDiskon = total * (diskon / 100);
+            let diskonType = row.find('.diskon-type').val() || 'percent';
+
+            let nilaiDiskon = 0;
+
+            if (diskonType === 'percent') {
+                nilaiDiskon = total * (diskon / 100);
+            } else {
+                nilaiDiskon = diskon;
+            }
+
+            // Clamp
+            if (nilaiDiskon > total) {
+                nilaiDiskon = total;
+            }
 
             let afterDiskon = total - nilaiDiskon;
 
             let pajakPersen = pajakMapEdit[pajakId]?.persen || 0;
+            let kategori = pajakMapEdit[pajakId]?.kategori || '';
+
             let nilaiPajak = afterDiskon * (pajakPersen / 100);
+
+            if (kategori === 'PPH') {
+                nilaiPajak *= -1;
+            }
 
             let jumlah = afterDiskon + nilaiPajak;
 
@@ -467,7 +478,7 @@ Rp 0
     }
 
     $(document).on('input change',
-        '.qty, .harga, .diskon, .pajak',
+        '.qty, .harga, .diskon, .diskon-type, .pajak',
         function() {
 
             hitungSemua();

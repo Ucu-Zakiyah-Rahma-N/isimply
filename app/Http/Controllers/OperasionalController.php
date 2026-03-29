@@ -72,23 +72,27 @@ class OperasionalController extends Controller
     public function store_pengajuan_biaya(Request $request)
     {
         $request->validate([
-            'jenis_pengajuan' => 'required|in:biaya,pengeluaran',
-            'tanggal_pengajuan'       => 'required|date',
-            'metode_pembayaran'   => 'required|in:cash,transfer',
-            'project_id' => 'nullable',
-            'jenis_project' => 'nullable|string',
+            'jenis_pengajuan'   => 'required|in:biaya,pengeluaran',
+            'tanggal_pengajuan' => 'required|date',
+            'metode_pembayaran' => 'required|in:cash,transfer',
+            'project_id'        => 'nullable',
+            'jenis_project'     => 'nullable|string',
             'kontak_id'         => 'required|integer',
-            'deskripsi.*'         => 'required|string',
-            'qty.*'               => 'required|numeric|min:1',
-            'harga.*'             => 'required|numeric|min:0',
-            'diskon.*'            => 'nullable|numeric|min:0',
-            'pajak_id.*'          => 'nullable|integer',
-            'lampiran'            => 'nullable|file|max:2048'
+
+            'deskripsi.*'       => 'required|string',
+            'qty.*'             => 'required|numeric|min:1',
+            'harga.*'           => 'required|numeric|min:0',
+            'diskon.*'          => 'nullable|numeric|min:0',
+            'diskon_type.*'     => 'nullable|in:percent,nominal',
+            'pajak_id.*'        => 'nullable|integer',
+
+            'lampiran'          => 'nullable|file|max:2048'
         ]);
 
         DB::beginTransaction();
 
         try {
+
             /** ================== UPLOAD FILE ================== */
             $lampiranPath = null;
             if ($request->hasFile('lampiran')) {
@@ -96,43 +100,73 @@ class OperasionalController extends Controller
                     ->store('pengajuan/lampiran', 'public');
             }
 
-            /** ================== NOMOR PENGAJUAN ================== */
+            /** ================== NOMOR ================== */
             $nomorPengajuan = 'PB-' . now()->format('YmdHis');
 
-            /** ================== HITUNG ULANG ================== */
+            /** ================== INIT ================== */
             $subtotal = 0;
             $totalDiskon = 0;
-            $totalPPN = 0;
+            $totalPajak = 0;
             $items = [];
 
             foreach ($request->deskripsi as $i => $deskripsi) {
 
-                $qty    = $request->qty[$i];
-                $harga = $request->harga[$i];
-                $diskon = $request->diskon[$i] ?? 0;
+                $qty    = (float) $request->qty[$i];
+                $harga  = (float) $request->harga[$i];
+
+                $diskon       = (float) ($request->diskon[$i] ?? 0);
+                $diskonType   = $request->diskon_type[$i] ?? 'percent';
+
                 $pajakId = $request->pajak_id[$i] ?? null;
 
                 $total = $qty * $harga;
-                $nilaiDiskon = $total * ($diskon / 100);
+
+                /** ===== DISKON FLEXIBLE ===== */
+                if ($diskonType === 'percent') {
+                    $nilaiDiskon = $total * ($diskon / 100);
+                } else {
+                    $nilaiDiskon = $diskon;
+                }
+
+                // Clamp diskon
+                if ($nilaiDiskon > $total) {
+                    $nilaiDiskon = $total;
+                }
+
                 $setelahDiskon = $total - $nilaiDiskon;
 
+                /** ===== PAJAK ===== */
                 $nilaiPajak = 0;
+
                 if (!empty($pajakId) && $pajakId != 0) {
+
                     $coa = Coa::findOrFail($pajakId);
-                    $nilaiPajak = $setelahDiskon * ($coa->nilai_coa / 100);
+
+                    $persen = (float) $coa->nilai_coa;
+                    $kategori = strtoupper($coa->kategori_pajak ?? '');
+
+                    $nilaiPajak = $setelahDiskon * ($persen / 100);
+
+                    // Jika PPH -> minus
+                    if ($kategori === 'PPH') {
+                        $nilaiPajak *= -1;
+                    }
                 }
 
                 $jumlah = $setelahDiskon + $nilaiPajak;
 
+                /** ===== AKUMULASI ===== */
                 $subtotal += $total;
                 $totalDiskon += $nilaiDiskon;
-                $totalPPN += $nilaiPajak;
+                $totalPajak += $nilaiPajak;
 
+                /** ===== SIMPAN ITEM ===== */
                 $items[] = [
                     'deskripsi'    => $deskripsi,
                     'qty'          => $qty,
                     'harga'        => $harga,
                     'diskon'       => $diskon,
+                    'diskon_type'  => $diskonType,
                     'pajak_id'     => $pajakId ?: null,
                     'nilai_pajak'  => $nilaiPajak,
                     'jumlah'       => $jumlah
@@ -141,21 +175,22 @@ class OperasionalController extends Controller
 
             /** ================== HEADER ================== */
             $pengajuan = PengajuanBiaya::create([
-                'jenis_pengajuan'        => $request->jenis_pengajuan,
-                'project_id'             => $request->project_id,
-                'jenis_project'          => $request->jenis_project,
-                'nomor_pengajuan'        => $nomorPengajuan,
-                'tgl_pengajuan'          => $request->tanggal_pengajuan,
-                'metode_pembayaran'      => $request->metode_pembayaran,
-                'kontak_id'              => $request->kontak_id,
-                // 'referensi_proyek_id'    => $request->referensi_proyek_id,
-                'is_urgent'              => $request->boolean('is_urgent'),
-                'subtotal'               => $subtotal,
-                'total_diskon'           => $totalDiskon,
-                'total_ppn'              => $totalPPN,
-                'grand_total'            => $subtotal - $totalDiskon + $totalPPN,
-                'lampiran'               => $lampiranPath,
-                'status'                => 'proses di purchasing'
+                'jenis_pengajuan'   => $request->jenis_pengajuan,
+                'project_id'        => $request->project_id,
+                'jenis_project'     => $request->jenis_project,
+                'nomor_pengajuan'   => $nomorPengajuan,
+                'tgl_pengajuan'     => $request->tanggal_pengajuan,
+                'metode_pembayaran' => $request->metode_pembayaran,
+                'kontak_id'         => $request->kontak_id,
+                'is_urgent'         => $request->boolean('is_urgent'),
+
+                'subtotal'          => $subtotal,
+                'total_diskon'      => $totalDiskon,
+                'total_pajak'       => $totalPajak,
+                'grand_total'       => $subtotal - $totalDiskon + $totalPajak,
+
+                'lampiran'          => $lampiranPath,
+                'status'            => 'proses di purchasing'
             ]);
 
             /** ================== DETAIL ================== */
@@ -479,6 +514,7 @@ class OperasionalController extends Controller
                     'harga'          => (float) ($item->harga ?? 0),
 
                     'diskon'         => (float) ($item->diskon ?? 0),
+                    'diskon_type'    => $item->diskon_type,
 
                     'pajak_id'       => $item->pajak_id ?? 0,
 
@@ -591,22 +627,14 @@ class OperasionalController extends Controller
 
     public function getProjectGabungan()
     {
-        $marketing = DB::table('marketing')
-            ->select(
-                DB::raw("CONCAT('M-', id) as id"),
-                DB::raw("nama COLLATE utf8mb4_unicode_ci as label"),
-                DB::raw("'MARKETING' as jenis_project")
-            );
-
-        $po = DB::table('po')
+        $data = DB::table('po')
             ->leftJoin('customers', 'po.customer_id', '=', 'customers.id')
             ->select(
                 DB::raw("CONCAT('P-', po.id) as id"),
-                DB::raw("CONCAT(po.no_po,' - ', customers.nama_perusahaan) COLLATE utf8mb4_unicode_ci as label"),
+                DB::raw("CONCAT(po.no_po,' - ', customers.nama_perusahaan) as label"),
                 DB::raw("'PO' as jenis_project")
-            );
-
-        $data = $marketing->unionAll($po)->get();
+            )
+            ->get();
 
         return response()->json($data);
     }

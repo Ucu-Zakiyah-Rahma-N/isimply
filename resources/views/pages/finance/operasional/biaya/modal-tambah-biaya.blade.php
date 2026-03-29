@@ -185,7 +185,8 @@
 
                                     <div class="col-md-6">
                                         <label class="form-label label-saas">Project</label>
-                                        <select class="input-saas" id="projectSelect" name="project_id"></select>
+                                        <select class="input-saas" id="projectSelect" name="project_id">
+                                        </select>
                                         <input type="hidden" name="jenis_project" id="jenis_project">
                                     </div>
 
@@ -240,7 +241,14 @@
                                     <input type="number" class="form-control harga" name="harga[]" min="0">
                                 </div>
                                 <div class="col-md-2">
-                                    <input type="number" class="form-control diskon" name="diskon[]" value="0">
+                                    <div class="d-flex">
+                                        <input type="number" class="form-control diskon" name="diskon[]" value="0">
+
+                                        <select class="form-select diskon-type" name="diskon_type[]" style="max-width:70px">
+                                            <option value="percent">%</option>
+                                            <option value="nominal">Rp</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
                                     <select class="form-select pajak" name="pajak_id[]">
@@ -350,10 +358,15 @@
 
                 const select = $('#projectSelect');
                 select.empty();
+
+                // OPTION MANUAL
                 select.append('<option value="">Pilih Project</option>');
+                select.append('<option value="MARKETING" data-jenis="NON_PO">MARKETING</option>');
+                select.append('<option value="OFFICE" data-jenis="NON_PO">OFFICE</option>');
+                select.append('<option value="PROJECT" data-jenis="NON_PO">PROJECT</option>');
 
+                // DATA API
                 data.forEach(item => {
-
                     const option = new Option(
                         item.label,
                         item.id,
@@ -423,9 +436,7 @@
                 pajakList = Array.isArray(data) ? data : [];
                 document.querySelectorAll('.pajak').forEach(isiSelectPajak);
             })
-            .catch(err => {
-                console.error('ERROR LOAD PAJAK:', err);
-            });
+            .catch(err => console.error('ERROR LOAD PAJAK:', err));
 
 
         /* ================= ISI SELECT PAJAK ================= */
@@ -450,13 +461,15 @@
 
             let subtotal = 0;
             let totalDiskon = 0;
-            let pajakSummary = {}; // simpan pajak per kategori
+            let pajakSummary = {};
 
             document.querySelectorAll('.item-row').forEach(row => {
 
                 const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
                 const harga = parseFloat(row.querySelector('.harga')?.value) || 0;
+
                 const diskon = parseFloat(row.querySelector('.diskon')?.value) || 0;
+                const diskonType = row.querySelector('.diskon-type')?.value || 'percent';
 
                 const pajakSelect = row.querySelector('.pajak');
                 const selectedOption = pajakSelect?.options[pajakSelect.selectedIndex];
@@ -465,25 +478,40 @@
                 const kategoriPajak = selectedOption?.dataset.kategori || '';
 
                 const total = qty * harga;
-                const nilaiDiskon = total * (diskon / 100);
+
+                /* ===== HITUNG DISKON FLEXIBLE ===== */
+                let nilaiDiskon = 0;
+
+                if (diskonType === 'percent') {
+                    nilaiDiskon = total * (diskon / 100);
+                } else {
+                    nilaiDiskon = diskon;
+                }
+
+                // Clamp (tidak boleh lebih dari total)
+                if (nilaiDiskon > total) {
+                    nilaiDiskon = total;
+                }
+
                 const setelahDiskon = total - nilaiDiskon;
 
+                /* ===== HITUNG PAJAK ===== */
                 let nilaiPajak = setelahDiskon * (pajakPersen / 100);
 
-                // Jika PPH maka negatif
                 if (kategoriPajak === 'PPH') {
                     nilaiPajak *= -1;
                 }
 
                 const jumlah = setelahDiskon + nilaiPajak;
 
+                /* ===== RENDER JUMLAH ===== */
                 row.querySelector('.jumlah').value =
                     jumlah.toLocaleString('id-ID');
 
                 subtotal += total;
                 totalDiskon += nilaiDiskon;
 
-                // Simpan pajak berdasarkan kategori
+                /* ===== GROUPING PAJAK ===== */
                 if (kategoriPajak) {
                     if (!pajakSummary[kategoriPajak]) {
                         pajakSummary[kategoriPajak] = 0;
@@ -492,7 +520,7 @@
                 }
             });
 
-            // ===== Render Pajak Summary =====
+            /* ===== RENDER PAJAK SUMMARY ===== */
             const pajakContainer = document.getElementById('pajakSummary');
             pajakContainer.innerHTML = '';
 
@@ -501,21 +529,24 @@
             Object.keys(pajakSummary).forEach(kategori => {
 
                 const nilai = pajakSummary[kategori];
+                totalPajakSemua += nilai;
+
                 const isMinus = nilai < 0;
 
                 const div = document.createElement('div');
                 div.className = 'd-flex justify-content-between';
 
                 div.innerHTML = `
-                    <span>${kategori}</span>
-                    <span class="${isMinus ? 'text-danger' : ''}">
-                        Rp ${Math.abs(nilai).toLocaleString('id-ID')}
-                    </span>
-                `;
+                <span>${kategori}</span>
+                <span class="${isMinus ? 'text-danger' : ''}">
+                    Rp ${Math.abs(nilai).toLocaleString('id-ID')}
+                </span>
+            `;
 
                 pajakContainer.appendChild(div);
             });
 
+            /* ===== GRAND TOTAL ===== */
             const grandTotal = subtotal - totalDiskon + totalPajakSemua;
 
             document.getElementById('subtotal').innerText =
@@ -531,9 +562,13 @@
                 'Rp ' + grandTotal.toLocaleString('id-ID');
         }
 
-        /* ================= AUTO HITUNG ================= */
-        document.addEventListener('input', hitungSemua);
-        document.addEventListener('change', hitungSemua);
+
+        /* ================= AUTO HITUNG (OPTIMIZED) ================= */
+        document.getElementById('itemContainer')
+            .addEventListener('input', hitungSemua);
+
+        document.getElementById('itemContainer')
+            .addEventListener('change', hitungSemua);
 
 
         /* ================= TAMBAH ITEM ================= */
@@ -548,6 +583,7 @@
 
             row.querySelector('.qty').value = 1;
             row.querySelector('.diskon').value = 0;
+            row.querySelector('.diskon-type').value = 'percent';
             row.querySelector('.jumlah').value = '';
 
             isiSelectPajak(row.querySelector('.pajak'));

@@ -17,6 +17,7 @@ class PengajuanBiayaItem extends Model
         'qty',
         'harga',
         'diskon',
+        'diskon_type',
         'pajak_id',
         'nilai_pajak',
         'jumlah'
