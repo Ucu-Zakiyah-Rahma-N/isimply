@@ -115,7 +115,7 @@
             <div>
                 <img src="{{ $logo }}" width="70">
             </div>
-            <div class="company-info" style="margin-left:0px;">
+            <div class="company-info" style="margin-left:0px; margin-top:10px;">
                 <strong>PT SIMPLY DIMENSI INDONESIA</strong><br>
                 Jl. Jakarta No. 13 A Kelurahan Karangpawitan<br>
                 Karawang Barat, Kabupaten Karawang, Jawa Barat<br>
@@ -148,7 +148,7 @@
                             <td>{{ $invoice->no_invoice }}</td>
                         </tr>
                         <tr>
-                            <td>Tanggal</td>
+                            <td>Date</td>
                             <td>:</td>
                             <td>{{ \Carbon\Carbon::parse($invoice->tgl_inv)->format('d/m/Y') }}</td>
                         </tr>
@@ -157,7 +157,7 @@
                             <td>:</td>
                             <td>{{ $invoice->po->nama_pic_keuangan ?? '-' }}</td>
                         </tr> -->
-                        <tr>
+                        <!-- <tr>
                             <td>Page</td>
                             <td>:</td>
                             <td>
@@ -167,7 +167,7 @@
                                 }
                             </script>
                             </td>
-                        </tr>
+                        </tr> -->
                     </table>
                 </td>
 
@@ -175,7 +175,7 @@
         </table>
 
         <table>
-            <div style="margin-top:40px; font-size:12px;"> <strong>To:</strong><br>
+            <div style="margin-top:80px; font-size:12px;"> <strong>To:</strong><br>
                 <strong>{{ strtoupper($invoice->customer->nama_perusahaan) }}</strong><br>
                 {{ $invoice->customer->detail_alamat ?? '-' }},
                 {{ $invoice->po->quotation->kawasan_industri->nama_kawasan ?? '-' }},
@@ -188,10 +188,10 @@
         <table class="data">
             <thead>
                 <tr>
-                    <th style="width:40%">KETERANGAN</th>
-                    <th style="width:15%">HARGA SATUAN (Rp)</th>
-                    <th style="width:15%">QTY</th>
-                    <th style="width:30%">JUMLAH (Rp)</th>
+                    <th style="width:40%">Description</th>
+                    <th style="width:15%">Unit Price (Rp)</th>
+                    <th style="width:15%">Qty</th>
+                    <th style="width:30%">Amount (Rp)</th>
                 </tr>
             </thead>
             <tbody>
@@ -199,9 +199,11 @@
                 @php
                 $maxRows = 10; // atur supaya pas 1 halaman A4
                 $currentRows = $invoice->produk->count();
+                $quotation = $invoice->po->quotation;
+                $isGabungan = $quotation && $quotation->harga_tipe === 'gabungan';
                 @endphp
 
-                {{-- Produk --}}
+                <!-- {{-- Produk --}}
                 @foreach ($invoice->produk as $item)
                 <tr>
                     <td>
@@ -213,8 +215,63 @@
                     <td class="text-right">{{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
                     <td class="text-center">{{ $item->qty }}</td>
                     <td class="text-right">{{ number_format($item->qty * $item->harga_satuan, 0, ',', '.') }}</td>
-                </tr>
-                @endforeach
+                </tr> -->
+                <!-- @endforeach -->
+
+
+
+@if ($isGabungan)
+
+{{-- 🔥 MODE HARGA GABUNGAN --}}
+<tr>
+    <td>
+        @foreach ($invoice->produk as $item)
+            {{ $item->perizinan_id 
+                ? $item->perizinan->jenis ?? '-' 
+                : $item->perizinan_lainnya ?? '-' 
+            }}<br>
+        @endforeach
+    </td>
+
+    {{-- Harga satuan --}}
+    <td class="text-center">-</td>
+
+    {{-- Qty --}}
+    <td class="text-center">{{ $item->qty }}</td>
+
+    {{-- Jumlah --}}
+    <td class="text-right">
+        Rp {{ number_format($calc['subtotal'], 0, ',', '.') }}
+    </td>
+</tr>
+
+@else
+
+{{-- 🔥 MODE HARGA SATUAN --}}
+@foreach ($invoice->produk as $item)
+<tr>
+    <td>
+        {{ $item->perizinan_id 
+            ? $item->perizinan->jenis ?? '-' 
+            : $item->perizinan_lainnya ?? '-' 
+        }}
+    </td>
+
+    <td class="text-right">
+        Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}
+    </td>
+
+    <td class="text-center">
+        {{ $item->qty }}
+    </td>
+
+    <td class="text-right">
+        Rp {{ number_format($item->qty * $item->harga_satuan, 0, ',', '.') }}
+    </td>
+</tr>
+@endforeach
+
+@endif
 
                 {{-- Baris kosong supaya tabel manjang --}}
                 @for ($i = $currentRows; $i < $maxRows; $i++)
@@ -237,7 +294,100 @@
                     </tr>
 
                     {{-- Summary --}}
-                    <tr>
+                    {{-- SUBTOTAL --}}
+<tr>
+    <td></td>
+    <td colspan="3">
+        Total
+        <span style="float:right;">
+            Rp {{ number_format($calc['subtotal'], 0, ',', '.') }}
+        </span>
+    </td>
+</tr>
+
+{{-- DISKON PO --}}
+@if ($calc['diskon_po'] > 0)
+<tr>
+    <td></td>
+    <td colspan="3">
+        Diskon
+        <span style="float:right;">
+            Rp {{ number_format($calc['diskon_po'], 0, ',', '.') }}
+        </span>
+    </td>
+</tr>
+
+<tr>
+    <td></td>
+    <td colspan="3">
+        Total After Diskon
+        <span style="float:right;">
+            Rp {{ number_format($calc['after_diskon_po'], 0, ',', '.') }}
+        </span>
+    </td>
+</tr>
+@endif
+
+{{-- TERMIN --}}
+<tr>
+    <td></td>
+    <td colspan="3">
+        Termin ({{ $invoice->persentase_termin }}%)
+        <span style="float:right;">
+            Rp {{ number_format($calc['nominalInvoice'], 0, ',', '.') }}
+        </span>
+    </td>
+</tr>
+
+{{-- DISKON INVOICE --}}
+@if ($calc['diskon_invoice'] > 0)
+<tr>
+    <td></td>
+    <td colspan="3">
+        Diskon
+        <span style="float:right;">
+            Rp {{ number_format($calc['diskon_invoice'], 0, ',', '.') }}
+        </span>
+    </td>
+</tr>
+
+<tr>
+    <td></td>
+    <td colspan="3">
+        Total After Diskon
+        <span style="float:right;">
+            Rp {{ number_format($calc['after_diskon_invoice'], 0, ',', '.') }}
+        </span>
+    </td>
+</tr>
+@endif
+
+{{-- PPN --}}
+@if ($invoice->ppn > 0)
+<tr>
+    <td></td>
+    <td colspan="3">
+        PPN 11%
+        <span style="float:right;">
+            Rp {{ number_format($invoice->ppn, 0, ',', '.') }}
+        </span>
+    </td>
+</tr>
+@endif
+
+{{-- TOTAL --}}
+<tr>
+    <td></td>
+    <td colspan="3">
+        <strong>Grand Total</strong>
+        <span style="float:right;">
+            <strong>
+                Rp {{ number_format($calc['totalAkhir'], 0, ',', '.') }}
+            </strong>
+        </span>
+    </td>
+</tr>
+                    <!-- <tr>
                         <td></td>
                         <td colspan="3">
                             <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
@@ -299,9 +449,9 @@
                             </table>
                         </td>
                     </tr>
-                    @endif
+                    @endif -->
 
-                    @if (!empty($calc['ppn']) && $calc['ppn'] > 0)
+                    <!-- @if (!empty($calc['ppn']) && $calc['ppn'] > 0)
                     <tr>
                         <td></td>
                         <td colspan="3">
@@ -317,9 +467,27 @@
                             </table>
                         </td>
                     </tr>
-                    @endif
+                    @endif -->
 
-                    @if (!empty($calc['pph']) && $calc['pph'] > 0)
+                    <!-- @if ($invoice->ppn > 0)
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
+                                <tr>
+                                    <td style="border:none;">
+                                        <span>PPN 11%</span>
+                                    </td>
+                                    <td style="border:none; text-align:right;">
+                                        <span>Rp {{ number_format($invoice->ppn, 0, ',', '.') }}</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    @endif -->
+
+                    <!-- @if (!empty($calc['pph']) && $calc['pph'] > 0)
                     <tr>
                         <td></td>
                         <td colspan="3">
@@ -335,9 +503,9 @@
                             </table>
                         </td>
                     </tr>
-                    @endif
+                    @endif -->
 
-                    <tr>
+                    <!-- <tr>
                         <td></td>
                         <td colspan="3">
                             <table width="100%" style="border:none; border-collapse:collapse; line-height:1.2;">
@@ -353,35 +521,61 @@
                                 </tr>
                             </table>
                         </td>
-                    </tr>
+                    </tr> -->
+                    <!-- <tr>
+                    <td></td>
+                    <td colspan="3">
+                        <table width="100%" style="border:none; border-collapse:collapse;">
+                            <tr>
+                                <td style="font-style:italic;">
+                                    Terbilang: {{ ucfirst($terbilang) }} Rupiah
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr> -->
             </tbody>
         </table>
-
-<div style="width:100%; margin-top:25px; display:flex; justify-content:space-between; font-size:12px; align-items:flex-end;">
-
-    <!-- NOTE KIRI -->
-    <div style="width:50%;">
-        <strong>Note:</strong>
-        <ul style="margin-top:5px; padding-left:15px;">
-            <li>PPh PT. Simply Dimensi Indonesia menggunakan tarif PPh Final Pasal 4 ayat (2) - 3,5% (Jasa Konsultan Konstruksi)</li>
-            <li><strong>Account Payment:</strong><br>Bank Mandiri<br>No. Rekening 1730012944519<br>a.n PT. Simply Dimensi Indonesia</li>
-            <li>Pembayaran dilakukan paling lambat 14 hari setelah dokumen invoice diserahkan.</li>
-        </ul>
-    </div>
-
-    <!-- SIGNATURE KANAN -->
-    <div style="width:40%; text-align:center;">
-        <p><strong>Issued by Signature</strong></p>
-        <p><strong>PT Simply Dimensi Indonesia</strong></p>
-
-        <div style="height:80px;"></div>
-
-        <p style="margin:0; text-decoration:underline;">Melasari Nugraha</p>
-        <p style="margin:0;">Staff Accounting</p>
-    </div>
-
+        <div style="margin-top:10px; font-style:italic; text-align:right; font-size:11px;">
+    Terbilang: {{ ucfirst($terbilang) }} Rupiah
 </div>
-        
+
+    <table width="100%" style="margin-top:25px; font-size:12px;">
+    <tr>
+
+        <!-- NOTE KIRI -->
+        <td width="60%" valign="top">
+            <strong>Note:</strong>
+            <ul style="margin-top:5px; padding-left:15px;">
+                <li>PPh PT. Simply Dimensi Indonesia menggunakan tarif PPh Final Pasal 4 ayat (2) - 3,5% (Jasa Konsultan Kontruksi)</li>
+                <li>
+                    <strong>Account Payment:</strong><br>
+                    Bank Maybank<br>
+                    No. Rekening 2784001630<br>
+                    a.n Simply Dimensi Indonesia, PT
+                </li>
+                <li>Pembayaran dilakukan paling lambat 14 hari setelah dokumen invoice diserahkan.</li>
+            </ul>
+        </td>
+
+        <!-- SIGNATURE KANAN -->
+        <td width="40%" align="center">
+            
+            <!-- 🔥 spacer biar turun -->
+            <div style="height:120px;"></div>
+
+            <p><strong>Issued by Signature</strong></p>
+            <p><strong>PT Simply Dimensi Indonesia</strong></p>
+
+            <div style="height:80px;"></div>
+
+            <p style="margin:0; text-decoration:underline;">Mela</p>
+            <p style="margin:0;">Staff Accounting</p>
+        </td>
+
+    </tr>
+</table>
+
     </div>
 
     <div style="clear:both;"></div>

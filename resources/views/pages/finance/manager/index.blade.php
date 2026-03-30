@@ -125,7 +125,7 @@
             <li class="nav-item">
                 <a class="nav-link {{ $tab == 'dijadwalkan' ? 'active' : '' }}"
                     href="{{ route('finance.manager_index', ['tab' => 'dijadwalkan']) }}">
-                    Dijadwalkan
+                    Hari ini
                     @if($countScheduled > 0)
                     <span class="badge bg-primary ms-1">{{ $countScheduled }}</span>
                     @endif

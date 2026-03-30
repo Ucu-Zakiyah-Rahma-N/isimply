@@ -1166,6 +1166,7 @@ class FinanceController extends Controller
 
         // SIMPAN HASIL KE VARIABEL LAIN
         $calc = InvoiceCalculatorHelper::from($invoice)->calculate();
+        $terbilang = \App\Helpers\Terbilang::convert($calc['totalAkhir']);
         // dd($calc);
         // LOGO BASE64
         $path = public_path('assets/images/simply.png');
@@ -1182,6 +1183,7 @@ class FinanceController extends Controller
             'invoice' => $invoice,  // tetap object
             'logo' => $logo,
             'calc' => $calc,        // hasil helper
+            'terbilang' => $terbilang,        // hasil helper
         ])
             ->setPaper('A4', 'portrait')
             ->setOptions([
@@ -1444,7 +1446,6 @@ class FinanceController extends Controller
             'nominal'   => preg_replace('/[^0-9]/', '', $request->nominal),
             'nilai_pph' => preg_replace('/[^0-9]/', '', $request->nilai_pph),
         ]);
-
 
         // =========================
         // VALIDASI

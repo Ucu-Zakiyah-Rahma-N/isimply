@@ -396,7 +396,7 @@
 
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('finance.invoice_index') }}">
-                            <span class="hide-menu">Data sudah Invoice</span>
+                            <span class="hide-menu">Rekap Invoice</span>
                         </a>
                     </li>
 

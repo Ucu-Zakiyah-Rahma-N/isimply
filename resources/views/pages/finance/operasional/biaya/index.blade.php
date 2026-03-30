@@ -57,6 +57,7 @@
                             <th>No. Pengajuan</th>
                             <th>Tanggal</th>
                             <th>Penerima</th>
+                            <th>Item Pengajuan</th>
                             <th>Metode</th>
                             <th class="text-end">Total</th>
                             <th>Status</th>
@@ -82,6 +83,7 @@
                             </td>
                             <td>{{ $row->tgl_pengajuan->format('d/m/Y') }}</td>
                             <td>{{ optional($row->kontak)->nama ?? '-' }}</td>
+                            <td></td>
                             <td>
                                 <span class="badge bg-info">
                                     {{ ucfirst($row->metode_pembayaran) }}
