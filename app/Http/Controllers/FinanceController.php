@@ -301,7 +301,7 @@ class FinanceController extends Controller
             'customer_id'       => 'required|exists:customers,id',
             'jenis_invoice'     => 'required',
             'tgl_invoice'       => 'required|date',
-            'tgl_jatuh_tempo'   => 'required|date',
+            'net_month' => 'required|integer|min:1',
             'items'             => 'required|array|min:1',
             'persentase_termin' => 'required|numeric|min:0|max:100',
         ]);
@@ -313,6 +313,12 @@ class FinanceController extends Controller
         // Ambil PO dulu
         $po        = PO::with('quotation', 'perizinan')->findOrFail($request->po_id);
         $quotation = $po->quotation;
+
+
+        $tgl_invoice = Carbon::parse($request->tgl_invoice);
+        $netMonth = (int) $request->net_month ?? 0;
+        $tgl_jatuh_tempo = $tgl_invoice->copy()->addMonths($netMonth);
+
 
         $isGabungan = $po->harga_gabungan != null;
 
@@ -484,7 +490,8 @@ class FinanceController extends Controller
                 'keterangan'        => $request->keterangan,
                 'catatan'           => $request->catatan,
                 'tgl_inv'           => $request->tgl_invoice,
-                'tgl_jatuh_tempo'   => $request->tgl_jatuh_tempo,
+                'net_month'         => $netMonth,
+                'tgl_jatuh_tempo'   => $tgl_jatuh_tempo,
                 'subtotal'             => $subtotal,
                 'diskon_po'            => $diskonPo,
                 'nominal_po'           => $nominalPo,
@@ -839,7 +846,7 @@ class FinanceController extends Controller
             // ===============================
             $validated = $request->validate([
                 'tgl_inv' => 'required|date',
-                'tgl_jatuh_tempo' => 'required|date',
+                'net_month' => 'required|integer|min:1',
                 'jenis_invoice' => 'required',
                 'persentase_termin' => 'required|numeric',
 
@@ -977,12 +984,18 @@ class FinanceController extends Controller
             $oldNominalInvoice = $invoice->nominal_invoice;
             $oldPpn            = $invoice->ppn;
 
+
+            $tgl_inv = Carbon::parse($validated['tgl_inv']);
+            $netMonth = (int) $request->net_month;
+
+            $tgl_jatuh_tempo = $tgl_inv->copy()->addMonths($netMonth);
             // ===============================
             // UPDATE HEADER
             // ===============================
             $invoice->update([
                 'tgl_inv' => $validated['tgl_inv'],
-                'tgl_jatuh_tempo' => $validated['tgl_jatuh_tempo'],
+                'net_month' => $netMonth,
+                'tgl_jatuh_tempo' => $tgl_jatuh_tempo,
                 'jenis_invoice' => $validated['jenis_invoice'],
                 'persentase_termin' => $persenTermin,
 
@@ -1835,224 +1848,486 @@ class FinanceController extends Controller
     //     ->get();
     //     Jangan ambil status void.
 
+public function laporanPiutang()
+{
+    $title = 'Laporan Piutang';
 
-    public function laporanPiutang()
-    {
-        $title = 'Laporan Piutang';
+    $data = Invoice::with(['payments', 'customer', 'produk', 'po'])
+        ->whereIn('status', ['posted', 'partial'])
+        ->get();
 
-        $data = Invoice::with(['payments', 'customer', 'produk', 'po'])
-            ->whereIn('status', ['posted', 'paid'])
-            ->get();
+    $filteredData = $data->map(function ($row) {
 
-        // Hitung total piutang (hanya yang belum lunas)
-        $totalPiutang = $data->where('status', 'posted')->sum(function ($row) {
+        $nominalSpk = $row->total_after_diskon_inv > 0
+            ? $row->total_after_diskon_inv
+            : $row->nominal_invoice;
 
-            $nominalSpk = $row->total_after_diskon_inv > 0
-                ? $row->total_after_diskon_inv
-                : $row->nominal_invoice;
+        $totalTagihan = $nominalSpk + ($row->ppn ?? 0);
 
-            return $nominalSpk + ($row->ppn ?? 0);
-        });
+        $totalBayar = $row->payments->sum(fn($p) => $p->nominal + $p->nilai_pph);
 
-        return view('pages.finance.laporan_piutang', compact('data', 'totalPiutang', 'title'));
-    }
+        $sisa = $totalTagihan - $totalBayar;
 
-
-    public function laporanOutstanding(Request $request)
-    {
-        $title = 'Laporan Outstanding';
-
-        $tahunSekarang = now()->year;
-        $tahunDipilih = $request->tahun ?? 'all'; // default keseluruhan
-
-        $query = Po::with([
-            'customer',
-            'invoices.produk.perizinan',
-            'invoices.payments',
-            'quotation.quotation_perizinan',
-            'quotation.kabupaten'
-        ])
-            ->where('bast_verified', 1);
-
-        // ✅ FILTER TAHUN
-        if ($tahunDipilih !== 'all') {
-            $query->whereYear('tgl_po', $tahunDipilih);
+        // Hanya tampilkan kalau ada sisa tagihan
+        if ($sisa <= 0) {
+            return null;
         }
 
-        $pos = $query->get();
+        // Tambahkan info termin & status
+        $row->sisa_tagihan = $sisa;
+        $row->termin_status = 'invoice'; // karena ini invoice
+        $row->keterangan = $row->keterangan ?? 'Termin ' . ($row->termin_ke ?? 1);
 
-        $data = collect();
+        return $row;
+    })->filter()->values(); // buang null dan reset index
 
-        foreach ($pos as $po) {
+    // Hitung total piutang
+    $totalPiutang = $filteredData->sum(fn($row) => $row->sisa_tagihan);
 
-            $quotation = $po->quotation;
-            if (!$quotation) continue;
+    return view('pages.finance.laporan_piutang', [
+        'data' => $filteredData,
+        'totalPiutang' => $totalPiutang,
+        'title' => $title
+    ]);
+}
 
-            // ===== HITUNG NOMINAL SPK =====
-            if ($quotation->harga_tipe === 'gabungan') {
-                $subtotal = (float) $quotation->harga_gabungan;
-            } else {
-                $subtotal = $quotation->perizinan->sum(function ($item) {
-                    return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
+public function laporanOutstanding(Request $request)
+{
+    $title = 'Laporan Outstanding';
+
+    $tahunSekarang = now()->year;
+    $tahunDipilih = $request->tahun ?? 'all';
+
+    $query = Po::with([
+        'customer',
+        'invoices.payments',
+        'invoices.produk.perizinan',
+        'quotation.perizinan',
+        'quotation.quotation_perizinan',
+        'quotation.kabupaten'
+    ])->where('bast_verified', 1);
+
+    if ($tahunDipilih !== 'all') {
+        $query->whereYear('tgl_po', $tahunDipilih);
+    }
+
+    $pos = $query->get();
+
+    $data = collect();
+
+    foreach ($pos as $po) {
+
+        $quotation = $po->quotation;
+        if (!$quotation) continue;
+
+        // =========================
+        // HITUNG NOMINAL SPK
+        // =========================
+        if ($quotation->harga_tipe === 'gabungan') {
+            $subtotal = (float) $quotation->harga_gabungan;
+        } else {
+            $subtotal = $quotation->perizinan->sum(function ($item) {
+                return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
+            });
+        }
+
+        $diskon = (float) ($quotation->diskon_nilai ?? 0);
+        if ($diskon > $subtotal) $diskon = $subtotal;
+
+        $nominalSPK = $subtotal - $diskon;
+
+        // =========================
+        // HITUNG TERMIN (FINAL)
+        // =========================
+        $terminList = collect();
+        $terminPersentase = $quotation->termin_persentase ?? [];
+
+        foreach ($terminPersentase as $termin) {
+
+            $persen = (float) ($termin['persen'] ?? 0);
+            $urutan = $termin['urutan'] ?? null;
+
+            $nominalTermin = ($persen / 100) * $nominalSPK;
+
+            // cek invoice berdasarkan termin
+            $invoice = $po->invoices->firstWhere('termin_ke', $urutan);
+
+      if ($invoice) {
+    // 🔴 SUDAH INVOICE → pakai invoice
+    $totalBayar = $invoice->payments->sum(fn($p) => $p->nominal + $p->nilai_pph);
+    $sisa = $invoice->grand_total - $totalBayar;
+
+    if ($sisa > 0) {
+        $terminList->push([
+            'keterangan' => $invoice->keterangan ?? "Termin {$invoice->termin_ke}", 
+            'nominal'    => $sisa,
+            'status'     => 'invoice'
+        ]);
+    }
+} else {
+    // 🟡 BELUM INVOICE
+    $terminKeterangan = $termin['keterangan'] ?? "Termin {$termin['urutan']} ({$termin['persen']}%)";
+
+    if ($nominalTermin > 0) {
+        $terminList->push([
+            'keterangan' => $terminKeterangan,
+            'nominal'    => $nominalTermin,
+            'status'     => 'belum'
+        ]);
+    }
+}
+        }
+
+        $po->nominal_spk = $nominalSPK;
+        $po->termin_list = $terminList;
+
+        // =========================
+        // PRODUK
+        // =========================
+        if ($po->invoices->isNotEmpty()) {
+            $po->all_produk = $po->invoices->flatMap(function ($inv) {
+                return $inv->produk->map(function ($item) {
+                    return $item->perizinan?->jenis
+                        ?? $item->perizinan_lainnya
+                        ?? '-';
                 });
-            }
+            });
+        } else {
+            $po->all_produk = $quotation->quotation_perizinan->map(function ($item) {
+                return $item->perizinan?->jenis
+                    ?? $item->perizinan_lainnya
+                    ?? '-';
+            });
+        }
 
-            $diskon = (float) ($quotation->diskon_nilai ?? 0);
-            if ($diskon > $subtotal) {
-                $diskon = $subtotal;
-            }
-
-            $nominalSPK = $subtotal - $diskon;
-
-            // ===== HITUNG TERMIN =====
-            $terminList = collect();
-            $terminPersentase = $quotation->termin_persentase;
-
-            if (!empty($terminPersentase)) {
-                foreach ($terminPersentase as $termin) {
-
-                    $persen = (float) $termin['persen'];
-                    $nominalTermin = ($persen / 100) * $nominalSPK;
-
-                    $terminList->push([
-                        'keterangan' => 'Termin ' . $termin['urutan'] . ' (' . $persen . '%)',
-                        'nominal'    => $nominalTermin
-                    ]);
-                }
-            }
-
-            $po->nominal_spk = $nominalSPK;
-            $po->termin_list = $terminList;
-
-
-            //perizinan
-            // ==============================
-            // PRODUK / PERIZINAN LOGIC
-            // ==============================
-            if ($po->invoices->isNotEmpty()) {
-
-                $po->all_produk = $po->invoices->flatMap(function ($inv) {
-                    return $inv->produk->map(function ($item) {
-                        return $item->perizinan?->jenis
-                            ?? $item->perizinan_lainnya
-                            ?? '-';
-                    });
-                });
-            } else {
-
-                if ($po->quotation && $po->quotation->quotation_perizinan->isNotEmpty()) {
-
-                    $po->all_produk = $po->quotation->quotation_perizinan->map(function ($item) {
-                        return $item->perizinan?->jenis
-                            ?? $item->perizinan_lainnya
-                            ?? '-';
-                    });
-                } else {
-                    $po->all_produk = collect();
-                }
-            }
+        // hanya tampil kalau masih ada outstanding
+        if ($terminList->isNotEmpty()) {
             $data->push($po);
         }
+    }
 
+    // =========================
+    // TOTAL TABLE
+    // =========================
+    $totalNominalSPK = $data->sum('nominal_spk');
 
-        // ===== TOTAL =====
-        $totalNominalSPK = $data->sum('nominal_spk');
+    $totalNominalTermin = $data->sum(function ($po) {
+        return $po->termin_list->sum('nominal');
+    });
 
-        $totalNominalTermin = $data->sum(function ($po) {
-            return $po->termin_list->sum('nominal');
-        });
+    // =========================
+    // SUMMARY (GLOBAL)
+    // =========================
+    $allPos = Po::with([
+        'invoices.payments',
+        'quotation.perizinan'
+    ])->where('bast_verified', 1)->get();
 
-        // // ==============================
-        // // TOTAL TERMIN PER TAHUN
-        // // ==============================
+    $summaryData = collect();
 
-        // $outstandingPerTahun = $data
-        //     ->groupBy(function ($po) {
-        //         return \Carbon\Carbon::parse($po->tgl_po)->year;
-        //     })
-        //     ->map(function ($items) {
-        //         return $items->sum(function ($po) {
-        //             return $po->termin_list->sum('nominal');
-        //         });
-        //     })
-        //     ->filter(function ($total) {
-        //         return $total > 0; // hanya yang ada nilainya
-        //     })
-        //     ->sortDesc();
+    foreach ($allPos as $po) {
 
+        $quotation = $po->quotation;
+        if (!$quotation) continue;
 
-        // =========================
-        // QUERY UNTUK SUMMARY (KESSELURUHAN) - TANPA FILTER TAHUN
-        // =========================
-        $allPos = Po::with([
-            'invoices.produk.perizinan',
-            'quotation.quotation_perizinan'
-        ])->where('bast_verified', 1)->get();
-
-        $summaryData = collect();
-        foreach ($allPos as $po) {
-            $quotation = $po->quotation;
-            if (!$quotation) continue;
-
-            // nominal SPK
-            $subtotal = $quotation->harga_tipe === 'gabungan'
-                ? (float) $quotation->harga_gabungan
-                : $quotation->perizinan->sum(function ($item) {
-                    return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
-                });
-            $diskon = (float) ($quotation->diskon_nilai ?? 0);
-            if ($diskon > $subtotal) $diskon = $subtotal;
-            $nominalSPK = $subtotal - $diskon;
-
-            // termin
-            $terminList = collect();
-            $terminPersentase = $quotation->termin_persentase ?? [];
-            foreach ($terminPersentase as $termin) {
-                $persen = (float) $termin['persen'];
-                $nominalTermin = ($persen / 100) * $nominalSPK;
-                $terminList->push([
-                    'keterangan' => 'Termin ' . $termin['urutan'] . ' (' . $persen . '%)',
-                    'nominal' => $nominalTermin
-                ]);
-            }
-            $po->termin_list = $terminList;
-
-            $summaryData->push($po);
+        if ($quotation->harga_tipe === 'gabungan') {
+            $subtotal = (float) $quotation->harga_gabungan;
+        } else {
+            $subtotal = $quotation->perizinan->sum(function ($item) {
+                return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
+            });
         }
 
-        // total keseluruhan
-        $totalOutstandingKeseluruhan = $summaryData->sum(function ($po) {
-            return $po->termin_list->sum('nominal');
-        });
+        $diskon = (float) ($quotation->diskon_nilai ?? 0);
+        if ($diskon > $subtotal) $diskon = $subtotal;
 
-        // total per tahun
-        $outstandingPerTahun = $summaryData
-            ->groupBy(function ($po) {
-                return \Carbon\Carbon::parse($po->tgl_po)->year;
-            })
-            ->map(function ($items) {
-                return $items->sum(function ($po) {
-                    return $po->termin_list->sum('nominal');
+        $nominalSPK = $subtotal - $diskon;
+
+        $terminList = collect();
+        $terminPersentase = $quotation->termin_persentase ?? [];
+
+        foreach ($terminPersentase as $termin) {
+
+            $persen = (float) ($termin['persen'] ?? 0);
+            $urutan = $termin['urutan'] ?? null;
+
+            $nominalTermin = ($persen / 100) * $nominalSPK;
+
+            $invoice = $po->invoices->firstWhere('termin_ke', $urutan);
+
+            if ($invoice) {
+
+                $totalBayar = $invoice->payments->sum(function ($p) {
+                    return $p->nominal + $p->nilai_pph;
                 });
-            })
-            ->filter(fn($total) => $total > 0)
-            // ->sortDesc(); berdasarkan nominal dari gede ke kecil
-            ->sortKeysDesc(); //urut dari tahun
 
-        return view(
-            'pages.finance.laporan_outstanding',
-            compact(
-                'data',
-                'title',
-                'totalNominalSPK',
-                'totalNominalTermin',
-                // 'totalOutstanding',
-                'totalOutstandingKeseluruhan',
-                'outstandingPerTahun',
-                'outstandingPerTahun',
-                'tahunSekarang',
-                'tahunDipilih'
-            )
-        );
+                $sisa = $invoice->grand_total - $totalBayar;
+
+                if ($sisa > 0) {
+                    $terminList->push(['nominal' => $sisa]);
+                }
+
+            } else {
+
+                if ($nominalTermin > 0) {
+                    $terminList->push(['nominal' => $nominalTermin]);
+                }
+            }
+        }
+
+        $po->termin_list = $terminList;
+        $summaryData->push($po);
     }
+
+    $totalOutstandingKeseluruhan = $summaryData->sum(function ($po) {
+        return $po->termin_list->sum('nominal');
+    });
+
+    $outstandingPerTahun = $summaryData
+        ->groupBy(function ($po) {
+            return \Carbon\Carbon::parse($po->tgl_po)->year;
+        })
+        ->map(function ($items) {
+            return $items->sum(function ($po) {
+                return $po->termin_list->sum('nominal');
+            });
+        })
+        ->filter(fn($total) => $total > 0)
+        ->sortKeysDesc();
+
+    return view(
+        'pages.finance.laporan_outstanding',
+        compact(
+            'data',
+            'title',
+            'totalNominalSPK',
+            'totalNominalTermin',
+            'totalOutstandingKeseluruhan',
+            'outstandingPerTahun',
+            'tahunSekarang',
+            'tahunDipilih'
+        )
+    );
+}
+
+
+    //  public function laporanPiutang()
+    // {
+    //     $title = 'Laporan Piutang';
+
+    //     $data = Invoice::with(['payments', 'customer', 'produk', 'po'])
+    //         ->whereIn('status', ['posted', 'paid'])
+    //         ->get();
+
+    //     // Hitung total piutang (hanya yang belum lunas)
+    //     $totalPiutang = $data->where('status', 'posted')->sum(function ($row) {
+
+    //         $nominalSpk = $row->total_after_diskon_inv > 0
+    //             ? $row->total_after_diskon_inv
+    //             : $row->nominal_invoice;
+
+    //         return $nominalSpk + ($row->ppn ?? 0);
+    //     });
+
+    //     return view('pages.finance.laporan_piutang', compact('data', 'totalPiutang', 'title'));
+    // }
+
+
+    // public function laporanOutstanding(Request $request)
+    // {
+    //     $title = 'Laporan Outstanding';
+
+    //     $tahunSekarang = now()->year;
+    //     $tahunDipilih = $request->tahun ?? 'all'; // default keseluruhan
+
+    //     $query = Po::with([
+    //         'customer',
+    //         'invoices.produk.perizinan',
+    //         'invoices.payments',
+    //         'quotation.quotation_perizinan',
+    //         'quotation.kabupaten'
+    //     ])
+    //         ->where('bast_verified', 1);
+
+    //     // ✅ FILTER TAHUN
+    //     if ($tahunDipilih !== 'all') {
+    //         $query->whereYear('tgl_po', $tahunDipilih);
+    //     }
+
+    //     $pos = $query->get();
+
+    //     $data = collect();
+
+    //     foreach ($pos as $po) {
+
+    //         $quotation = $po->quotation;
+    //         if (!$quotation) continue;
+
+    //         // ===== HITUNG NOMINAL SPK =====
+    //         if ($quotation->harga_tipe === 'gabungan') {
+    //             $subtotal = (float) $quotation->harga_gabungan;
+    //         } else {
+    //             $subtotal = $quotation->perizinan->sum(function ($item) {
+    //                 return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
+    //             });
+    //         }
+
+    //         $diskon = (float) ($quotation->diskon_nilai ?? 0);
+    //         if ($diskon > $subtotal) {
+    //             $diskon = $subtotal;
+    //         }
+
+    //         $nominalSPK = $subtotal - $diskon;
+
+    //         // ===== HITUNG TERMIN =====
+    //         $terminList = collect();
+    //         $terminPersentase = $quotation->termin_persentase;
+
+    //         if (!empty($terminPersentase)) {
+    //             foreach ($terminPersentase as $termin) {
+
+    //                 $persen = (float) $termin['persen'];
+    //                 $nominalTermin = ($persen / 100) * $nominalSPK;
+
+    //                 $terminList->push([
+    //                     'keterangan' => 'Termin ' . $termin['urutan'] . ' (' . $persen . '%)',
+    //                     'nominal'    => $nominalTermin
+    //                 ]);
+    //             }
+    //         }
+
+    //         $po->nominal_spk = $nominalSPK;
+    //         $po->termin_list = $terminList;
+
+
+    //         //perizinan
+    //         // ==============================
+    //         // PRODUK / PERIZINAN LOGIC
+    //         // ==============================
+    //         if ($po->invoices->isNotEmpty()) {
+
+    //             $po->all_produk = $po->invoices->flatMap(function ($inv) {
+    //                 return $inv->produk->map(function ($item) {
+    //                     return $item->perizinan?->jenis
+    //                         ?? $item->perizinan_lainnya
+    //                         ?? '-';
+    //                 });
+    //             });
+    //         } else {
+
+    //             if ($po->quotation && $po->quotation->quotation_perizinan->isNotEmpty()) {
+
+    //                 $po->all_produk = $po->quotation->quotation_perizinan->map(function ($item) {
+    //                     return $item->perizinan?->jenis
+    //                         ?? $item->perizinan_lainnya
+    //                         ?? '-';
+    //                 });
+    //             } else {
+    //                 $po->all_produk = collect();
+    //             }
+    //         }
+    //         $data->push($po);
+    //     }
+
+
+    //     // ===== TOTAL =====
+    //     $totalNominalSPK = $data->sum('nominal_spk');
+
+    //     $totalNominalTermin = $data->sum(function ($po) {
+    //         return $po->termin_list->sum('nominal');
+    //     });
+
+    //     // // ==============================
+    //     // // TOTAL TERMIN PER TAHUN
+    //     // // ==============================
+
+    //     // $outstandingPerTahun = $data
+    //     //     ->groupBy(function ($po) {
+    //     //         return \Carbon\Carbon::parse($po->tgl_po)->year;
+    //     //     })
+    //     //     ->map(function ($items) {
+    //     //         return $items->sum(function ($po) {
+    //     //             return $po->termin_list->sum('nominal');
+    //     //         });
+    //     //     })
+    //     //     ->filter(function ($total) {
+    //     //         return $total > 0; // hanya yang ada nilainya
+    //     //     })
+    //     //     ->sortDesc();
+
+
+    //     // =========================
+    //     // QUERY UNTUK SUMMARY (KESSELURUHAN) - TANPA FILTER TAHUN
+    //     // =========================
+    //     $allPos = Po::with([
+    //         'invoices.produk.perizinan',
+    //         'quotation.quotation_perizinan'
+    //     ])->where('bast_verified', 1)->get();
+
+    //     $summaryData = collect();
+    //     foreach ($allPos as $po) {
+    //         $quotation = $po->quotation;
+    //         if (!$quotation) continue;
+
+    //         // nominal SPK
+    //         $subtotal = $quotation->harga_tipe === 'gabungan'
+    //             ? (float) $quotation->harga_gabungan
+    //             : $quotation->perizinan->sum(function ($item) {
+    //                 return ($item->pivot->qty ?? 0) * ($item->pivot->harga_satuan ?? 0);
+    //             });
+    //         $diskon = (float) ($quotation->diskon_nilai ?? 0);
+    //         if ($diskon > $subtotal) $diskon = $subtotal;
+    //         $nominalSPK = $subtotal - $diskon;
+
+    //         // termin
+    //         $terminList = collect();
+    //         $terminPersentase = $quotation->termin_persentase ?? [];
+    //         foreach ($terminPersentase as $termin) {
+    //             $persen = (float) $termin['persen'];
+    //             $nominalTermin = ($persen / 100) * $nominalSPK;
+    //             $terminList->push([
+    //                 'keterangan' => 'Termin ' . $termin['urutan'] . ' (' . $persen . '%)',
+    //                 'nominal' => $nominalTermin
+    //             ]);
+    //         }
+    //         $po->termin_list = $terminList;
+
+    //         $summaryData->push($po);
+    //     }
+
+    //     // total keseluruhan
+    //     $totalOutstandingKeseluruhan = $summaryData->sum(function ($po) {
+    //         return $po->termin_list->sum('nominal');
+    //     });
+
+    //     // total per tahun
+    //     $outstandingPerTahun = $summaryData
+    //         ->groupBy(function ($po) {
+    //             return \Carbon\Carbon::parse($po->tgl_po)->year;
+    //         })
+    //         ->map(function ($items) {
+    //             return $items->sum(function ($po) {
+    //                 return $po->termin_list->sum('nominal');
+    //             });
+    //         })
+    //         ->filter(fn($total) => $total > 0)
+    //         // ->sortDesc(); berdasarkan nominal dari gede ke kecil
+    //         ->sortKeysDesc(); //urut dari tahun
+
+    //     return view(
+    //         'pages.finance.laporan_outstanding',
+    //         compact(
+    //             'data',
+    //             'title',
+    //             'totalNominalSPK',
+    //             'totalNominalTermin',
+    //             // 'totalOutstanding',
+    //             'totalOutstandingKeseluruhan',
+    //             'outstandingPerTahun',
+    //             'outstandingPerTahun',
+    //             'tahunSekarang',
+    //             'tahunDipilih'
+    //         )
+    //     );
+    // }
 }

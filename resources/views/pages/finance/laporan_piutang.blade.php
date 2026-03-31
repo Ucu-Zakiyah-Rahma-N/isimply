@@ -70,23 +70,22 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered table-sm">
-                    <thead class="table-light">
+                <!-- <table class="table table-bordered table-sm text-nowrap"> -->
+                    <thead class="table-light text-center align-middle">
                         <tr>
                             <th>No</th>
-                            <th>Tanggal Invoice</th>
-                            <th>Customer</th>
-                            <th>No Invoice</th>
-
-                            <th>No SPK</th>
-                            <th>Nama Perizinan</th>
-                            <th>Termin</th>
-
-                            <th>Nominal SPK</th>
-
-                            <th>PPN</th>
-                            <th>PPh</th>
-                            <th>Sisa Tagihan</th>
-                            <!-- <th>Status</th> -->
+                            <th style="min-width:120px;">Tanggal Invoice</th>
+                            <th style="min-width:200px;">Nama Customer</th>
+                            <th style="min-width:150px;">No Invoice</th>
+                            <th style="min-width:150px;">No SPK</th>
+                            <th style="min-width:180px;">Nama Pekerjaan</th>
+                            <th style="min-width:70px;">Termin</th>
+                            <th style="min-width:150px;">Nominal SPK</th>
+                            <th style="min-width:120px;">PPN</th>
+                            <th style="min-width:120px;">PPh</th>
+                            <th style="min-width:150px;">Sisa Tagihan</th>
+                            <th style="min-width:80px;">Lama</th>
+                            <th style="min-width:100px;">Selisih</th>         
                         </tr>
                     </thead>
                     @php
@@ -109,14 +108,18 @@
                         $sumTotalTagihan += $totalTagihan;
                         @endphp
 
-                        <tr>
+                        <tr @if(\Carbon\Carbon::today()->gt(\Carbon\Carbon::parse($row->tgl_jatuh_tempo))) 
+                                style="background-color:#ffe5e5;" 
+                            @endif>
                             <td>{{ $i+1 }}</td>
                             <td>{{ \Carbon\Carbon::parse($row->tgl_inv)->format('d-m-Y') }}</td>
+                            <!-- <td>{{ \Carbon\Carbon::parse($row->tgl_jatuh_tempo)->format('d-m-Y') }}</td> -->
+                           
                             <td>{{ $row->customer->nama_perusahaan ?? '-' }}</td>
                             <td>{{ $row->no_invoice }}</td>
                             <td>{{ $row->po->no_po ?? '-' }}</td>
 
-                            <td>
+                            <!-- <td>
                                 @if ($row->produk->isNotEmpty())
                                 @foreach ($row->produk as $item)
                                 <span class="badge text-dark border me-1">
@@ -126,8 +129,21 @@
                                 @else
                                 <span class="text-muted">-</span>
                                 @endif
-                            </td>
+                            </td> -->
 
+                            <td>
+                                @if ($row->produk->isNotEmpty())
+                                    @php
+                                        $first = $row->produk->first();
+                                        $nama = $first->perizinan?->jenis ?? $first->perizinan_lainnya ?? '-';
+                                        $count = $row->produk->count();
+                                    @endphp
+
+                                    {{ $nama }}@if($count > 1), dll @endif
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td>{{ $row->keterangan }}</td>
 
                             <td class="text-end fw-bold">
@@ -143,7 +159,44 @@
                             </td>
 
                             <td class="text-end fw-bold">
-                                Rp {{ number_format($totalTagihan, 0, ',', '.') }}
+                                @php
+                                    $totalBayar = $row->payments->sum(fn($p) => $p->nominal + $p->nilai_pph);
+                                    $sisa = $totalTagihan - $totalBayar;
+                                @endphp
+
+                                Rp {{ number_format(max($sisa, 0), 0, ',', '.') }}
+                                <!-- Rp {{ number_format($totalTagihan, 0, ',', '.') }} -->
+                            </td>
+
+                             @php
+                                $today = \Carbon\Carbon::today();
+                                $tglInv = \Carbon\Carbon::parse($row->tgl_inv);
+
+                                // 1️⃣ LAMA (selalu tampil)
+                                $umur = $tglInv->diffInDays($today);
+
+                                // 2️⃣ JATUH TEMPO
+                                $tglTempo = \Carbon\Carbon::parse($row->tgl_jatuh_tempo);
+
+                                // cek apakah sudah lewat
+                                $isOverdue = $today->gt($tglTempo);
+
+                                // hitung selisih hanya kalau overdue
+                                $selisih = $isOverdue ? $tglTempo->diffInDays($today) : 0;
+                            @endphp
+
+                            {{-- LAMA --}}
+                            <td>
+                            {{ round($umur) }} hari
+                            </td>
+
+                            {{-- SELISIH (HANYA JIKA TERLAMBAT) --}}
+                            <td>
+                                @if($isOverdue)
+                                    <span style="color:red; font-weight:bold;">
+                                        Terlambat {{ round($selisih) }} hari
+                                    </span>
+                                @endif
                             </td>
 
                             <!-- <td>
@@ -157,7 +210,7 @@
 
                         @empty
                         <tr>
-                            <td colspan="12" class="text-center">
+                            <td colspan="13" class="text-center">
                                 Tidak ada data
                             </td>
                         </tr>
@@ -178,8 +231,9 @@
                             <td class="text-end">
                                 Rp {{ number_format($sumTotalTagihan, 0, ',', '.') }}
                             </td>
-
                             <td></td>
+                            <td></td>
+
                         </tr>
                         @endif
 

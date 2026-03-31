@@ -114,6 +114,8 @@
                             <th>Nominal Pembayaran</th>
                             <th>Tgl Pembayaran</th>
                             <th>Bulan</th>
+                            
+                            <th>Jangka Waktu Pembayaran</th>
 
                             <!-- <th>Status Payment</th> -->
                             <th>Status</th>
@@ -280,6 +282,38 @@
                                     : '-' 
                                 }}
             </td>
+            
+<td>
+    @if($inv->status === 'paid' && $inv->payments->isNotEmpty())
+        @php
+            $tglInv = \Carbon\Carbon::parse($inv->tgl_inv);
+
+            $lastPayment = $inv->payments->sortBy('tanggal')->last();
+            $tglBayar = \Carbon\Carbon::parse($lastPayment->tanggal);
+
+            $selisihHari = $tglInv->diffInDays($tglBayar);
+        @endphp
+
+        {{ $selisihHari }} hari
+    @else
+        -
+    @endif
+</td>
+
+            <!-- <td>
+            @if($inv->payments->isNotEmpty())
+                @php
+                    $tglInv = \Carbon\Carbon::parse($inv->tgl_inv);
+                    $tglBayar = \Carbon\Carbon::parse($inv->payments->sortBy('tanggal')->last()->tanggal);
+                    $selisihHari = $tglInv->diffInDays($tglBayar);
+                @endphp
+
+                {{ $selisihHari }} hari
+            @else
+                -
+            @endif
+            </td> -->
+
             <!-- @php
             $totalPaid = $inv->payments->sum(function($p){
             return $p->nominal + $p->nilai_pph;

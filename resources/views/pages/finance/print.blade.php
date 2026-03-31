@@ -219,59 +219,44 @@
                 <!-- @endforeach -->
 
 
+                @foreach ($invoice->produk as $index => $item)
+                <tr>
+                    {{-- KETERANGAN --}}
+                    <td>
+                        {{ $item->perizinan_id 
+                            ? $item->perizinan->jenis ?? '-' 
+                            : $item->perizinan_lainnya ?? '-' 
+                        }}
+                    </td>
 
-@if ($isGabungan)
+                    {{-- HARGA SATUAN --}}
+                    <td class="text-right">
+                        @if ($isGabungan)
+                        -
+                        @else
+                        {{ 'Rp ' . number_format($item->harga_satuan, 0, ',', '.') }}
+                        @endif
+                    </td>
 
-{{-- 🔥 MODE HARGA GABUNGAN --}}
-<tr>
-    <td>
-        @foreach ($invoice->produk as $item)
-            {{ $item->perizinan_id 
-                ? $item->perizinan->jenis ?? '-' 
-                : $item->perizinan_lainnya ?? '-' 
-            }}<br>
-        @endforeach
-    </td>
+                    {{-- QTY --}}
+                    <td class="text-center">{{ $item->qty }}</td>
 
-    {{-- Harga satuan --}}
-    <td class="text-center">-</td>
+                    {{-- JUMLAH --}}
+                    @if ($isGabungan)
+                    {{-- 🔥 cuma tampil 1x + rowspan --}}
+                    @if ($index == 0)
+                    <td class="text-right" rowspan="{{ $currentRows }}" style="vertical-align: middle;">
+                        Rp {{ number_format($calc['subtotal'], 0, ',', '.') }}
+                    </td>
+                    @endif
+                    @else
+                    <td class="text-right">
+                        {{ 'Rp ' . number_format($item->qty * $item->harga_satuan, 0, ',', '.') }}
+                    </td>
+                    @endif
 
-    {{-- Qty --}}
-    <td class="text-center">{{ $item->qty }}</td>
-
-    {{-- Jumlah --}}
-    <td class="text-right">
-        Rp {{ number_format($calc['subtotal'], 0, ',', '.') }}
-    </td>
-</tr>
-
-@else
-
-{{-- 🔥 MODE HARGA SATUAN --}}
-@foreach ($invoice->produk as $item)
-<tr>
-    <td>
-        {{ $item->perizinan_id 
-            ? $item->perizinan->jenis ?? '-' 
-            : $item->perizinan_lainnya ?? '-' 
-        }}
-    </td>
-
-    <td class="text-right">
-        Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}
-    </td>
-
-    <td class="text-center">
-        {{ $item->qty }}
-    </td>
-
-    <td class="text-right">
-        Rp {{ number_format($item->qty * $item->harga_satuan, 0, ',', '.') }}
-    </td>
-</tr>
-@endforeach
-
-@endif
+                </tr>
+                @endforeach
 
                 {{-- Baris kosong supaya tabel manjang --}}
                 @for ($i = $currentRows; $i < $maxRows; $i++)
@@ -295,98 +280,98 @@
 
                     {{-- Summary --}}
                     {{-- SUBTOTAL --}}
-<tr>
-    <td></td>
-    <td colspan="3">
-        Total
-        <span style="float:right;">
-            Rp {{ number_format($calc['subtotal'], 0, ',', '.') }}
-        </span>
-    </td>
-</tr>
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            Total
+                            <span style="float:right;">
+                                Rp {{ number_format($calc['subtotal'], 0, ',', '.') }}
+                            </span>
+                        </td>
+                    </tr>
 
-{{-- DISKON PO --}}
-@if ($calc['diskon_po'] > 0)
-<tr>
-    <td></td>
-    <td colspan="3">
-        Diskon
-        <span style="float:right;">
-            Rp {{ number_format($calc['diskon_po'], 0, ',', '.') }}
-        </span>
-    </td>
-</tr>
+                    {{-- DISKON PO --}}
+                    @if ($calc['diskon_po'] > 0)
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            Diskon
+                            <span style="float:right;">
+                                Rp {{ number_format($calc['diskon_po'], 0, ',', '.') }}
+                            </span>
+                        </td>
+                    </tr>
 
-<tr>
-    <td></td>
-    <td colspan="3">
-        Total After Diskon
-        <span style="float:right;">
-            Rp {{ number_format($calc['after_diskon_po'], 0, ',', '.') }}
-        </span>
-    </td>
-</tr>
-@endif
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            Total After Diskon
+                            <span style="float:right;">
+                                Rp {{ number_format($calc['after_diskon_po'], 0, ',', '.') }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endif
 
-{{-- TERMIN --}}
-<tr>
-    <td></td>
-    <td colspan="3">
-        Termin ({{ $invoice->persentase_termin }}%)
-        <span style="float:right;">
-            Rp {{ number_format($calc['nominalInvoice'], 0, ',', '.') }}
-        </span>
-    </td>
-</tr>
+                    {{-- TERMIN --}}
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            Termin ({{ $invoice->persentase_termin }}%)
+                            <span style="float:right;">
+                                Rp {{ number_format($calc['nominalInvoice'], 0, ',', '.') }}
+                            </span>
+                        </td>
+                    </tr>
 
-{{-- DISKON INVOICE --}}
-@if ($calc['diskon_invoice'] > 0)
-<tr>
-    <td></td>
-    <td colspan="3">
-        Diskon
-        <span style="float:right;">
-            Rp {{ number_format($calc['diskon_invoice'], 0, ',', '.') }}
-        </span>
-    </td>
-</tr>
+                    {{-- DISKON INVOICE --}}
+                    @if ($calc['diskon_invoice'] > 0)
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            Diskon
+                            <span style="float:right;">
+                                Rp {{ number_format($calc['diskon_invoice'], 0, ',', '.') }}
+                            </span>
+                        </td>
+                    </tr>
 
-<tr>
-    <td></td>
-    <td colspan="3">
-        Total After Diskon
-        <span style="float:right;">
-            Rp {{ number_format($calc['after_diskon_invoice'], 0, ',', '.') }}
-        </span>
-    </td>
-</tr>
-@endif
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            Total After Diskon
+                            <span style="float:right;">
+                                Rp {{ number_format($calc['after_diskon_invoice'], 0, ',', '.') }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endif
 
-{{-- PPN --}}
-@if ($invoice->ppn > 0)
-<tr>
-    <td></td>
-    <td colspan="3">
-        PPN 11%
-        <span style="float:right;">
-            Rp {{ number_format($invoice->ppn, 0, ',', '.') }}
-        </span>
-    </td>
-</tr>
-@endif
+                    {{-- PPN --}}
+                    @if ($invoice->ppn > 0)
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            PPN 11%
+                            <span style="float:right;">
+                                Rp {{ number_format($invoice->ppn, 0, ',', '.') }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endif
 
-{{-- TOTAL --}}
-<tr>
-    <td></td>
-    <td colspan="3">
-        <strong>Grand Total</strong>
-        <span style="float:right;">
-            <strong>
-                Rp {{ number_format($calc['totalAkhir'], 0, ',', '.') }}
-            </strong>
-        </span>
-    </td>
-</tr>
+                    {{-- TOTAL --}}
+                    <tr>
+                        <td></td>
+                        <td colspan="3">
+                            <strong>Grand Total</strong>
+                            <span style="float:right;">
+                                <strong>
+                                    Rp {{ number_format($calc['totalAkhir'], 0, ',', '.') }}
+                                </strong>
+                            </span>
+                        </td>
+                    </tr>
                     <!-- <tr>
                         <td></td>
                         <td colspan="3">
@@ -537,44 +522,44 @@
             </tbody>
         </table>
         <div style="margin-top:10px; font-style:italic; text-align:right; font-size:11px;">
-    Terbilang: {{ ucfirst($terbilang) }} Rupiah
-</div>
+            Terbilang: {{ ucfirst($terbilang) }} Rupiah
+        </div>
 
-    <table width="100%" style="margin-top:25px; font-size:12px;">
-    <tr>
+        <table width="100%" style="margin-top:25px; font-size:12px;">
+            <tr>
 
-        <!-- NOTE KIRI -->
-        <td width="60%" valign="top">
-            <strong>Note:</strong>
-            <ul style="margin-top:5px; padding-left:15px;">
-                <li>PPh PT. Simply Dimensi Indonesia menggunakan tarif PPh Final Pasal 4 ayat (2) - 3,5% (Jasa Konsultan Kontruksi)</li>
-                <li>
-                    <strong>Account Payment:</strong><br>
-                    Bank Maybank<br>
-                    No. Rekening 2784001630<br>
-                    a.n Simply Dimensi Indonesia, PT
-                </li>
-                <li>Pembayaran dilakukan paling lambat 14 hari setelah dokumen invoice diserahkan.</li>
-            </ul>
-        </td>
+                <!-- NOTE KIRI -->
+                <td width="60%" valign="top">
+                    <strong>Note:</strong>
+                    <ul style="margin-top:5px; padding-left:15px;">
+                        <li>PPh PT. Simply Dimensi Indonesia menggunakan tarif PPh Final Pasal 4 ayat (2) - 3,5% (Jasa Konsultan Kontruksi)</li>
+                        <li>
+                            <strong>Account Payment:</strong><br>
+                            Bank Maybank<br>
+                            No. Rekening 2784001630<br>
+                            a.n Simply Dimensi Indonesia, PT
+                        </li>
+                        <li>Pembayaran dilakukan paling lambat 14 hari setelah dokumen invoice diserahkan.</li>
+                    </ul>
+                </td>
 
-        <!-- SIGNATURE KANAN -->
-        <td width="40%" align="center">
-            
-            <!-- 🔥 spacer biar turun -->
-            <div style="height:120px;"></div>
+                <!-- SIGNATURE KANAN -->
+                <td width="40%" align="center">
 
-            <p><strong>Issued by Signature</strong></p>
-            <p><strong>PT Simply Dimensi Indonesia</strong></p>
+                    <!-- 🔥 spacer biar turun -->
+                    <div style="height:120px;"></div>
 
-            <div style="height:80px;"></div>
+                    <p><strong>Issued by Signature</strong></p>
+                    <p><strong>PT Simply Dimensi Indonesia</strong></p>
 
-            <p style="margin:0; text-decoration:underline;">Mela</p>
-            <p style="margin:0;">Staff Accounting</p>
-        </td>
+                    <div style="height:80px;"></div>
 
-    </tr>
-</table>
+                    <p style="margin:0; text-decoration:underline;">Mela</p>
+                    <p style="margin:0;">Staff Accounting</p>
+                </td>
+
+            </tr>
+        </table>
 
     </div>
 

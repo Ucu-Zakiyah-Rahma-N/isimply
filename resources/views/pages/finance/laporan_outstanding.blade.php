@@ -91,8 +91,10 @@
                             <th>Lokasi</th>
                             <th>Nama Pekerjaan</th>
                             <th>Nominal SPK</th>
-                            <th>Keterangan</th>
+                            <th>Termin</th>
                             <th>Nominal</th>
+                            <th>Keterangan</th>
+
                         </tr>
                     </thead>
                     <tbody>
@@ -153,7 +155,13 @@
                             <td class="text-end">
                                 {{ number_format($termin['nominal'],0,',','.') }}
                             </td>
-
+                            <td class="text-center">
+                                @if($termin['status'] == 'invoice')
+                                <span class="badge text-warning text-dark">Sudah Invoice</span>
+                                @else
+                                <span class="badge text-secondary">Belum Invoice</span>
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
 
@@ -201,6 +209,7 @@
                             <td class="text-end">
                                 {{ number_format($totalNominalTermin ?? 0, 0, ',', '.') }}
                             </td>
+                            <td></td>
                         </tr>
                     </tbody>
                 </table>

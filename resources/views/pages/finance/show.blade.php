@@ -72,7 +72,11 @@
             <label class="form-label">Tanggal Invoice</label>
             <input type="date" class="form-control" value="{{ $invoice->tgl_inv }}" readonly>
         </div>
-        <div class="col-md-3">
+          <div class="col-md-2">
+            <label class="form-label">Net</label>
+            <input type="text" class="form-control" value="{{ $invoice->net_month . ' bulan' }}" readonly>
+        </div>
+        <div class="col-md-2">
             <label class="form-label">Tanggal Jatuh Tempo</label>
             <input type="date" class="form-control" value="{{ $invoice->tgl_jatuh_tempo }}" readonly>
         </div>

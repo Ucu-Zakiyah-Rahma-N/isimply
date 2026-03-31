@@ -110,13 +110,29 @@
                 <div class="col-md-3">
                     <label class="form-label">Tgl Invoice</label>
                     <input type="date" class="form-control" name="tgl_inv"
+                        id="tgl_inv"
                         value="{{ old('tgl_inv', $invoice->tgl_inv ? \Carbon\Carbon::parse($invoice->tgl_inv)->format('Y-m-d') : '') }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Term (Net Bulan)</label>
+                    <select name="net_month" id="net_month" class="form-select">
+                        <option value="">-- Pilih --</option>
+                        <option value="1" {{ old('net_month', $invoice->net_month) == 1 ? 'selected' : '' }}>Net 1 Bulan</option>
+                        <option value="2" {{ old('net_month', $invoice->net_month) == 2 ? 'selected' : '' }}>Net 2 Bulan</option>
+                        <option value="3" {{ old('net_month', $invoice->net_month) == 3 ? 'selected' : '' }}>Net 3 Bulan</option>
+                        <option value="4" {{ old('net_month', $invoice->net_month) == 4 ? 'selected' : '' }}>Net 4 Bulan</option>
+                        <option value="5" {{ old('net_month', $invoice->net_month) == 5 ? 'selected' : '' }}>Net 5 Bulan</option>
+                        <option value="6" {{ old('net_month', $invoice->net_month) == 6 ? 'selected' : '' }}>Net 6 Bulan</option>
+                    </select>
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">Tgl Jatuh Tempo</label>
                     <input type="date" class="form-control" name="tgl_jatuh_tempo"
-                        value="{{ old('tgl_jatuh_tempo', $invoice->tgl_jatuh_tempo ? \Carbon\Carbon::parse($invoice->tgl_jatuh_tempo)->format('Y-m-d') : '') }}">
+                        id="tgl_jatuh_tempo"
+                        value="{{ old('tgl_jatuh_tempo', $invoice->tgl_jatuh_tempo ? \Carbon\Carbon::parse($invoice->tgl_jatuh_tempo)->format('Y-m-d') : '') }}"
+                        readonly>
                 </div>
             </div>
 
@@ -277,13 +293,13 @@
                         </div>
                         @endforeach
 
-                           <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="ppnAllPo" name="ppn_all_po"
-                               {{ old('ppn_source', $invoice->ppn_source ?? 'per_termin') === 'all_po' ? 'checked' : '' }}>
-                        <label class="form-check-label" for="ppnAllPo">
-                            PPN nominal PO
-                        </label>
-                    </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="ppnAllPo" name="ppn_all_po"
+                                {{ old('ppn_source', $invoice->ppn_source ?? 'per_termin') === 'all_po' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="ppnAllPo">
+                                PPN nominal PO
+                            </label>
+                        </div>
                     </div>
 
                     <div id="taxContainer" class="mb-3"></div>
@@ -316,6 +332,23 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+    function hitungJatuhTempo() {
+        let tgl = document.getElementById('tgl_inv').value;
+        let net = document.getElementById('net_month').value;
+
+        if (tgl && net) {
+            let date = new Date(tgl);
+            date.setMonth(date.getMonth() + parseInt(net));
+
+            let result = date.toISOString().split('T')[0];
+            document.getElementById('tgl_jatuh_tempo').value = result;
+        }
+    }
+
+    document.getElementById('tgl_inv').addEventListener('change', hitungJatuhTempo);
+    document.getElementById('net_month').addEventListener('change', hitungJatuhTempo);
+
+
     document.addEventListener('DOMContentLoaded', function() {
 
         const checkbox = document.getElementById('sameWithPo');
@@ -591,38 +624,38 @@
             }
         });
 
-document.addEventListener('change', function(e) {
-    if (
-        e.target.id === 'tipe_diskon' ||
-        e.target.classList.contains('tax-checkbox') ||
-        e.target.id === 'ppnAllPo'
-    ) {
-        recalculateAll();
-    }
-});
-const ppnAllPoEl = document.getElementById('ppnAllPo');
+        document.addEventListener('change', function(e) {
+            if (
+                e.target.id === 'tipe_diskon' ||
+                e.target.classList.contains('tax-checkbox') ||
+                e.target.id === 'ppnAllPo'
+            ) {
+                recalculateAll();
+            }
+        });
+        const ppnAllPoEl = document.getElementById('ppnAllPo');
 
-function toggleTaxCheckboxes() {
-    const taxCheckboxes = document.querySelectorAll('.tax-checkbox');
+        function toggleTaxCheckboxes() {
+            const taxCheckboxes = document.querySelectorAll('.tax-checkbox');
 
-    taxCheckboxes.forEach(cb => {
-        cb.disabled = ppnAllPoEl.checked;
+            taxCheckboxes.forEach(cb => {
+                cb.disabled = ppnAllPoEl.checked;
 
-        // kalau all_po aktif → uncheck semua
-        if (ppnAllPoEl.checked) {
-            cb.checked = false;
+                // kalau all_po aktif → uncheck semua
+                if (ppnAllPoEl.checked) {
+                    cb.checked = false;
+                }
+            });
         }
-    });
-}
 
-// event change
-    ppnAllPoEl.addEventListener('change', function () {
+        // event change
+        ppnAllPoEl.addEventListener('change', function() {
+            toggleTaxCheckboxes();
+            recalculateAll(); // langsung hitung ulang
+        });
+
         toggleTaxCheckboxes();
-        recalculateAll(); // langsung hitung ulang
-    });
-
-    toggleTaxCheckboxes();
-    recalculateAll(); 
+        recalculateAll();
 
 
         document.addEventListener('click', function(e) {
@@ -700,98 +733,98 @@ function toggleTaxCheckboxes() {
         /* ===============================
            HITUNG PAJAK
         =============================== */
-function hitungPajak() {
+        function hitungPajak() {
 
-    const base = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
-    const nominalPo = parseFloat(document.getElementById('nominalPoInput')?.value) || 0;
+            const base = parseFloat(document.getElementById('totalAfterDiscountInput')?.value) || 0;
+            const nominalPo = parseFloat(document.getElementById('nominalPoInput')?.value) || 0;
 
-    const taxes = document.querySelectorAll('.tax-checkbox');
-    const isAllPo = document.getElementById('ppnAllPo')?.checked;
+            const taxes = document.querySelectorAll('.tax-checkbox');
+            const isAllPo = document.getElementById('ppnAllPo')?.checked;
 
-    const container = document.getElementById('taxContainer');
-    const dppContainer = document.getElementById('dppContainer');
+            const container = document.getElementById('taxContainer');
+            const dppContainer = document.getElementById('dppContainer');
 
-    if (container) container.innerHTML = '';
+            if (container) container.innerHTML = '';
 
-    let totalPPN = 0;
-    let totalPPH = 0;
-    let dpp = 0;
+            let totalPPN = 0;
+            let totalPPH = 0;
+            let dpp = 0;
 
-    // ===============================
-    // 🔥 MODE ALL PO
-    // ===============================
-    if (isAllPo) {
+            // ===============================
+            // 🔥 MODE ALL PO
+            // ===============================
+            if (isAllPo) {
 
-        dpp = Math.round((base * 11) / 12);
-        totalPPN = Math.round((nominalPo * 11) / 100);
+                dpp = Math.round((base * 11) / 12);
+                totalPPN = Math.round((nominalPo * 11) / 100);
 
-        if (container) {
-            container.innerHTML += `
+                if (container) {
+                    container.innerHTML += `
                 <div class="d-flex justify-content-between mb-1">
                     <span>PPN 11%</span>
                     <strong>Rp ${rupiah(totalPPN)}</strong>
                 </div>
             `;
-        }
+                }
 
-    } else {
+            } else {
 
-        // ===============================
-        // MODE NORMAL (checkbox)
-        // ===============================
-        taxes.forEach(el => {
+                // ===============================
+                // MODE NORMAL (checkbox)
+                // ===============================
+                taxes.forEach(el => {
 
-            if (el.checked) {
+                    if (el.checked) {
 
-                const rate = parseFloat(el.dataset.rate) || 0;
-                const name = el.dataset.name;
-                const type = el.dataset.type;
+                        const rate = parseFloat(el.dataset.rate) || 0;
+                        const name = el.dataset.name;
+                        const type = el.dataset.type;
 
-                const amount = Math.round(base * rate / 100);
+                        const amount = Math.round(base * rate / 100);
 
-                if (container) {
-                    container.innerHTML += `
+                        if (container) {
+                            container.innerHTML += `
                         <div class="d-flex justify-content-between mb-1">
                             <span>${name}</span>
                             <strong>Rp ${rupiah(amount)}</strong>
                         </div>
                     `;
+                        }
+
+                        if (type === 'pph') totalPPH += amount;
+                        else totalPPN += amount;
+                    }
+                });
+
+                if (totalPPN > 0) {
+                    dpp = Math.round((base * 11) / 12);
                 }
-
-                if (type === 'pph') totalPPH += amount;
-                else totalPPN += amount;
             }
-        });
 
-        if (totalPPN > 0) {
-            dpp = Math.round((base * 11) / 12);
-        }
-    }
-
-    // ===============================
-    // TAMPILKAN DPP
-    // ===============================
-    if (dppContainer) {
-        if (dpp > 0) {
-            dppContainer.innerHTML = `
+            // ===============================
+            // TAMPILKAN DPP
+            // ===============================
+            if (dppContainer) {
+                if (dpp > 0) {
+                    dppContainer.innerHTML = `
                 <div class="d-flex justify-content-between mb-1">
                     <span>DPP</span>
                     <strong>Rp ${rupiah(dpp)}</strong>
                 </div>
             `;
-        } else {
-            dppContainer.innerHTML = '';
+                } else {
+                    dppContainer.innerHTML = '';
+                }
+            }
+
+            // ===============================
+            // FINAL TOTAL
+            // ===============================
+            const finalTotal = base + totalPPN - totalPPH;
+
+            document.getElementById('finalTotal').innerText = rupiah(finalTotal);
+            document.getElementById('totalInput').value = finalTotal;
         }
-    }
-
-    // ===============================
-    // FINAL TOTAL
-    // ===============================
-    const finalTotal = base + totalPPN - totalPPH;
-
-    document.getElementById('finalTotal').innerText = rupiah(finalTotal);
-    document.getElementById('totalInput').value = finalTotal;
-}
 
         /* ===============================
            RECALCULATE ALL

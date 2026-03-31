@@ -118,10 +118,24 @@
                     <input type="date" class="form-control" name="tgl_invoice">
                 </div>
 
+           
                 <div class="col-md-3">
+                    <label class="form-label">Net</label>
+                    <select name="net_month" class="form-select">
+                        <option value="">-- Pilih --</option>
+                        <option value="1">1 Bulan</option>
+                        <option value="2">2 Bulan</option>
+                        <option value="3">3 Bulan</option>
+                        <option value="4">4 Bulan</option>
+                        <option value="5">5 Bulan</option>
+                        <option value="6">6 Bulan</option>
+                    </select>
+                </div>
+
+                     <!-- <div class="col-md-3">
                     <label class="form-label">Tgl Jatuh Tempo</label>
                     <input type="date" class="form-control" name="tgl_jatuh_tempo">
-                </div>
+                </div> -->
             </div>
 
             <hr>
