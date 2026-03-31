@@ -270,53 +270,6 @@
                     <!-- ================= FOOTER ================= -->
                     <div class="row mt-4">
 
-                        <!-- MODE DISKON -->
-                        <div class="col-6 mb-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="label-saas mb-0">Mode Diskon</span>
-
-                                <div class="btn-group" role="group">
-                                    <input type="radio" class="btn-check"
-                                        name="modeDiskon" id="modeDiskonItem"
-                                        value="item" checked>
-
-                                    <label class="btn btn-outline-primary"
-                                        for="modeDiskonItem">Item</label>
-
-                                    <input type="radio" class="btn-check"
-                                        name="modeDiskon" id="modeDiskonGlobal"
-                                        value="global">
-
-                                    <label class="btn btn-outline-primary"
-                                        for="modeDiskonGlobal">Global</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MODE PAJAK -->
-                        <div class="col-6 mb-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="label-saas mb-0">Mode Pajak</span>
-
-                                <div class="btn-group" role="group">
-                                    <input type="radio" class="btn-check"
-                                        name="modePajak" id="modePajakItem"
-                                        value="item" checked>
-
-                                    <label class="btn btn-outline-primary"
-                                        for="modePajakItem">Item</label>
-
-                                    <input type="radio" class="btn-check"
-                                        name="modePajak" id="modePajakGlobal"
-                                        value="global">
-
-                                    <label class="btn btn-outline-primary"
-                                        for="modePajakGlobal">Global</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- LAMPIRAN -->
                         <div class="col-md-6">
                             <label class="form-label">Lampiran</label>
                             <input type="file" class="form-control">
@@ -336,37 +289,12 @@
 
                             <div id="pajakSummary"></div>
 
-                            <div class="mt-3">
-
-                                <!-- DISKON GLOBAL -->
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Diskon Global</span>
-                                    <div class="d-flex" style="width: 200px;">
-                                        <input type="number" id="globalDiskon" class="form-control" value="0">
-                                        <select id="globalDiskonType" class="form-select" style="max-width:70px">
-                                            <option value="percent">%</option>
-                                            <option value="nominal">Rp</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- PAJAK GLOBAL -->
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>Pajak Global</span>
-                                    <select id="globalPajak" class="form-select pajak" style="width: 200px;">
-                                        <option value="0">Non Pajak</option>
-                                    </select>
-                                </div>
-
-                            </div>
-
                             <hr>
 
                             <div class="d-flex justify-content-between fw-bold fs-4">
                                 <span>Total</span>
                                 <span>Rp <span id="summaryTotal">0</span></span>
                             </div>
-
 
                             <div class="text-end mt-3">
                                 <button class="btn btn-success px-5">
@@ -490,10 +418,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('modePajak')?.addEventListener('change', hitungSemua);
-        document.getElementById('globalDiskon')?.addEventListener('input', hitungSemua);
-        document.getElementById('globalDiskonType')?.addEventListener('change', hitungSemua);
-        document.getElementById('globalPajak')?.addEventListener('change', hitungSemua);
 
         let pajakList = [];
 
@@ -536,10 +460,8 @@
         function hitungSemua() {
 
             let subtotal = 0;
-            let totalDiskonItem = 0;
+            let totalDiskon = 0;
             let pajakSummary = {};
-
-            const modePajak = document.getElementById('modePajak')?.value || 'item';
 
             document.querySelectorAll('.item-row').forEach(row => {
 
@@ -557,7 +479,7 @@
 
                 const total = qty * harga;
 
-                /* ===== DISKON ITEM ===== */
+                /* ===== HITUNG DISKON FLEXIBLE ===== */
                 let nilaiDiskon = 0;
 
                 if (diskonType === 'percent') {
@@ -566,78 +488,39 @@
                     nilaiDiskon = diskon;
                 }
 
-                if (nilaiDiskon > total) nilaiDiskon = total;
+                // Clamp (tidak boleh lebih dari total)
+                if (nilaiDiskon > total) {
+                    nilaiDiskon = total;
+                }
 
                 const setelahDiskon = total - nilaiDiskon;
 
-                /* ===== PAJAK ITEM (HANYA JIKA MODE ITEM) ===== */
-                let nilaiPajak = 0;
+                /* ===== HITUNG PAJAK ===== */
+                let nilaiPajak = setelahDiskon * (pajakPersen / 100);
 
-                if (modePajak === 'item') {
-                    nilaiPajak = setelahDiskon * (pajakPersen / 100);
-
-                    if (kategoriPajak === 'PPH') {
-                        nilaiPajak *= -1;
-                    }
-
-                    // grouping summary
-                    if (kategoriPajak) {
-                        if (!pajakSummary[kategoriPajak]) {
-                            pajakSummary[kategoriPajak] = 0;
-                        }
-                        pajakSummary[kategoriPajak] += nilaiPajak;
-                    }
+                if (kategoriPajak === 'PPH') {
+                    nilaiPajak *= -1;
                 }
 
                 const jumlah = setelahDiskon + nilaiPajak;
 
+                /* ===== RENDER JUMLAH ===== */
                 row.querySelector('.jumlah').value =
                     jumlah.toLocaleString('id-ID');
 
                 subtotal += total;
-                totalDiskonItem += nilaiDiskon;
+                totalDiskon += nilaiDiskon;
+
+                /* ===== GROUPING PAJAK ===== */
+                if (kategoriPajak) {
+                    if (!pajakSummary[kategoriPajak]) {
+                        pajakSummary[kategoriPajak] = 0;
+                    }
+                    pajakSummary[kategoriPajak] += nilaiPajak;
+                }
             });
 
-            /* ================= GLOBAL DISKON ================= */
-            const globalDiskon = parseFloat(document.getElementById('globalDiskon')?.value) || 0;
-            const globalDiskonType = document.getElementById('globalDiskonType')?.value || 'percent';
-
-            let nilaiDiskonGlobal = 0;
-            let dasar = subtotal - totalDiskonItem;
-
-            if (globalDiskonType === 'percent') {
-                nilaiDiskonGlobal = dasar * (globalDiskon / 100);
-            } else {
-                nilaiDiskonGlobal = globalDiskon;
-            }
-
-            if (nilaiDiskonGlobal > dasar) nilaiDiskonGlobal = dasar;
-
-            const setelahDiskonGlobal = dasar - nilaiDiskonGlobal;
-
-            /* ================= GLOBAL PAJAK ================= */
-            let nilaiPajakGlobal = 0;
-
-            if (modePajak === 'global') {
-                const globalPajakSelect = document.getElementById('globalPajak');
-                const selected = globalPajakSelect?.options[globalPajakSelect.selectedIndex];
-
-                const persen = parseFloat(selected?.dataset.nilai) || 0;
-                const kategori = selected?.dataset.kategori || '';
-
-                nilaiPajakGlobal = setelahDiskonGlobal * (persen / 100);
-
-                if (kategori === 'PPH') {
-                    nilaiPajakGlobal *= -1;
-                }
-
-                // tampilkan ke summary
-                if (kategori) {
-                    pajakSummary[kategori] = nilaiPajakGlobal;
-                }
-            }
-
-            /* ================= RENDER PAJAK ================= */
+            /* ===== RENDER PAJAK SUMMARY ===== */
             const pajakContainer = document.getElementById('pajakSummary');
             pajakContainer.innerHTML = '';
 
@@ -654,28 +537,23 @@
                 div.className = 'd-flex justify-content-between';
 
                 div.innerHTML = `
-            <span>${kategori}</span>
-            <span class="${isMinus ? 'text-danger' : ''}">
-                Rp ${Math.abs(nilai).toLocaleString('id-ID')}
-            </span>
-        `;
+                <span>${kategori}</span>
+                <span class="${isMinus ? 'text-danger' : ''}">
+                    Rp ${Math.abs(nilai).toLocaleString('id-ID')}
+                </span>
+            `;
 
                 pajakContainer.appendChild(div);
             });
 
-            /* ================= GRAND TOTAL ================= */
-            const grandTotal =
-                subtotal -
-                totalDiskonItem -
-                nilaiDiskonGlobal +
-                totalPajakSemua;
+            /* ===== GRAND TOTAL ===== */
+            const grandTotal = subtotal - totalDiskon + totalPajakSemua;
 
-            /* ================= RENDER ================= */
             document.getElementById('subtotal').innerText =
                 subtotal.toLocaleString('id-ID');
 
             document.getElementById('totalDiskon').innerText =
-                (totalDiskonItem + nilaiDiskonGlobal).toLocaleString('id-ID');
+                totalDiskon.toLocaleString('id-ID');
 
             document.getElementById('summaryTotal').innerText =
                 grandTotal.toLocaleString('id-ID');
@@ -683,6 +561,7 @@
             document.getElementById('grandTotal').innerText =
                 'Rp ' + grandTotal.toLocaleString('id-ID');
         }
+
 
         /* ================= AUTO HITUNG (OPTIMIZED) ================= */
         document.getElementById('itemContainer')
@@ -722,19 +601,6 @@
                     hitungSemua();
                 }
             }
-        });
-
-        // ================= MODE PAJAK =================
-        document.getElementById('modePajak')?.addEventListener('change', function() {
-
-            const isGlobal = this.value === 'global';
-
-            document.querySelectorAll('.pajak').forEach(el => {
-                el.disabled = isGlobal;
-            });
-
-            // optional: langsung hitung ulang
-            hitungSemua();
         });
 
     });

@@ -603,9 +603,9 @@ class OperasionalController extends Controller
 
     public function getPajakCoa()
     {
-        $pajak = Coa::where('kategori_akun', 'Kewajiban Lancar Lainnya')
-            ->select('id', 'nama_akun', 'nilai_coa', 'kategori_pajak')
-            ->orderBy('nama_akun')
+        $pajak = Coa::select('id', 'nama_akun', 'nilai_coa', 'kategori_pajak')
+            ->where('kategori_akun', 'Kewajiban Lancar Lainnya')
+            ->where('id', 2)
             ->get();
 
         return response()->json($pajak);
