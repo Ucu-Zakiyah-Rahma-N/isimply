@@ -190,7 +190,7 @@ class OperasionalController extends Controller
                 'grand_total'       => $subtotal - $totalDiskon + $totalPajak,
 
                 'lampiran'          => $lampiranPath,
-                'status'            => 'proses di purchasing'
+                'status'            => 'dipurchasing'
             ]);
 
             /** ================== DETAIL ================== */

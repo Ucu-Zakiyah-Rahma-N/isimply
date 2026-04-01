@@ -40,7 +40,7 @@
     }
 </style>
 <div class="card-body">
-
+<!-- 
     {{-- Rekap Card --}}
     <div class="d-flex justify-content-center mb-3">
         <div class="d-flex flex-nowrap gap-5" style="max-width: 1000px;">
@@ -81,7 +81,7 @@
             </a>
 
         </div>
-    </div>
+    </div> -->
 
 
     {{-- Table --}}

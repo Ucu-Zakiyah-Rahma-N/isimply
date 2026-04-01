@@ -193,12 +193,11 @@
                     <tr>
                         <th width="40">No</th>
                         <th>Tgl Bayar</th>
-                        <th>Kategori</th>
-                        <th>Sumber Transaksi</th>
                         <th>Tgl Pengajuan</th>
                         <th>No Pengajuan</th>
                         <th>Penerima</th>
                         <th>Status</th>
+                        <th>Akomodasi</th>
                         <th class="text-end">Total</th>
                         <th width="120">Aksi</th>
                     </tr>
@@ -214,10 +213,6 @@
                             ? \Carbon\Carbon::parse($row->scheduling->tgl_pembayaran)->format('d-m-Y') 
                             : '-' }}
                         </td>
-
-                        <td>{{ $row->kategori ?? '-' }}</td>
-
-                        <td>{{ $row->sumber_transaksi ?? '-' }}</td>
 
                         <td>
                             {{ \Carbon\Carbon::parse($row->tgl_pengajuan)->format('d-m-Y') }}
@@ -255,6 +250,16 @@
 
                             @else
                             <span class="status-badge badge-diajukan">Menunggu Jadwal</span>
+                            @endif
+                        </td>
+
+                        <td>
+                            @if(optional($row->scheduling)->is_akomodasi == 1)
+                            <span class="badge bg-info">
+                                Akomodasi
+                            </span>
+                            @else
+                            -
                             @endif
                         </td>
 

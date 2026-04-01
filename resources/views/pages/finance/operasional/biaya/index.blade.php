@@ -1,4 +1,4 @@
-    @extends('app.template')
+@extends('app.template')
 
     @section('content')
 
@@ -53,79 +53,84 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>No</th>
-                            <th>No. Pengajuan</th>
                             <th>Tanggal</th>
-                            <th>Penerima</th>
+                            <th>Pengaju / Dept</th>
                             <th>Item Pengajuan</th>
-                            <th>Metode</th>
                             <th class="text-end">Total</th>
+                            <th>Metode</th>
+                            <th>No. Pengajuan</th>
                             <th>Status</th>
                             <th>Urgent</th>
-                            <!-- <th width="160">Aksi</th> -->
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($data as $i => $row)
+                        @forelse($data as $row)
                         <tr>
-                            <td>{{ $i + 1 }}</td>
+                            <!-- Tanggal -->
+                            <td>{{ $row->tgl_pengajuan->format('d/m/Y') }}</td>
+
+                            <!-- Pengaju + Departemen -->
+                            <td>
+                                <div class="fw-bold">
+                                    {{ optional($row->user)->username ?? '-' }}
+                                </div>
+                                <small class="text-muted">
+                                    {{ optional($row->user)->role ?? '-' }}
+                                </small>
+                            </td>
+
+                            <!-- Item Pengajuan (ringkas) -->
+                            <td>
+                                {{ $row->items->pluck('deskripsi')->take(2)->implode(', ') }}
+                                @if($row->items->count() > 2)
+                                <span class="text-muted">+{{ $row->items->count() - 2 }} lainnya</span>
+                                @endif
+                            </td>
+
+                            <!-- Total -->
+                            <td class="text-end fw-bold">
+                                Rp {{ number_format($row->grand_total, 0, ',', '.') }}
+                            </td>
+
+                            <!-- Metode -->
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ ucfirst($row->metode_pembayaran) }}
+                                </span>
+                            </td>
+
+                            <!-- No Pengajuan -->
                             <td class="fw-bold">
-                                <!-- <button
-                                    class="btn btn-info btn-sm"
-                                    onclick="showDetailPengajuan({{ $row->id }})">
-                                    Detail
-                                </button> -->
                                 <a href="javascript:void(0)"
                                     class="text-decoration-none text-primary btnDetailPengajuan"
                                     data-id="{{ $row->id }}">
                                     {{ $row->nomor_pengajuan }}
                                 </a>
                             </td>
-                            <td>{{ $row->tgl_pengajuan->format('d/m/Y') }}</td>
-                            <td>{{ optional($row->kontak)->nama ?? '-' }}</td>
-                            <td></td>
-                            <td>
-                                <span class="badge bg-info">
-                                    {{ ucfirst($row->metode_pembayaran) }}
-                                </span>
-                            </td>
-                            <td class="text-end fw-bold">
-                                Rp {{ number_format($row->grand_total, 0, ',', '.') }}
-                            </td>
+
                             @php
                             $statusClass = [
-                            'proses di purchasing' => 'bg-primary',
+                            'dipurchasing' => 'bg-primary',
                             'dijadwalkan' => 'bg-warning',
                             'disetujui' => 'bg-success',
                             'ditolak' => 'bg-danger'
                             ];
                             @endphp
 
+                            <!-- Status -->
                             <td>
                                 <span class="badge {{ $statusClass[$row->status] ?? 'bg-secondary' }}">
-                                    {{ $row->status ?? 'proses di purcashasing' }}
+                                    {{ $row->status ?? 'dipurchasing' }}
                                 </span>
                             </td>
+
+                            <!-- Urgent -->
                             <td>
                                 @if($row->is_urgent)
                                 <span class="badge text-danger fw-bold">Urgent</span>
                                 @else
                                 <span class="badge text-secondary">Normal</span>
                                 @endif
-                            </td>
-                            <td>
-                                <!-- <button class="btn btn-sm btn-info btnDetail"
-                                    data-id="{{ $row->id }}">
-                                    Detail
-                                </button>
-
-                                @if($row->lampiran) -->
-                                <!-- <a href="{{ asset('storage/'.$row->lampiran) }}"
-                                    target="_blank"
-                                    class="btn btn-sm btn-secondary">
-                                    Lampiran
-                                </a>
-                                @endif -->
                             </td>
                         </tr>
                         @empty

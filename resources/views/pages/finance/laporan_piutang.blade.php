@@ -42,7 +42,7 @@
                         <div class="card-body">
                             <h6 class="text-muted">Bulan Ini</h6>
                             <h5 class="fw-bold text-primary">
-                                Rp 0
+                                Rp {{ number_format($piutangBulanIni, 0, ',', '.') }}
                             </h5>
                         </div>
                     </div>
@@ -53,7 +53,7 @@
                         <div class="card-body">
                             <h6 class="text-muted">30 Hari Mendatang</h6>
                             <h5 class="fw-bold text-warning">
-                                Rp 0
+                                Rp {{ number_format($piutang30Hari, 0, ',', '.') }}
                             </h5>
                         </div>
                     </div>

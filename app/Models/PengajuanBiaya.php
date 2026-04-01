@@ -41,11 +41,16 @@ class PengajuanBiaya extends Model
     {
         return $this->belongsTo(Kontak::class, 'kontak_id');
     }
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     public function items()
     {
         return $this->hasMany(PengajuanBiayaItem::class);
     }
+
     public function scheduling()
     {
         return $this->hasOne(

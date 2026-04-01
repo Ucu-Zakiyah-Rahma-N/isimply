@@ -22,6 +22,7 @@ use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\PihakKetigaController;
+use App\Models\Finance;
 use App\Models\Marketing;
 use Illuminate\Support\Facades\Route;
 
@@ -141,6 +142,8 @@ Route::middleware('auth')->group(function () {
     // finance
     Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('/', [FinanceController::class, 'index'])->name('index');
+        Route::post('/invoice/{po}/hold', [FinanceController::class, 'holdInvoice'])->name('hold.invoice');
+        Route::post('/invoice/{po}/unhold', [FinanceController::class, 'unholdInvoice'])->name('unhold.invoice');
 
         // akun
         Route::get('/akun', [FinanceController::class, 'akun_index'])->name('akun_index');
@@ -174,7 +177,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/invoice/{id}/upload-faktur', [FinanceController::class, 'uploadFaktur'])->name('invoice.uploadFaktur');
         Route::get('/finance/laporan-piutang', [FinanceController::class, 'laporanPiutang'])->name('invoice.laporan_piutang');
         Route::get('/finance/laporan-outstanding', [FinanceController::class, 'laporanOutstanding'])->name('invoice.laporan_outstanding');
-
+        Route::get('/outstanding/pdf', [FinanceController::class, 'exportPdf'])->name('outstanding.pdf');
+        Route::get('/penerimaan-kas', [FinanceController::class, 'penerimaanKas'])->name('invoice.penerimaan_kas');
+        
         // Operasional (Biaya)
         Route::get('/biaya', [OperasionalController::class, 'biayaIndex'])->name('biaya_index');
         Route::post('/kontak/store', [OperasionalController::class, 'store'])->name('kontak.store');

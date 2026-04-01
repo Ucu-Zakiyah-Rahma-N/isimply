@@ -353,23 +353,26 @@
                 </a>
 
                 <ul class="collapse list-unstyled ps-3" id="accountingMenu">
-                    <li class="sidebar-item">
+                    <!-- <li class="sidebar-item">
                         <a class="sidebar-link" href="#">
+                            <span><i class="bi bi-cash-coin"></i></span>
                             <span class="hide-menu">Saldo</span>
                         </a>
-                    </li>
+                    </li> -->
 
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('finance.bank_cash.index') }}">
+                            <span><i class="bi bi-bank"></i></span>
                             <span class="hide-menu">Bank Cash</span>
                         </a>
                     </li>
 
-                    <li class="sidebar-item">
+                    <!-- <li class="sidebar-item">
                         <a class="sidebar-link" href="#">
+                            <span><i class="bi bi-arrow-repeat"></i></span>
                             <span class="hide-menu">Laporan Arus Kas</span>
                         </a>
-                    </li>
+                    </li> -->
                 </ul>
             </li>
 
@@ -389,32 +392,36 @@
 
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ url('finance') }}">
-                            <span><i class="bi bi-search"></i></span>
+                            <span><i class="bi bi-clipboard-check"></i></span>
                             <span class="hide-menu">Data BAST</span>
                         </a>
                     </li>
 
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('finance.invoice_index') }}">
+                            <span><i class="bi bi-file-earmark-spreadsheet"></i></span>
                             <span class="hide-menu">Rekap Invoice</span>
                         </a>
                     </li>
 
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('finance.invoice.laporan_piutang') }}">
+                            <span><i class="bi bi-coin"></i></span>
                             <span class="hide-menu">Data Piutang</span>
                         </a>
                     </li>
 
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('finance.invoice.laporan_outstanding') }}">
+                            <span><i class="bi bi-cash-coin"></i></span
                             <span class="hide-menu">Data Outstanding</span>
                         </a>
                     </li>
 
                     <li class="sidebar-item">
-                        <a class="sidebar-link" href="#">
-                            <span class="hide-menu">Data Penerimaan Bulan Ini</span>
+                        <a class="sidebar-link" href="{{ route('finance.invoice.penerimaan_kas') }}">
+                            <span><i class="bi bi-safe2"></i></span>
+                            <span class="hide-menu">Penerimaan Bulan Ini</span>
                         </a>
                     </li>
 
@@ -448,14 +455,6 @@
                             <span class="hide-menu">Pembelian</span>
                         </a>
                     </li>
-
-                    <li class="sidebar-item">
-                        <a class="sidebar-link" href="{{ route('finance.pihak_ketiga_index') }}">
-                            <span><i class="bi bi-briefcase"></i></span>
-                            <span class="hide-menu">Pihak Ketiga</span>
-                        </a>
-                    </li>
-
                 </ul>
             </li>
 
@@ -476,6 +475,12 @@
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('finance.purchasing_index') }}">
                             <span class="hide-menu">Purchasing</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{{ route('finance.pihak_ketiga_index') }}">
+                            <span><i class="bi bi-briefcase"></i></span>
+                            <span class="hide-menu">Pihak Ketiga</span>
                         </a>
                     </li>
 

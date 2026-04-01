@@ -175,99 +175,88 @@
                 <thead>
                     <tr>
                         <th width="40">No</th>
-                        <th>Tgl Bayar</th>
-                        <th>Kategori</th>
-                        <th>Sumber Transaksi</th>
                         <th>Tgl Pengajuan</th>
-                        <th>No Pengajuan</th>
-                        <th>Penerima</th>
-                        <th>Status</th>
+                        <th>Item Pengajuan</th>
+                        <th>Projek</th>
                         <th class="text-end">Total</th>
-                        <th width="120">Aksi</th>
+                        <th>PIC Pengaju</th>
+                        <th>No Pengajuan</th>
+                        <th width="140">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($data as $i => $row)
                     <tr>
 
+                        <!-- No -->
                         <td>{{ $i + 1 }}</td>
 
-                        <td>
-                            {{ optional($row->scheduling)->tgl_pembayaran 
-                            ? \Carbon\Carbon::parse($row->scheduling->tgl_pembayaran)->format('d-m-Y') 
-                            : '-' }}
-                        </td>
-
-                        <td>{{ $row->kategori ?? '-' }}</td>
-
-                        <td>{{ $row->sumber_transaksi ?? '-' }}</td>
-
+                        <!-- Tgl Pengajuan -->
                         <td>
                             {{ \Carbon\Carbon::parse($row->tgl_pengajuan)->format('d-m-Y') }}
                         </td>
 
+                        <!-- Item Pengajuan (ringkas) -->
                         <td>
-                            <a href="javascript:void(0)"
-                                class="text-decoration-none text-primary btnDetailPengajuan d-block"
-                                data-id="{{ $row->id }}">
-
-                                <div class="fw-semibold">
-                                    {{ $row->nomor_pengajuan }}
-                                </div>
-
-                                <small class="text-muted">
-                                    @foreach($row->items as $item)
-                                    <div>{{ $item->deskripsi }}</div>
-                                    @endforeach
-                                </small>
-
-                            </a>
-                        </td>
-
-                        <td>{{ $row->penerima ?? '-' }}</td>
-
-                        <td>
-                            @if($row->status == 'ditolak')
-                            <span class="status-badge badge-reject">Ditolak</span>
-                            @elseif($row->status == 'dipending')
-                            <span class="status-badge badge-pending">Dipending</span>
-                            @elseif(optional($row->scheduling)->tgl_pembayaran == \Carbon\Carbon::today()->toDateString())
-                            <span class="status-badge badge-approved">Disetujui</span>
-
-                            @else
-                            <span class="status-badge badge-diajukan">Dijadwalkan</span>
+                            {{ $row->items->pluck('deskripsi')->take(2)->implode(', ') }}
+                            @if($row->items->count() > 2)
+                            <span class="text-muted">
+                                +{{ $row->items->count() - 2 }} lainnya
+                            </span>
                             @endif
                         </td>
 
+                        <!-- Projek -->
+                        <td>
+                            {{ $row->projek ?? '-' }}
+                        </td>
+
+                        <!-- Total -->
                         <td class="text-end fw-semibold">
                             Rp {{ number_format($row->grand_total, 0, ',', '.') }}
                         </td>
 
+                        <!-- PIC Pengaju -->
+                        <td>
+                            <div class="fw-bold">
+                                {{ optional($row->user)->username ?? '-' }}
+                            </div>
+                            <small class="text-muted">
+                                {{ optional($row->user)->role ?? '-' }}
+                            </small>
+                        </td>
+
+                        <!-- No Pengajuan -->
+                        <td>
+                            <a href="javascript:void(0)"
+                                class="text-decoration-none text-primary btnDetailPengajuan"
+                                data-id="{{ $row->id }}">
+                                {{ $row->nomor_pengajuan }}
+                            </a>
+                        </td>
+
+                        <!-- Aksi -->
                         <td>
                             <div class="d-flex flex-column gap-1">
 
-                                {{-- Jika sudah ditolak --}}
                                 @if($row->status == 'ditolak')
                                 <button class="btn btn-danger action-btn" disabled>
                                     Ditolak
                                 </button>
 
-                                {{-- Jika sudah disetujui --}}
                                 @elseif($row->status == 'disetujui')
                                 <button class="btn btn-success action-btn" disabled>
                                     Disetujui
                                 </button>
 
-                                {{-- Jika pending --}}
                                 @elseif($row->status == 'dipending')
                                 <button class="btn btn-warning action-btn" disabled>
                                     Pending
                                 </button>
 
-                                {{-- Jika masih bisa diproses --}}
                                 @else
 
-                                {{-- APPROVE --}}
+                                <!-- APPROVE -->
                                 <form id="form-approve-{{ $row->id }}"
                                     action="{{ route('finance.manager.approve', $row->id) }}"
                                     method="POST">
@@ -279,7 +268,7 @@
                                     </button>
                                 </form>
 
-                                {{-- PENDING --}}
+                                <!-- PENDING -->
                                 <button class="btn btn-warning action-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#modalPending"
@@ -287,7 +276,7 @@
                                     Pending
                                 </button>
 
-                                {{-- REJECT --}}
+                                <!-- REJECT -->
                                 <button class="btn btn-danger action-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#modalTolak"
@@ -303,7 +292,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-5">
+                        <td colspan="8" class="text-center text-muted py-5">
                             Tidak ada data pengajuan
                         </td>
                     </tr>
