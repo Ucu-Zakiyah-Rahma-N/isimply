@@ -151,7 +151,7 @@ th button {
                                 <td>
                                     {{ optional($po->quotation)->lama_pekerjaan ? optional($po->quotation)->lama_pekerjaan . ' hari' : '-' }}
                                 </td>
-
+                                <!-- dari tgl po ke hari ini (selalu di hitung selama invoice blm lunas) -->
                                 <td class="{{ $bg }}">
                                     {{ $lama_sdh }} hari
                                 </td>

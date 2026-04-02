@@ -185,12 +185,12 @@
                                 $selisih = $isOverdue ? $tglTempo->diffInDays($today) : 0;
                             @endphp
 
-                            {{-- LAMA --}}
+                            {{-- LAMA waktu dari tgl invoice ke hari ini --}}
                             <td>
                             {{ round($umur) }} hari
                             </td>
 
-                            {{-- SELISIH (HANYA JIKA TERLAMBAT) --}}
+                            {{-- SELISIH (HANYA JIKA TERLAMBAT) dari tgl jatuh tempo invoice ke hari ini --}}
                             <td>
                                 @if($isOverdue)
                                     <span style="color:red; font-weight:bold;">

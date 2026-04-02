@@ -73,11 +73,53 @@
     </style>
 </head>
 <body>
-
-<h3>Laporan Outstanding</h3>
+<h3>Laporan Outstanding Projek</h3>
 
 @if($tahun == 'all')
 
+<div style="margin-bottom:25px;">
+
+    <table width="100%">
+        <tr>
+
+            {{-- KIRI --}}
+            <td style="vertical-align:top;">
+
+                <div style="font-size:14px; color:#666; margin-top:9px">
+                    Data Outstanding Keseluruhan
+                </div>
+
+                <div style="font-size:26px; font-weight:bold; margin-top:17px;">
+                    Rp {{ number_format($totalOutstandingKeseluruhan ?? 0, 0, ',', '.') }}
+                </div>
+
+            </td>
+
+            {{-- KANAN --}}
+            <td style="vertical-align:top; text-align:right;">
+
+                @foreach($outstandingPerTahun as $year => $total)
+                    <div style="border-bottom:1px solid #ddd; padding:6px 0;">
+
+                        <span style="display:inline-block; width:60px; text-align:left; font-size:13px;">
+                            {{ $year }}
+                        </span>
+
+                        <span style="display:inline-block; width:160px; text-align:right; font-size:13px; font-weight:bold;">
+                            Rp {{ number_format($total, 0, ',', '.') }}
+                        </span>
+
+                    </div>
+                @endforeach
+
+            </td>
+
+        </tr>
+    </table>
+
+</div>
+
+    {{-- 🔹 TABEL DETAIL PER TAHUN (KODE KAMU, TIDAK DIUBAH) --}}
     @foreach($data as $year => $items)
 
     @php
@@ -86,12 +128,14 @@
         $totalTermin = 0;
     @endphp
 
-    <div class="year-section">
+    <div style="margin-bottom:25px;">
 
-        <div class="year-title">Tahun {{ $year }}</div>
+        <div style="font-weight:bold; margin-bottom:10px;">
+            Tahun {{ $year }}
+        </div>
 
-        <table>
-            <thead>
+        <table width="100%" border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+            <thead style="background:#f5f5f5;">
                 <tr>
                     <th>No</th>
                     <th>Tanggal</th>
@@ -111,7 +155,7 @@
                 $totalSpk += $po->nominal_spk;
             @endphp
 
-            <tbody class="po-group">
+            <tbody>
 
                 @foreach($po->termin_list as $index => $termin)
 
@@ -140,14 +184,14 @@
                         {{ $po->all_produk->implode(', ') }}
                     </td>
 
-                    <td rowspan="{{ $rowspan }}" class="text-end">
+                    <td rowspan="{{ $rowspan }}" align="right">
                         {{ number_format($po->nominal_spk,0,',','.') }}
                     </td>
                     @endif
 
                     <td>{{ $termin['keterangan'] }}</td>
 
-                    <td class="text-end">
+                    <td align="right">
                         {{ number_format($termin['nominal'],0,',','.') }}
                     </td>
 
@@ -160,14 +204,14 @@
             @endforeach
 
             <tbody>
-                <tr class="total-row">
-                    <td colspan="5" class="text-end">TOTAL</td>
-                    <td class="text-end">
-                        {{ number_format($totalSpk,0,',','.') }}
+                <tr>
+                    <td colspan="5" align="right"><strong>TOTAL</strong></td>
+                    <td align="right">
+                        <strong>{{ number_format($totalSpk,0,',','.') }}</strong>
                     </td>
                     <td></td>
-                    <td class="text-end">
-                        {{ number_format($totalTermin,0,',','.') }}
+                    <td align="right">
+                        <strong>{{ number_format($totalTermin,0,',','.') }}</strong>
                     </td>
                 </tr>
             </tbody>
@@ -177,6 +221,7 @@
     </div>
 
     @endforeach
+
 
 @else
 

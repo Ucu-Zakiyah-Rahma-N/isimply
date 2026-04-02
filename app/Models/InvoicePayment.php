@@ -55,4 +55,8 @@ class InvoicePayment extends Model
         return $this->belongsTo(Invoice::class, 'invoice_id');
 
     }
+        public function coaBank()
+    {
+        return $this->belongsTo(Coa::class, 'coa_bank_id');
+    }
 }

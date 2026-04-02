@@ -234,6 +234,43 @@ class POController extends Controller
     }
     }
 
+
+
+    private function generateSingkatan($nama_perusahaan)
+{
+    $words = explode(' ', strtoupper($nama_perusahaan));
+    $singkatan = '';
+
+    foreach ($words as $word) {
+        if (!empty($word)) {
+            $singkatan .= substr($word, 0, 1);
+        }
+    }
+
+    return $singkatan;
+}
+
+   private function generateKodeProject($po)
+{
+    $tahun = now()->format('Y');
+    $bulan = now()->format('m');
+
+    // ambil nama customer (sesuaikan relasi kamu)
+    $namaCustomer = $po->customer->nama_perusahaan ?? 'UNKNOWN';
+
+    // singkatan
+    $singkatan = $this->generateSingkatan($namaCustomer);
+
+    // hitung urutan project customer di tahun ini
+    $count = PO::whereYear('bast_verified_at', $tahun)
+        ->where('customer_id', $po->customer_id)
+        ->whereNotNull('kode_project')
+        ->count();
+
+    $urutan = $count + 1;
+
+    return "{$singkatan}{$urutan}-{$bulan}-{$tahun}";
+}
     public function verifyBast($id)
     {
         $user = auth()->user();
@@ -257,12 +294,23 @@ class POController extends Controller
             return response()->json(['success' => false, 'message' => 'BAST sudah diverifikasi sebelumnya.']);
         }
 
+         // 🔥 Cegah double generate
+        if ($po->kode_project) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode project sudah dibuat sebelumnya.'
+            ]);
+        }
+
+        $kodeProject = $this->generateKodeProject($po);
+
         $po->update([
             'bast_verified' => 1,
             'bast_verified_at' => now(),
+             'kode_project' => $kodeProject
         ]);
 
-        return response()->json(['success' => true, 'message' => 'BAST berhasil diverifikasi.']);
+        return response()->json(['success' => true, 'message' => 'BAST berhasil diverifikasi.',  'kode_project' => $kodeProject]);
     }
     
     

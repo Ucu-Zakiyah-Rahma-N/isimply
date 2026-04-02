@@ -66,4 +66,5 @@ class JournalDetail extends Model
     {
         return $this->belongsTo(Coa::class);
     }
+
 }

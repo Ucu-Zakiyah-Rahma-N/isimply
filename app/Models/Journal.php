@@ -60,6 +60,10 @@ class Journal extends Model
     {
         return $this->hasMany(JournalDetail::class);
     }
+    public function payment()
+    {
+        return $this->belongsTo(InvoicePayment::class, 'ref_id');
+    }
 
     /*
     |--------------------------------------------------------------------------

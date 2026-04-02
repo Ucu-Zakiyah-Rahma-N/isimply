@@ -2398,19 +2398,52 @@ public function exportPdf(Request $request)
         }
     }
 
+    // if ($tahun === 'all') {
+    //     $data = $data->groupBy(function ($item) {
+    //         return \Carbon\Carbon::parse($item->tgl_po)->format('Y');
+    //     })
+    //     ->sortKeysDesc();
+    // }
+    // // TOTAL PER TAHUN
+    // $outstandingPerTahun = $data->map(function ($items) {
+    //     return collect($items)->sum(function ($po) {
+    //         return collect($po->termin_list)->sum('nominal');
+    //     });
+    // });
     if ($tahun === 'all') {
-        $data = $data->groupBy(function ($item) {
-            return \Carbon\Carbon::parse($item->tgl_po)->format('Y');
+
+    $data = $data->groupBy(function ($item) {
+        return \Carbon\Carbon::parse($item->tgl_po)->format('Y');
+    })->sortKeysDesc();
+
+    // ✅ PER TAHUN (BENAR)
+    $outstandingPerTahun = $data->map(function ($items) {
+        return $items->sum(function ($po) {
+            return collect($po->termin_list)->sum('nominal');
+        });
+    });
+
+} else {
+
+    // ✅ HANYA 1 TAHUN
+    $outstandingPerTahun = collect([
+        $tahun => $data->sum(function ($po) {
+            return collect($po->termin_list)->sum('nominal');
         })
-        ->sortKeysDesc();
-    }
+    ]);
+}
+
+    // TOTAL KESELURUHAN
+    $totalOutstandingKeseluruhan = $outstandingPerTahun->sum();
 
     // =========================
     // 🔥 RENDER VIEW KE HTML
     // =========================
     $html = view('pages.finance.outstanding_pdf', [
         'data' => $data,
-        'tahun' => $tahun
+        'tahun' => $tahun,
+        'outstandingPerTahun' => $outstandingPerTahun,
+        'totalOutstandingKeseluruhan' => $totalOutstandingKeseluruhan
     ])->render();
 
     // =========================
@@ -2436,100 +2469,159 @@ public function exportPdf(Request $request)
 // {
 //     $title = 'Penerimaan Kas';
 
-//     // ambil data penerimaan (debit saja)
-//     $kas = JournalDetail::with(['journal', 'coa'])
-//         ->where('debit', '>', 0)
-//         ->get()
-//         ->map(function ($row) {
+//     // =========================
+//     // FILTER TAHUN
+//     // =========================
+//     $tahun = $request->tahun ?? now()->year;
 
-//             return (object)[
-//                 'tanggal' => $row->journal->tanggal ?? $row->created_at,
-//                 'trx' => $row->coa->nama_akun ?? '-',
-//                 'uraian' => 'Penerimaan', // nanti bisa di improve dari relasi invoice
-//                 'penerima' => '-',
-//                 'kode_project' => '-',
-//                 'coa' => $row->coa->nama_akun ?? '-',
-//                 'nominal' => $row->debit
-//             ];
-//         });
+//     $start = Carbon::create($tahun, 1, 1)->startOfDay();
+//     $end   = Carbon::create($tahun, 12, 31)->endOfDay();
+
+    
+//    $kas = Journal::with(['journaldetails.coa', 'payment.invoice.customer', 'payment.coaBank'])
+//     ->where('ref_type', 'invoice_payment')
+//     ->whereYear('tanggal', $tahun)
+//     ->get()
+//     ->flatMap(function ($jurnal) {
+
+//         return $jurnal->journaldetails
+//             ->filter(function ($d) use ($jurnal) {
+//                 return $jurnal->payment 
+//                     && $d->coa_id == $jurnal->payment->coa_bank_id
+//                     && $d->debit > 0;
+//             })
+//             ->map(function ($d) use ($jurnal) {
+
+//                 return (object)[
+//                     'journal_id' => $jurnal->id,
+//                     'tanggal' => $jurnal->tanggal,
+//                     'nominal' => $d->debit, // ✅ ini yg bener
+//                     'coa' => $d->coa->nama_akun ?? '-',
+//                     'ref_type' => $jurnal->ref_type,
+//                     'keterangan' => $jurnal->keterangan,
+//                     'termin_inv' => $jurnal->invoice->termin_ke,
+//                     'customer' => $jurnal->invoice->customer->nama_perusahaan,
+
+//                     // 🔥 ambil dari relasi payment
+//                     'no_invoice' => $jurnal->payment->invoice->no_invoice ?? '-',
+//                     'bank' => $jurnal->payment->coaBank->nama_akun ?? '-',
+//                 ];
+//             });
+
+//     });
+
+// // dd($kas);
 
 //     // =========================
-//     // MONTHLY (group per bulan)
+//     // MONTHLY (GROUP PER BULAN)
 //     // =========================
 //     $monthly = $kas->groupBy(function ($item) {
-//         return \Carbon\Carbon::parse($item->tanggal)->format('Y-m');
+//         return Carbon::parse($item->tanggal)->format('Y-m');
 //     });
 
 //     // =========================
-//     // REKAP (total per bulan)
+//     // REKAP (12 BULAN FIX)
 //     // =========================
-//     $rekap = $monthly->map(function ($items, $key) {
-//         return [
-//             'bulan' => \Carbon\Carbon::createFromFormat('Y-m', $key)->translatedFormat('F Y'),
-//             'total' => collect($items)->sum('nominal')
-//         ];
-//     })->values();
+//     $rekap = collect();
 
+//     for ($i = 1; $i <= 12; $i++) {
+
+//         $bulanKey = Carbon::create($tahun, $i, 1)->format('Y-m');
+
+//         $total = isset($monthly[$bulanKey])
+//             ? collect($monthly[$bulanKey])->sum('nominal')
+//             : 0;
+
+//         $rekap->push((object)[
+//             'bulan' => Carbon::create($tahun, $i, 1)->translatedFormat('F Y'),
+//             'total' => $total
+//         ]);
+//     }
+
+//     // =========================
+//     // LIST TAHUN (FIX RANGE)
+//     // =========================
+//     $listTahun = collect(range(2023, now()->year))->sortDesc();
+    
 //     return view('pages.finance.penerimaan_kas', [
 //         'title' => $title,
 //         'kas' => $kas,
 //         'monthly' => $monthly,
 //         'rekap' => $rekap,
+//         'tahun' => $tahun,
+//         'listTahun' => $listTahun,
 //         'countKas' => $kas->count(),
 //         'countMonthly' => $monthly->count(),
 //         'countRekap' => $rekap->count(),
+        
 //     ]);
 // }
-
 public function penerimaanKas(Request $request)
 {
-    $title = 'Penerimaan Kas';
-
-    // =========================
-    // FILTER TAHUN
-    // =========================
+    $title = 'Penerimaan Dana Masuk ';
     $tahun = $request->tahun ?? now()->year;
+    
+$kas = Journal::with([
+    'journaldetails.coa',
+    'payment.invoice.customer',
+    'payment.coaBank',
+    'payment.invoice.payments'
+])
+->where('ref_type', 'invoice_payment')
+->whereYear('tanggal', $tahun)
+->get()
+->flatMap(function ($jurnal) {
 
-    $start = Carbon::create($tahun, 1, 1)->startOfDay();
-    $end   = Carbon::create($tahun, 12, 31)->endOfDay();
+    $invoice = $jurnal->payment->invoice ?? null;
 
-    // =========================
-    // DATA KAS (DEBIT = MASUK)
-    // =========================
-    $kas = JournalDetail::with(['journal', 'coa'])
-        ->where('debit', '>', 0)
-        ->whereHas('journal', function ($q) use ($start, $end) {
-            $q->whereBetween('tanggal', [$start, $end]);
-        })
-        ->get()
-        ->map(function ($row) {
+    return $jurnal->journaldetails
+        ->filter(fn($d) => $jurnal->payment
+                    && $d->coa_id == $jurnal->payment->coa_bank_id
+                    && $d->debit > 0)
+        ->map(function ($d) use ($jurnal, $invoice) {
+
+            $isPartial = false;
+
+            if($invoice) {
+                $terminKe = $jurnal->invoice->termin_ke ?? 1;
+
+                $terminPayments = $invoice->payments
+                    ->where('termin_ke', $terminKe)
+                    ->sortBy('id'); // atau 'tanggal'
+
+                // Tandai partial kalau ini bukan pembayaran terakhir di termin
+                $lastPaymentId = $terminPayments->last()->id ?? null;
+                if($jurnal->id != $lastPaymentId) {
+                    $isPartial = true;
+                }
+            }
+
             return (object)[
-                'tanggal' => $row->journal->tanggal ?? $row->created_at,
-                'trx' => $row->coa->nama_akun ?? '-',
-                'uraian' => 'Penerimaan',
-                'penerima' => '-',
-                'kode_project' => '-',
-                'coa' => $row->coa->nama_akun ?? '-',
-                'nominal' => $row->debit
+                'journal_id' => $jurnal->id,
+                'tanggal' => $jurnal->tanggal,
+                'nominal' => $d->debit,
+                'coa' => $d->coa->nama_akun ?? '-',
+                'ref_type' => $jurnal->ref_type,
+                'keterangan' => $jurnal->keterangan,
+                'termin_inv' => $jurnal->invoice->termin_ke ?? null,
+                'customer' => $invoice->customer->nama_perusahaan ?? '-',
+                'no_invoice' => $invoice->no_invoice ?? '-',
+                'bank' => $jurnal->payment->coaBank->nama_akun ?? '-',
+                'is_partial' => $isPartial,
             ];
         });
-
+});
     // =========================
     // MONTHLY (GROUP PER BULAN)
     // =========================
-    $monthly = $kas->groupBy(function ($item) {
-        return Carbon::parse($item->tanggal)->format('Y-m');
-    });
+    $monthly = $kas->groupBy(fn($item) => Carbon::parse($item->tanggal)->format('Y-m'));
 
     // =========================
-    // REKAP (12 BULAN FIX)
+    // REKAP 12 BULAN
     // =========================
     $rekap = collect();
-
     for ($i = 1; $i <= 12; $i++) {
-
         $bulanKey = Carbon::create($tahun, $i, 1)->format('Y-m');
-
         $total = isset($monthly[$bulanKey])
             ? collect($monthly[$bulanKey])->sum('nominal')
             : 0;
@@ -2540,9 +2632,6 @@ public function penerimaanKas(Request $request)
         ]);
     }
 
-    // =========================
-    // LIST TAHUN (FIX RANGE)
-    // =========================
     $listTahun = collect(range(2023, now()->year))->sortDesc();
 
     return view('pages.finance.penerimaan_kas', [
@@ -2557,5 +2646,4 @@ public function penerimaanKas(Request $request)
         'countRekap' => $rekap->count(),
     ]);
 }
-
 }
