@@ -116,11 +116,8 @@ Route::middleware('auth')->group(function () {
     Route::get('PO/create', [POController::class,    'create']);
     Route::post('PO', [POController::class, 'store'])->name('PO.store');
     Route::post('/po/verify-bast/{id}', [POController::class, 'verifyBast'])->name('po.verifyBast');
-    Route::get('/files/{filename}', function ($filename) {
-        $path = storage_path('app/public/' . $filename);
-        if (!file_exists($path)) abort(404);
-        return response()->file($path);
-    })->name('files.view')->where('filename', '.*');
+
+
     Route::get('po/edit/{id}', [POController::class, 'edit'])->name('po.edit');
     Route::put('po/update/{id}', [POController::class, 'update'])->name('po.update');
 
@@ -232,6 +229,26 @@ Route::middleware('auth')->group(function () {
         // Route::get(uri: '/bank-cash/{coaId}', [AccountingController::class, 'bankCash'])->name('bank_cash.ledger');
     });
 
+
+
+    //openpdf
+    
+    // Route::get('/files/{filename}', function ($filename) {
+    //     $path = storage_path('app/public/' . $filename);
+    //     if (!file_exists($path)) abort(404);
+    //     return response()->file($path);
+    // })->name('files.view')->where('filename', '.*');
+
+    Route::get('/files/{filename}', function ($filename) {
+    $path = storage_path('app/public/' . $filename);
+
+    if (!file_exists($path)) abort(404);
+
+    return response()->file($path, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="' . basename($path) . '"'
+    ]);
+})->name('files.view')->where('filename', '.*');
 
     //menu timeline
     Route::middleware([

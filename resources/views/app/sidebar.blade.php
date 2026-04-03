@@ -271,7 +271,7 @@
             </li>
             @endif
 
-            @if (in_array(auth()->user()->role, ['admin 1', 'admin 2']))
+            @if (in_array(auth()->user()->role, ['admin 1', 'admin 2', 'admin 3', 'admin 4', 'admin 5', 'admin 6', 'admin 7', 'admin 8', 'admin 9', 'admin 10', 'admin 11']))
             <!-- PROJEK -->
             <li class="nav-small-cap mt-3">
                 <i class="ti ti-dots nav-small-cap-icon fs-4"></i>

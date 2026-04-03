@@ -236,20 +236,24 @@ class POController extends Controller
 
 
 
-    private function generateSingkatan($nama_perusahaan)
-{
-    $words = explode(' ', strtoupper($nama_perusahaan));
-    $singkatan = '';
+    private function generateSingkatan($nama)
+    {
+        $nama = strtoupper($nama);
 
-    foreach ($words as $word) {
-        if (!empty($word)) {
-            $singkatan .= substr($word, 0, 1);
+        // hapus kata umum
+        $remove = ['PT', 'CV', '&', 'AND'];
+        $words = explode(' ', $nama);
+
+        $singkatan = '';
+
+        foreach ($words as $word) {
+            if (!in_array($word, $remove) && !empty($word)) {
+                $singkatan .= substr($word, 0, 1);
+            }
         }
+
+        return $singkatan ?: 'UNK';
     }
-
-    return $singkatan;
-}
-
    private function generateKodeProject($po)
 {
     $tahun = now()->format('Y');

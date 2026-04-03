@@ -1459,6 +1459,12 @@ public function index(Request $request)
         return back()->with('success', 'Invoice berhasil diproses sesuai kondisi.');
     }
 
+
+
+
+
+
+    
     // public function destroy($id)
     // {
     //     DB::transaction(function () use ($id) {
@@ -1930,7 +1936,8 @@ public function index(Request $request)
     public function uploadInvoice(Request $request, $id)
     {
         $request->validate([
-            'file_invoice' => 'required|mimes:pdf|max:10240',
+            // 'file_invoice' => 'required|file|mimes:pdf|max:10240',
+            'file_invoice' => 'required|file|max:10240',
         ]);
 
         $invoice = Invoice::findOrFail($id);
@@ -1961,7 +1968,8 @@ public function index(Request $request)
     public function uploadFaktur(Request $request, $id)
     {
         $request->validate([
-            'file_faktur' => 'required|mimes:pdf|max:10240',
+            // 'file_faktur' => 'required|mimes:pdf|max:10240',
+            'file_faktur' => 'required|file|max:10240',
         ]);
 
         $invoice = Invoice::findOrFail($id);
@@ -2449,12 +2457,23 @@ public function exportPdf(Request $request)
     // =========================
     // 🔥 GENERATE PDF VIA CHROME
     // =========================
-    $pdf = Browsershot::html($html)
-        ->format('A4')
-        ->landscape()
-        ->margins(10, 10, 10, 10)
-        ->showBackground()
-        ->pdf();
+    // $pdf = Browsershot::html($html)
+    //     ->format('A4')
+    //     ->landscape()
+    //     ->margins(10, 10, 10, 10)
+    //     ->showBackground()
+    //     ->pdf();
+
+    // $pdf = Browsershot::html($html)
+    // ->setNodeBinary('/home/u576953852/.nvm/versions/node/v24.13.1/bin/node')
+    // ->setNpmBinary('/home/u576953852/.nvm/versions/node/v24.13.1/bin/npm')
+    // ->setChromePath('/usr/bin/chromium-browser')
+    // ->noSandbox()
+    // ->format('A4')
+    // ->landscape()
+    // ->margins(10, 10, 10, 10)
+    // ->showBackground()
+    // ->pdf();
 
     $filename = $tahun == 'all'
         ? 'laporan-outstanding-all.pdf'
