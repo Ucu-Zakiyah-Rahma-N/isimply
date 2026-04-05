@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use \Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class OperasionalController extends Controller
 {
@@ -86,6 +86,14 @@ class OperasionalController extends Controller
             'diskon_type.*'     => 'nullable|in:percent,nominal',
             'pajak_id.*'        => 'nullable|integer',
 
+            // GLOBAL
+            'use_diskon_global' => 'nullable',
+            'diskon_global'     => 'nullable|numeric|min:0',
+            'diskon_global_type' => 'nullable|in:percent,nominal',
+
+            'use_pajak_global'  => 'nullable',
+            'pajak_global_id'   => 'nullable|integer',
+
             'lampiran'          => 'nullable|file|max:2048'
         ]);
 
@@ -93,7 +101,7 @@ class OperasionalController extends Controller
 
         try {
 
-            /** ================== UPLOAD FILE ================== */
+            /** ================== FILE ================== */
             $lampiranPath = null;
             if ($request->hasFile('lampiran')) {
                 $lampiranPath = $request->file('lampiran')
@@ -105,49 +113,45 @@ class OperasionalController extends Controller
 
             /** ================== INIT ================== */
             $subtotal = 0;
-            $totalDiskon = 0;
-            $totalPajak = 0;
+            $totalDiskonItem = 0;
+            $totalPajakItem = 0;
             $items = [];
 
+            /** ================== LOOP ITEM ================== */
             foreach ($request->deskripsi as $i => $deskripsi) {
 
                 $qty    = (float) $request->qty[$i];
                 $harga  = (float) $request->harga[$i];
 
-                $diskon       = (float) ($request->diskon[$i] ?? 0);
-                $diskonType   = $request->diskon_type[$i] ?? 'percent';
-
-                $pajakId = $request->pajak_id[$i] ?? null;
+                $diskon     = (float) ($request->diskon[$i] ?? 0);
+                $diskonType = $request->diskon_type[$i] ?? 'percent';
+                $pajakId    = $request->pajak_id[$i] ?? null;
 
                 $total = $qty * $harga;
 
-                /** ===== DISKON FLEXIBLE ===== */
-                if ($diskonType === 'percent') {
-                    $nilaiDiskon = $total * ($diskon / 100);
-                } else {
-                    $nilaiDiskon = $diskon;
-                }
+                /** ===== DISKON ITEM ===== */
+                $nilaiDiskon = $diskonType === 'percent'
+                    ? $total * ($diskon / 100)
+                    : $diskon;
 
-                // Clamp diskon
                 if ($nilaiDiskon > $total) {
                     $nilaiDiskon = $total;
                 }
 
                 $setelahDiskon = $total - $nilaiDiskon;
 
-                /** ===== PAJAK ===== */
+                /** ===== PAJAK ITEM ===== */
                 $nilaiPajak = 0;
 
                 if (!empty($pajakId) && $pajakId != 0) {
 
                     $coa = Coa::findOrFail($pajakId);
 
-                    $persen = (float) $coa->nilai_coa;
+                    $persen   = (float) $coa->nilai_coa;
                     $kategori = strtoupper($coa->kategori_pajak ?? '');
 
                     $nilaiPajak = $setelahDiskon * ($persen / 100);
 
-                    // Jika PPH -> minus
                     if ($kategori === 'PPH') {
                         $nilaiPajak *= -1;
                     }
@@ -157,8 +161,8 @@ class OperasionalController extends Controller
 
                 /** ===== AKUMULASI ===== */
                 $subtotal += $total;
-                $totalDiskon += $nilaiDiskon;
-                $totalPajak += $nilaiPajak;
+                $totalDiskonItem += $nilaiDiskon;
+                $totalPajakItem += $nilaiPajak;
 
                 /** ===== SIMPAN ITEM ===== */
                 $items[] = [
@@ -173,6 +177,50 @@ class OperasionalController extends Controller
                 ];
             }
 
+            /** ================== GLOBAL DISKON ================== */
+            $diskonGlobal = 0;
+
+            if ($request->boolean('use_diskon_global')) {
+
+                $diskonGlobalInput = (float) $request->diskon_global;
+                $type = $request->diskon_global_type ?? 'percent';
+
+                $diskonGlobal = $type === 'percent'
+                    ? $subtotal * ($diskonGlobalInput / 100)
+                    : $diskonGlobalInput;
+
+                if ($diskonGlobal > $subtotal) {
+                    $diskonGlobal = $subtotal;
+                }
+            }
+
+            /** ================== GLOBAL PAJAK ================== */
+            $pajakGlobal = 0;
+
+            if ($request->boolean('use_pajak_global') && $request->pajak_global_id) {
+
+                $coa = Coa::findOrFail($request->pajak_global_id);
+
+                $persen   = (float) $coa->nilai_coa;
+                $kategori = strtoupper($coa->kategori_pajak ?? '');
+
+                $dasar = $subtotal - $totalDiskonItem - $diskonGlobal;
+
+                $pajakGlobal = $dasar * ($persen / 100);
+
+                if ($kategori === 'PPH') {
+                    $pajakGlobal *= -1;
+                }
+            }
+
+            /** ================== FINAL TOTAL ================== */
+            $grandTotal =
+                $subtotal
+                - $totalDiskonItem
+                - $diskonGlobal
+                + $totalPajakItem
+                + $pajakGlobal;
+
             /** ================== HEADER ================== */
             $pengajuan = PengajuanBiaya::create([
                 'jenis_pengajuan'   => $request->jenis_pengajuan,
@@ -185,9 +233,19 @@ class OperasionalController extends Controller
                 'is_urgent'         => $request->boolean('is_urgent'),
 
                 'subtotal'          => $subtotal,
-                'total_diskon'      => $totalDiskon,
-                'total_pajak'       => $totalPajak,
-                'grand_total'       => $subtotal - $totalDiskon + $totalPajak,
+                'total_diskon'      => $totalDiskonItem + $diskonGlobal,
+                'total_pajak'       => $totalPajakItem + $pajakGlobal,
+                'grand_total'       => $grandTotal,
+
+                'use_diskon_global' => $request->boolean('use_diskon_global'),
+                'diskon_global'     => $diskonGlobal,
+                'diskon_global_type' => $request->diskon_global_type,
+
+                'use_pajak_global'  => $request->boolean('use_pajak_global'),
+                'pajak_global_id'   => $request->pajak_global_id,
+                'nilai_pajak_global' => $pajakGlobal,
+
+                'user_id' => auth()->id(),
 
                 'lampiran'          => $lampiranPath,
                 'status'            => 'dipurchasing'
@@ -364,8 +422,21 @@ class OperasionalController extends Controller
                 'items.coa:id,nama_akun,nilai_coa,kategori_pajak'
             ])->findOrFail($id);
 
-            /** ================= HEADER ================= */
+            /** ================= HITUNG ULANG ================= */
+            $totalDiskonItem = $pengajuan->items->sum(function ($item) {
+                $total = $item->qty * $item->harga;
+                if ($item->diskon_type === 'percent') {
+                    return $total * ($item->diskon / 100);
+                }
+                return $item->diskon;
+            });
 
+            $diskonGlobal = (float) ($pengajuan->diskon_global ?? 0);
+
+            $totalPajakItem = $pengajuan->items->sum('nilai_pajak');
+            $pajakGlobal = (float) ($pengajuan->nilai_pajak_global ?? 0);
+
+            /** ================= HEADER ================= */
             $header = [
                 'id'                => $pengajuan->id,
                 'nomor_pengajuan'   => $pengajuan->nomor_pengajuan,
@@ -384,15 +455,25 @@ class OperasionalController extends Controller
 
                 'is_urgent'         => (bool) $pengajuan->is_urgent,
 
-                'subtotal'          => $pengajuan->subtotal ?? 0,
-                'total_diskon'      => $pengajuan->total_diskon ?? 0,
-                'total_ppn'         => $pengajuan->total_ppn ?? 0,
-                'grand_total'       => $pengajuan->grand_total ?? 0,
+                /** ===== TOTAL ===== */
+                'subtotal'          => (float) ($pengajuan->subtotal ?? 0),
 
+                // 🔥 DIPISAH
+                'diskon_item'       => $totalDiskonItem,
+                'diskon_global'     => $diskonGlobal,
+                'total_diskon'      => $totalDiskonItem + $diskonGlobal,
+
+                'pajak_item'        => $totalPajakItem,
+                'pajak_global'      => $pajakGlobal,
+                'total_pajak'       => $totalPajakItem + $pajakGlobal,
+                'grand_total'       => (float) ($pengajuan->grand_total ?? 0),
+                'use_diskon_global' => (bool) $pengajuan->use_diskon_global,
+                'diskon_global_type' => $pengajuan->diskon_global_type ?? 'percent',
+                'use_pajak_global'  => (bool) $pengajuan->use_pajak_global,
+                'pajak_global_id'   => $pengajuan->pajak_global_id,
                 'lampiran'          => $pengajuan->lampiran
                     ? asset('storage/' . $pengajuan->lampiran)
                     : null,
-
                 'status'            => $pengajuan->status,
             ];
 
@@ -401,33 +482,21 @@ class OperasionalController extends Controller
             $items = $pengajuan->items->map(function ($item) {
 
                 return [
-
                     'item_id'        => $item->id,
-
                     'deskripsi'      => $item->deskripsi ?? '',
-
                     'qty'            => (float) ($item->qty ?? 0),
-
                     'harga'          => (float) ($item->harga ?? 0),
-
                     'diskon'         => (float) ($item->diskon ?? 0),
-
+                    'diskon_type'    => $item->diskon_type ?? 'percent',
                     'pajak_id'       => $item->pajak_id ?? 0,
-
                     'nama_pajak' => optional($item->coa)->nama_akun
                         ? optional($item->coa)->nama_akun . ' (' . rtrim(rtrim($item->coa->nilai_coa, '0'), '.') . '%)'
                         : null,
-                    'pajak_persen'   => (float) (optional($item->coa)->nilai_coa ?? 0),
-
-                    'kategori_pajak' => optional($item->coa)->kategori_pajak,
 
                     'nilai_pajak'    => (float) ($item->nilai_pajak ?? 0),
-
                     'jumlah'         => (float) ($item->jumlah ?? 0),
                 ];
             })->values()->toArray();
-
-            /** ================= RESPONSE ================= */
 
             return response()->json([
                 'status' => 'success',
@@ -447,8 +516,6 @@ class OperasionalController extends Controller
             Log::error('SHOW PENGAJUAN BIAYA ERROR', [
                 'id'    => $id,
                 'error' => $e->getMessage(),
-                'line'  => $e->getLine(),
-                'file'  => $e->getFile()
             ]);
 
             return response()->json([
@@ -457,6 +524,7 @@ class OperasionalController extends Controller
             ], 500);
         }
     }
+
     public function get_edit_pengajuan_biaya($id)
     {
         try {

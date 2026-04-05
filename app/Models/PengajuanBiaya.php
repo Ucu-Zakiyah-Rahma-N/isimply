@@ -18,15 +18,29 @@ class PengajuanBiaya extends Model
         'project_id',
         'jenis_project',
         'nomor_pengajuan',
-        'tgl_pengajuan',
         'metode_pembayaran',
         'kontak_id',
         'referensi_proyek_id',
         'is_urgent',
+
+        // TOTAL
         'subtotal',
         'total_diskon',
         'total_ppn',
         'grand_total',
+
+        // GLOBAL DISKON
+        'use_diskon_global',
+        'diskon_global',
+        'diskon_global_type',
+
+        // GLOBAL PAJAK
+        'use_pajak_global',
+        'pajak_global_id',
+        'nilai_pajak_global',
+        'user_id',
+
+        // LAINNYA
         'lampiran',
         'status',
         'note'

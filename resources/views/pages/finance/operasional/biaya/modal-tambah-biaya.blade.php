@@ -122,6 +122,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
 
+            <!-- HEADER -->
             <div class="modal-header">
                 <h5 class="modal-title fw-bold">Form Pengajuan Biaya</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -132,43 +133,33 @@
                     @csrf
 
                     <!-- ================= HEADER ================= -->
-                    <div class="row g-4 mb-4 align-items-stretch">
+                    <div class="row g-4 mb-4">
 
-                        <!-- LEFT SIDE -->
+                        <!-- LEFT -->
                         <div class="col-lg-9">
                             <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-
                                 <div class="row g-4">
 
-                                    <!-- Jenis Pengajuan -->
                                     <div class="col-md-4">
-                                        <label class="form-label label-saas">Jenis Pengajuan</label>
+                                        <label class="label-saas">Jenis Pengajuan</label>
                                         <select class="form-select input-saas" name="jenis_pengajuan">
                                             <option value="biaya">Biaya</option>
-                                            <option value="pengeluaran">Pengeluaran</option>
+                                            <option value="pengadaan">Pengadaan</option>
                                         </select>
                                     </div>
 
-                                    <!-- Penerima -->
                                     <div class="col-md-4">
-                                        <label class="form-label label-saas">Penerima</label>
-
+                                        <label class="label-saas">Penerima</label>
                                         <div class="select2-group">
-                                            <select id="kontakSelect"
-                                                name="kontak_id">
-                                            </select>
-
-                                            <button type="button"
-                                                id="btnOpenKontak"
-                                                class="btn btn-saas-add">
+                                            <select id="kontakSelect" name="kontak_id"></select>
+                                            <button type="button" class="btn btn-saas-add">
                                                 <i class="bi bi-plus"></i>
                                             </button>
                                         </div>
                                     </div>
 
-                                    <!-- Metode Pembayaran -->
                                     <div class="col-md-4">
-                                        <label class="form-label label-saas">Metode Pembayaran</label>
+                                        <label class="label-saas">Metode Pembayaran</label>
                                         <select class="form-select input-saas" name="metode_pembayaran">
                                             <option value="cash">Cash</option>
                                             <option value="transfer">Transfer</option>
@@ -176,39 +167,32 @@
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label label-saas">Tanggal Pengajuan</label>
-                                        <input type="date"
-                                            class="form-control input-saas"
-                                            name="tanggal_pengajuan"
-                                            value="{{ date('Y-m-d') }}">
+                                        <label class="label-saas">Tanggal</label>
+                                        <input type="date" class="form-control input-saas" name="tanggal_pengajuan">
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label label-saas">Project</label>
-                                        <select class="input-saas" id="projectSelect" name="project_id">
-                                        </select>
-                                        <input type="hidden" name="jenis_project" id="jenis_project">
+                                        <label class="label-saas">Project</label>
+                                        <select id="projectSelect" class="input-saas" name="project_id"></select>
+                                        <input type="hidden" id="jenis_project" name="jenis_project">
                                     </div>
 
                                 </div>
-
                             </div>
                         </div>
 
-                        <!-- RIGHT SIDE TOTAL -->
+                        <!-- RIGHT TOTAL -->
                         <div class="col-lg-3">
                             <div class="card border-0 shadow-sm rounded-4 p-4 total-card h-100 d-flex flex-column justify-content-between">
 
-                                <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex justify-content-between">
                                     <span class="urgent-label">Urgent</span>
-                                    <div class="form-check form-switch m-0">
-                                        <input class="form-check-input" type="checkbox" name="is_urgent">
-                                    </div>
+                                    <input type="checkbox" class="form-check-input" name="is_urgent">
                                 </div>
 
                                 <div class="mt-4">
                                     <small class="text-muted">Grand Total</small>
-                                    <h2 class="fw-bold total-amount mb-0">
+                                    <h2 class="fw-bold total-amount">
                                         <span id="grandTotal">0</span>
                                     </h2>
                                 </div>
@@ -217,6 +201,7 @@
                         </div>
 
                     </div>
+
                     <!-- ================= ITEM ================= -->
                     <div class="border rounded p-3 mb-4">
 
@@ -231,34 +216,40 @@
 
                         <div id="itemContainer">
                             <div class="row g-2 align-items-center mb-2 item-row">
+
                                 <div class="col-md-3">
                                     <input type="text" class="form-control" name="deskripsi[]">
                                 </div>
+
                                 <div class="col-md-1">
-                                    <input type="number" class="form-control qty" name="qty[]" value="1" min="1">
+                                    <input type="number" class="form-control qty" name="qty[]" value="1">
                                 </div>
+
                                 <div class="col-md-2">
-                                    <input type="number" class="form-control harga" name="harga[]" min="0">
+                                    <input type="number" class="form-control harga" name="harga[]">
                                 </div>
+
                                 <div class="col-md-2">
                                     <div class="d-flex">
                                         <input type="number" class="form-control diskon" name="diskon[]" value="0">
-
                                         <select class="form-select diskon-type" name="diskon_type[]" style="max-width:70px">
                                             <option value="percent">%</option>
                                             <option value="nominal">Rp</option>
                                         </select>
                                     </div>
                                 </div>
+
                                 <div class="col-md-2">
                                     <select class="form-select pajak" name="pajak_id[]">
                                         <option value="0">Non Pajak</option>
                                     </select>
                                 </div>
+
                                 <div class="col-md-2 d-flex gap-2">
                                     <input type="text" class="form-control jumlah text-end" readonly>
                                     <button type="button" class="btn btn-outline-danger btnRemove">−</button>
                                 </div>
+
                             </div>
                         </div>
 
@@ -267,62 +258,47 @@
                         </button>
                     </div>
 
-                    <!-- ================= FOOTER ================= -->
-                    <div class="row mt-4">
+                    <!-- ================= SUMMARY ================= -->
+                    <div class="row">
 
-                        <!-- MODE DISKON -->
-                        <div class="col-6 mb-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="label-saas mb-0">Mode Diskon</span>
-
-                                <div class="btn-group" role="group">
-                                    <input type="radio" class="btn-check"
-                                        name="modeDiskon" id="modeDiskonItem"
-                                        value="item" checked>
-
-                                    <label class="btn btn-outline-primary"
-                                        for="modeDiskonItem">Item</label>
-
-                                    <input type="radio" class="btn-check"
-                                        name="modeDiskon" id="modeDiskonGlobal"
-                                        value="global">
-
-                                    <label class="btn btn-outline-primary"
-                                        for="modeDiskonGlobal">Global</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MODE PAJAK -->
-                        <div class="col-6 mb-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="label-saas mb-0">Mode Pajak</span>
-
-                                <div class="btn-group" role="group">
-                                    <input type="radio" class="btn-check"
-                                        name="modePajak" id="modePajakItem"
-                                        value="item" checked>
-
-                                    <label class="btn btn-outline-primary"
-                                        for="modePajakItem">Item</label>
-
-                                    <input type="radio" class="btn-check"
-                                        name="modePajak" id="modePajakGlobal"
-                                        value="global">
-
-                                    <label class="btn btn-outline-primary"
-                                        for="modePajakGlobal">Global</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- LAMPIRAN -->
+                        <!-- LEFT -->
                         <div class="col-md-6">
-                            <label class="form-label">Lampiran</label>
+                            <label>Lampiran</label>
                             <input type="file" class="form-control">
                         </div>
 
+                        <!-- RIGHT -->
                         <div class="col-md-6">
+
+                            <!-- GLOBAL DISKON -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <input type="checkbox" id="useDiskonGlobal" name="use_diskon_global">
+                                    <label>Diskon Global</label>
+                                </div>
+
+                                <div class="d-flex" style="width:200px">
+                                    <input type="number" id="diskonGlobal" name="diskon_global" class="form-control" value="0" disabled>
+                                    <select id="diskonGlobalType" name="diskon_global_type" class="form-select" style="max-width:70px" disabled>
+                                        <option value="percent">%</option>
+                                        <option value="nominal">Rp</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- GLOBAL PAJAK -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <input type="checkbox" id="usePajakGlobal" name="use_pajak_global">
+                                    <label>Pajak Global</label>
+                                </div>
+
+                                <select id="pajakGlobal" name="pajak_global_id" class="form-select" style="width:200px" disabled>
+                                    <option value="0">Non Pajak</option>
+                                </select>
+                            </div>
+
+                            <hr>
 
                             <div class="d-flex justify-content-between">
                                 <span>Subtotal</span>
@@ -336,30 +312,6 @@
 
                             <div id="pajakSummary"></div>
 
-                            <div class="mt-3">
-
-                                <!-- DISKON GLOBAL -->
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Diskon Global</span>
-                                    <div class="d-flex" style="width: 200px;">
-                                        <input type="number" id="globalDiskon" class="form-control" value="0">
-                                        <select id="globalDiskonType" class="form-select" style="max-width:70px">
-                                            <option value="percent">%</option>
-                                            <option value="nominal">Rp</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- PAJAK GLOBAL -->
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>Pajak Global</span>
-                                    <select id="globalPajak" class="form-select pajak" style="width: 200px;">
-                                        <option value="0">Non Pajak</option>
-                                    </select>
-                                </div>
-
-                            </div>
-
                             <hr>
 
                             <div class="d-flex justify-content-between fw-bold fs-4">
@@ -367,14 +319,13 @@
                                 <span>Rp <span id="summaryTotal">0</span></span>
                             </div>
 
-
                             <div class="text-end mt-3">
-                                <button class="btn btn-success px-5">
-                                    Buat
-                                </button>
+                                <button class="btn btn-success px-5">Buat</button>
                             </div>
 
                         </div>
+
+                    </div>
 
                 </form>
             </div>
@@ -490,33 +441,22 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('modePajak')?.addEventListener('change', hitungSemua);
-        document.getElementById('globalDiskon')?.addEventListener('input', hitungSemua);
-        document.getElementById('globalDiskonType')?.addEventListener('change', hitungSemua);
-        document.getElementById('globalPajak')?.addEventListener('change', hitungSemua);
 
         let pajakList = [];
 
         /* ================= LOAD PAJAK ================= */
-        fetch("{{ url('/finance/get/coa-pajak') }}", {
-                credentials: 'same-origin',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            })
-            .then(res => {
-                if (!res.ok) throw new Error('Gagal mengambil data pajak');
-                return res.json();
-            })
+        fetch("{{ url('/finance/get/coa-pajak') }}")
+            .then(res => res.json())
             .then(data => {
                 pajakList = Array.isArray(data) ? data : [];
+
                 document.querySelectorAll('.pajak').forEach(isiSelectPajak);
-            })
-            .catch(err => console.error('ERROR LOAD PAJAK:', err));
+                isiSelectPajak(document.getElementById('pajakGlobal'));
+            });
 
-
-        /* ================= ISI SELECT PAJAK ================= */
         function isiSelectPajak(select) {
+            if (!select) return;
+
             select.innerHTML = `<option value="0">Non Pajak</option>`;
 
             pajakList.forEach(pajak => {
@@ -531,168 +471,216 @@
             });
         }
 
+        /* ================= ENGINE ================= */
 
-        /* ================= HITUNG SEMUA ================= */
-        function hitungSemua() {
+        function hitungItem(item) {
+            const total = item.qty * item.harga;
+
+            let diskon = item.diskonType === 'percent' ?
+                total * (item.diskon / 100) :
+                item.diskon;
+
+            if (diskon > total) diskon = total;
+
+            const setelahDiskon = total - diskon;
+
+            let pajak = setelahDiskon * (item.pajak.persen / 100);
+
+            if (item.pajak.kategori === 'PPH') {
+                pajak *= -1;
+            }
+
+            return {
+                total,
+                diskon,
+                setelahDiskon,
+                pajak,
+                grand: setelahDiskon + pajak
+            };
+        }
+
+        function hitungSemua(items, globalConfig) {
 
             let subtotal = 0;
             let totalDiskonItem = 0;
+            let totalPajakItem = 0;
             let pajakSummary = {};
 
-            const modePajak = document.getElementById('modePajak')?.value || 'item';
+            items.forEach(item => {
+                const res = hitungItem(item);
 
-            document.querySelectorAll('.item-row').forEach(row => {
+                subtotal += res.total;
+                totalDiskonItem += res.diskon;
+                totalPajakItem += res.pajak;
 
-                const qty = parseFloat(row.querySelector('.qty')?.value) || 0;
-                const harga = parseFloat(row.querySelector('.harga')?.value) || 0;
-
-                const diskon = parseFloat(row.querySelector('.diskon')?.value) || 0;
-                const diskonType = row.querySelector('.diskon-type')?.value || 'percent';
-
-                const pajakSelect = row.querySelector('.pajak');
-                const selectedOption = pajakSelect?.options[pajakSelect.selectedIndex];
-
-                const pajakPersen = parseFloat(selectedOption?.dataset.nilai) || 0;
-                const kategoriPajak = selectedOption?.dataset.kategori || '';
-
-                const total = qty * harga;
-
-                /* ===== DISKON ITEM ===== */
-                let nilaiDiskon = 0;
-
-                if (diskonType === 'percent') {
-                    nilaiDiskon = total * (diskon / 100);
-                } else {
-                    nilaiDiskon = diskon;
-                }
-
-                if (nilaiDiskon > total) nilaiDiskon = total;
-
-                const setelahDiskon = total - nilaiDiskon;
-
-                /* ===== PAJAK ITEM (HANYA JIKA MODE ITEM) ===== */
-                let nilaiPajak = 0;
-
-                if (modePajak === 'item') {
-                    nilaiPajak = setelahDiskon * (pajakPersen / 100);
-
-                    if (kategoriPajak === 'PPH') {
-                        nilaiPajak *= -1;
-                    }
-
-                    // grouping summary
-                    if (kategoriPajak) {
-                        if (!pajakSummary[kategoriPajak]) {
-                            pajakSummary[kategoriPajak] = 0;
-                        }
-                        pajakSummary[kategoriPajak] += nilaiPajak;
-                    }
-                }
-
-                const jumlah = setelahDiskon + nilaiPajak;
-
-                row.querySelector('.jumlah').value =
-                    jumlah.toLocaleString('id-ID');
-
-                subtotal += total;
-                totalDiskonItem += nilaiDiskon;
+                const key = item.pajak.kategori || 'LAINNYA';
+                pajakSummary[key] = (pajakSummary[key] || 0) + res.pajak;
             });
 
-            /* ================= GLOBAL DISKON ================= */
-            const globalDiskon = parseFloat(document.getElementById('globalDiskon')?.value) || 0;
-            const globalDiskonType = document.getElementById('globalDiskonType')?.value || 'percent';
+            /* ===== GLOBAL DISKON ===== */
+            let diskonGlobal = 0;
 
-            let nilaiDiskonGlobal = 0;
-            let dasar = subtotal - totalDiskonItem;
+            if (globalConfig.useDiskon) {
+                diskonGlobal = globalConfig.diskonType === 'percent' ?
+                    subtotal * (globalConfig.diskon / 100) :
+                    globalConfig.diskon;
 
-            if (globalDiskonType === 'percent') {
-                nilaiDiskonGlobal = dasar * (globalDiskon / 100);
-            } else {
-                nilaiDiskonGlobal = globalDiskon;
+                if (diskonGlobal > subtotal) diskonGlobal = subtotal;
             }
 
-            if (nilaiDiskonGlobal > dasar) nilaiDiskonGlobal = dasar;
+            /* ===== GLOBAL PAJAK ===== */
+            let pajakGlobal = 0;
 
-            const setelahDiskonGlobal = dasar - nilaiDiskonGlobal;
+            if (globalConfig.usePajak) {
+                const dasar = subtotal - totalDiskonItem - diskonGlobal;
 
-            /* ================= GLOBAL PAJAK ================= */
-            let nilaiPajakGlobal = 0;
+                pajakGlobal = dasar * (globalConfig.pajak.persen / 100);
 
-            if (modePajak === 'global') {
-                const globalPajakSelect = document.getElementById('globalPajak');
-                const selected = globalPajakSelect?.options[globalPajakSelect.selectedIndex];
-
-                const persen = parseFloat(selected?.dataset.nilai) || 0;
-                const kategori = selected?.dataset.kategori || '';
-
-                nilaiPajakGlobal = setelahDiskonGlobal * (persen / 100);
-
-                if (kategori === 'PPH') {
-                    nilaiPajakGlobal *= -1;
+                if (globalConfig.pajak.kategori === 'PPH') {
+                    pajakGlobal *= -1;
                 }
 
-                // tampilkan ke summary
-                if (kategori) {
-                    pajakSummary[kategori] = nilaiPajakGlobal;
-                }
+                pajakSummary['GLOBAL'] = (pajakSummary['GLOBAL'] || 0) + pajakGlobal;
             }
 
-            /* ================= RENDER PAJAK ================= */
-            const pajakContainer = document.getElementById('pajakSummary');
-            pajakContainer.innerHTML = '';
-
-            let totalPajakSemua = 0;
-
-            Object.keys(pajakSummary).forEach(kategori => {
-
-                const nilai = pajakSummary[kategori];
-                totalPajakSemua += nilai;
-
-                const isMinus = nilai < 0;
-
-                const div = document.createElement('div');
-                div.className = 'd-flex justify-content-between';
-
-                div.innerHTML = `
-            <span>${kategori}</span>
-            <span class="${isMinus ? 'text-danger' : ''}">
-                Rp ${Math.abs(nilai).toLocaleString('id-ID')}
-            </span>
-        `;
-
-                pajakContainer.appendChild(div);
-            });
-
-            /* ================= GRAND TOTAL ================= */
             const grandTotal =
                 subtotal -
                 totalDiskonItem -
-                nilaiDiskonGlobal +
-                totalPajakSemua;
+                diskonGlobal +
+                totalPajakItem +
+                pajakGlobal;
 
-            /* ================= RENDER ================= */
-            document.getElementById('subtotal').innerText =
-                subtotal.toLocaleString('id-ID');
-
-            document.getElementById('totalDiskon').innerText =
-                (totalDiskonItem + nilaiDiskonGlobal).toLocaleString('id-ID');
-
-            document.getElementById('summaryTotal').innerText =
-                grandTotal.toLocaleString('id-ID');
-
-            document.getElementById('grandTotal').innerText =
-                'Rp ' + grandTotal.toLocaleString('id-ID');
+            return {
+                subtotal,
+                totalDiskon: totalDiskonItem + diskonGlobal,
+                pajakSummary,
+                grandTotal
+            };
         }
 
-        /* ================= AUTO HITUNG (OPTIMIZED) ================= */
-        document.getElementById('itemContainer')
-            .addEventListener('input', hitungSemua);
+        /* ================= EXTRACT ================= */
+
+        function ambilItems() {
+            const items = [];
+
+            document.querySelectorAll('.item-row').forEach(row => {
+
+                const pajakSelect = row.querySelector('.pajak');
+                const opt = pajakSelect.options[pajakSelect.selectedIndex];
+
+                items.push({
+                    qty: parseFloat(row.querySelector('.qty').value) || 0,
+                    harga: parseFloat(row.querySelector('.harga').value) || 0,
+                    diskon: parseFloat(row.querySelector('.diskon').value) || 0,
+                    diskonType: row.querySelector('.diskon-type').value,
+
+                    pajak: {
+                        persen: parseFloat(opt?.dataset.nilai) || 0,
+                        kategori: opt?.dataset.kategori || ''
+                    }
+                });
+            });
+
+            return items;
+        }
+
+        function ambilGlobal() {
+
+            const useDiskon = document.getElementById('useDiskonGlobal').checked;
+            const usePajak = document.getElementById('usePajakGlobal').checked;
+
+            const pajakSelect = document.getElementById('pajakGlobal');
+            const opt = pajakSelect.options[pajakSelect.selectedIndex];
+
+            return {
+                useDiskon,
+                usePajak,
+
+                diskon: parseFloat(document.getElementById('diskonGlobal').value) || 0,
+                diskonType: document.getElementById('diskonGlobalType').value,
+
+                pajak: {
+                    persen: parseFloat(opt?.dataset.nilai) || 0,
+                    kategori: opt?.dataset.kategori || ''
+                }
+            };
+        }
+
+        /* ================= RENDER ================= */
+
+        function render(data) {
+
+            document.getElementById('subtotal').innerText =
+                data.subtotal.toLocaleString('id-ID');
+
+            document.getElementById('totalDiskon').innerText =
+                data.totalDiskon.toLocaleString('id-ID');
+
+            document.getElementById('summaryTotal').innerText =
+                data.grandTotal.toLocaleString('id-ID');
+
+            document.getElementById('grandTotal').innerText =
+                'Rp ' + data.grandTotal.toLocaleString('id-ID');
+
+            const container = document.getElementById('pajakSummary');
+            container.innerHTML = '';
+
+            Object.keys(data.pajakSummary).forEach(key => {
+                const val = data.pajakSummary[key];
+
+                container.innerHTML += `
+                <div class="d-flex justify-content-between">
+                    <span>${key}</span>
+                    <span class="${val < 0 ? 'text-danger' : ''}">
+                        Rp ${Math.abs(val).toLocaleString('id-ID')}
+                    </span>
+                </div>
+            `;
+            });
+        }
+
+        /* ================= MAIN ================= */
+
+        function hitung() {
+            const items = ambilItems();
+            const globalConfig = ambilGlobal();
+            const hasil = hitungSemua(items, globalConfig);
+
+            render(hasil);
+        }
+
+        /* ================= CHECKBOX CONTROL ================= */
+
+        document.getElementById('useDiskonGlobal').addEventListener('change', function() {
+            document.getElementById('diskonGlobal').disabled = !this.checked;
+            document.getElementById('diskonGlobalType').disabled = !this.checked;
+            hitung();
+        });
+
+        document.getElementById('usePajakGlobal').addEventListener('change', function() {
+            document.getElementById('pajakGlobal').disabled = !this.checked;
+            hitung();
+        });
+
+        /* ================= EVENT ================= */
 
         document.getElementById('itemContainer')
-            .addEventListener('change', hitungSemua);
+            .addEventListener('input', hitung);
 
+        document.getElementById('itemContainer')
+            .addEventListener('change', hitung);
+
+        document.getElementById('diskonGlobal')
+            .addEventListener('input', hitung);
+
+        document.getElementById('diskonGlobalType')
+            .addEventListener('change', hitung);
+
+        document.getElementById('pajakGlobal')
+            .addEventListener('change', hitung);
 
         /* ================= TAMBAH ITEM ================= */
+
         document.getElementById('btnTambahItem').addEventListener('click', function() {
 
             const container = document.getElementById('itemContainer');
@@ -704,37 +692,23 @@
 
             row.querySelector('.qty').value = 1;
             row.querySelector('.diskon').value = 0;
-            row.querySelector('.diskon-type').value = 'percent';
-            row.querySelector('.jumlah').value = '';
 
             isiSelectPajak(row.querySelector('.pajak'));
 
             container.appendChild(row);
         });
 
-
         /* ================= HAPUS ITEM ================= */
+
         document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('btnRemove')) {
+            if (e.target.closest('.btnRemove')) {
                 const rows = document.querySelectorAll('.item-row');
+
                 if (rows.length > 1) {
                     e.target.closest('.item-row').remove();
-                    hitungSemua();
+                    hitung();
                 }
             }
-        });
-
-        // ================= MODE PAJAK =================
-        document.getElementById('modePajak')?.addEventListener('change', function() {
-
-            const isGlobal = this.value === 'global';
-
-            document.querySelectorAll('.pajak').forEach(el => {
-                el.disabled = isGlobal;
-            });
-
-            // optional: langsung hitung ulang
-            hitungSemua();
         });
 
     });

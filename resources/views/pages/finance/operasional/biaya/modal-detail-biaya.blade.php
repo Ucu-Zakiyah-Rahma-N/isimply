@@ -15,14 +15,12 @@
     }
 </style>
 
-<!-- ================= MODAL DETAIL ================= -->
 <div class="modal fade" id="modalPengajuanDetailBiaya" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
 
             <!-- HEADER -->
             <div class="modal-header bg-light border-0">
-
                 <div>
                     <h5 class="fw-bold mb-1">
                         Pengajuan Biaya
@@ -35,17 +33,15 @@
                     </div>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
-
+                <div class="d-flex gap-2">
                     <button class="btn btn-sm btn-primary btnEditPengajuan"
                         id="btnEditFromDetail"
                         data-id="">
-                        Edit</button>
+                        Edit
+                    </button>
 
                     <button class="btn-close" data-bs-dismiss="modal"></button>
-
                 </div>
-
             </div>
 
             <!-- BODY -->
@@ -54,7 +50,7 @@
                 <!-- LOADING -->
                 <div id="detail_loading" class="erp-loading d-none">
                     <div class="spinner-border text-primary"></div>
-                    <div class="mt-2 small text-muted">Memuat data pengajuan...</div>
+                    <div class="mt-2 small text-muted">Memuat data...</div>
                 </div>
 
                 <div class="row">
@@ -65,84 +61,71 @@
                         <!-- INFO -->
                         <div class="card border-0 shadow-sm rounded-4 mb-3">
                             <div class="card-body">
-
                                 <div class="row g-3">
 
                                     <div class="col-md-4">
-                                        <label class="text-muted small">Tanggal Pengajuan</label>
-                                        <div class="fw-semibold" id="detail_tgl_pengajuan"></div>
+                                        <label class="small text-muted">Tanggal</label>
+                                        <div id="detail_tgl_pengajuan" class="fw-semibold"></div>
                                     </div>
 
                                     <div class="col-md-4">
-                                        <label class="text-muted small">Jenis Pengajuan</label>
-                                        <div class="fw-semibold" id="detail_jenis_pengajuan"></div>
+                                        <label class="small text-muted">Jenis</label>
+                                        <div id="detail_jenis_pengajuan" class="fw-semibold"></div>
                                     </div>
 
                                     <div class="col-md-4">
-                                        <label class="text-muted small">Metode Pembayaran</label>
-                                        <div class="fw-semibold" id="detail_metode_pembayaran"></div>
+                                        <label class="small text-muted">Metode</label>
+                                        <div id="detail_metode_pembayaran" class="fw-semibold"></div>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="text-muted small">Kontak</label>
-                                        <div class="fw-semibold" id="detail_kontak_nama"></div>
+                                        <label class="small text-muted">Kontak</label>
+                                        <div id="detail_kontak_nama" class="fw-semibold"></div>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="text-muted small">Project</label>
-                                        <div class="fw-semibold" id="detail_project"></div>
+                                        <label class="small text-muted">Project</label>
+                                        <div id="detail_project" class="fw-semibold"></div>
                                     </div>
 
                                 </div>
-
                             </div>
                         </div>
-
 
                         <!-- ITEMS -->
                         <div class="card border-0 shadow-sm rounded-4">
                             <div class="card-body p-0">
 
                                 <div class="table-responsive">
-
-                                    <table class="table table-hover align-middle mb-0">
-
+                                    <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
                                                 <th>Deskripsi</th>
                                                 <th width="80">Qty</th>
-                                                <th width="140">Harga</th>
+                                                <th width="120">Harga</th>
                                                 <th width="140">Diskon</th>
                                                 <th width="140">Pajak</th>
-                                                <th width="160">Jumlah</th>
+                                                <th width="150">Jumlah</th>
                                             </tr>
                                         </thead>
 
-                                        <tbody id="detail_items_table">
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">
-                                                    Pilih pengajuan untuk melihat detail
-                                                </td>
-                                            </tr>
-                                        </tbody>
+                                        <tbody id="detail_items_table"></tbody>
 
                                     </table>
-
                                 </div>
+
                             </div>
                         </div>
 
                     </div>
 
-
                     <!-- RIGHT -->
                     <div class="col-lg-4">
 
-                        <!-- TOTAL -->
-                        <div class="card border-0 shadow-sm rounded-4 mb-3">
+                        <div class="card border-0 shadow-sm rounded-4">
                             <div class="card-body">
 
-                                <h6 class="fw-bold mb-3">Ringkasan Biaya</h6>
+                                <h6 class="fw-bold mb-3">Ringkasan</h6>
 
                                 <div class="d-flex justify-content-between mb-2">
                                     <span>Subtotal</span>
@@ -150,18 +133,21 @@
                                 </div>
 
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span>Diskon</span>
-                                    <span id="detail_diskon"></span>
+                                    <span>Diskon Item</span>
+                                    <span id="detail_diskon" class="text-danger"></span>
                                 </div>
 
+                                <!-- GLOBAL DINAMIS -->
+                                <div id="detail_global_section"></div>
+
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span>Pajak</span>
-                                    <span id="detail_ppn"></span>
+                                    <span>Total Pajak</span>
+                                    <span id="detail_pajak"></span>
                                 </div>
 
                                 <hr>
 
-                                <div class="d-flex justify-content-between fw-bold fs-5 text-primary">
+                                <div class="d-flex justify-content-between fw-bold text-primary fs-5">
                                     <span>Total</span>
                                     <span id="detail_grand_total"></span>
                                 </div>
@@ -169,17 +155,11 @@
                             </div>
                         </div>
 
-
                         <!-- LAMPIRAN -->
-                        <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card border-0 shadow-sm rounded-4 mt-3">
                             <div class="card-body">
-
                                 <h6 class="fw-bold mb-3">Lampiran</h6>
-
-                                <div id="preview_lampiran" class="text-muted">
-                                    Tidak ada lampiran
-                                </div>
-
+                                <div id="preview_lampiran"></div>
                             </div>
                         </div>
 
@@ -187,7 +167,6 @@
 
                 </div>
             </div>
-
         </div>
     </div>
 </div>
@@ -228,18 +207,6 @@
 
     }
 
-    function formatRupiah(angka) {
-
-        if (!angka) angka = 0;
-
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(angka);
-
-    }
-
     function showLoading() {
         $('#detail_loading').removeClass('d-none');
     }
@@ -249,149 +216,137 @@
     }
 
 
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(angka || 0);
+    }
+
     async function loadDetailPengajuan(id) {
 
-        showLoading();
-
-        $('#detail_items_table').html(`
-        <tr>
-        <td colspan="6" class="text-center text-muted py-4">
-        Memuat item...
-        </td>
-        </tr>
-        `);
+        $('#detail_loading').removeClass('d-none');
 
         try {
 
-            await loadMaster();
-
             const res = await $.get(`/finance/pengajuan-biaya/detail/${id}`);
 
-            if (res.status !== 'success') {
-                throw new Error('Data tidak ditemukan');
-            }
-
-            let header = res.data.header;
+            let h = res.data.header;
             let items = res.data.items;
 
-            // set id tombol edit
-            $('#btnEditFromDetail').attr('data-id', header.id);
+            /** ================= HEADER ================= */
 
-            // HEADER
-            $('#detail_nomor_pengajuan').text(header.nomor_pengajuan);
-            $('#detail_tgl_pengajuan').text(header.tgl_pengajuan);
-            $('#detail_jenis_pengajuan').text(header.jenis_pengajuan);
-            $('#detail_metode_pembayaran').text(header.metode_pembayaran);
+            $('#detail_nomor_pengajuan').text(h.nomor_pengajuan);
+            $('#detail_tgl_pengajuan').text(h.tgl_pengajuan);
+            $('#detail_jenis_pengajuan').text(h.jenis_pengajuan);
+            $('#detail_metode_pembayaran').text(h.metode_pembayaran);
+            $('#detail_kontak_nama').text(h.kontak_nama ?? '-');
+            $('#detail_project').text(projectMap[h.project_id] ?? '-');
 
-            $('#detail_kontak_nama').text(
-                kontakMap[header.kontak_id] ?? header.kontak_nama ?? '-'
-            );
+            /** ================= STATUS ================= */
 
-            $('#detail_project').text(
-                projectMap[header.project_id] ?? '-'
-            );
+            $('#badge_status').text(h.status);
+            $('#badge_urgent').toggleClass('d-none', !h.is_urgent);
 
+            /** ================= TOTAL ================= */
 
-            // STATUS
-            let statusClass = 'bg-secondary';
+            $('#detail_subtotal').text(formatRupiah(h.subtotal));
 
-            if (header.status === 'disetujui') statusClass = 'bg-success';
-            if (header.status === 'ditolak') statusClass = 'bg-danger';
-            if (header.status === 'pending') statusClass = 'bg-warning';
-
-            $('#badge_status')
-                .removeClass()
-                .addClass(`badge ${statusClass}`)
-                .text(header.status);
-
-
-            // URGENT
-            if (header.is_urgent) {
-                $('#badge_urgent').removeClass('d-none');
+            // 🔥 DISKON ITEM (hanya tampil kalau TIDAK pakai global)
+            if (!h.use_diskon_global) {
+                $('#detail_diskon').text(formatRupiah(h.diskon_item));
             } else {
-                $('#badge_urgent').addClass('d-none');
+                $('#detail_diskon').text('—'); // biar tidak misleading
             }
 
+            $('#detail_ppn').text(formatRupiah(h.total_pajak));
+            $('#detail_grand_total').text(formatRupiah(h.grand_total));
 
-            // TOTAL
-            $('#detail_subtotal').text(formatRupiah(header.subtotal));
-            $('#detail_diskon').text(formatRupiah(header.total_diskon));
-            $('#detail_ppn').text(formatRupiah(header.total_ppn));
-            $('#detail_grand_total').text(formatRupiah(header.grand_total));
+            /** ================= GLOBAL SECTION ================= */
 
+            let globalHtml = '';
 
-            // ITEMS
+            if (h.use_diskon_global) {
+                globalHtml += `
+            <div class="d-flex justify-content-between mb-2">
+                <span>Diskon Global (${h.diskon_global_type === 'percent' ? '%' : 'Rp'})</span>
+                <span class="text-danger">-${formatRupiah(h.diskon_global)}</span>
+            </div>`;
+            }
+
+            if (h.use_pajak_global) {
+                globalHtml += `
+            <div class="d-flex justify-content-between mb-2">
+                <span>Pajak Global</span>
+                <span>${formatRupiah(h.pajak_global)}</span>
+            </div>`;
+            }
+
+            $('#detail_global_section').html(globalHtml);
+
+            /** ================= ITEMS ================= */
+
             let html = '';
 
             if (items.length === 0) {
 
                 html = `
-                <tr>
+            <tr>
                 <td colspan="6" class="text-center text-muted py-4">
-                Tidak ada item pengajuan
+                    Tidak ada item
                 </td>
-                </tr>
-                `;
+            </tr>`;
 
             } else {
 
                 items.forEach(item => {
 
+                    let diskonText = item.diskon_type === 'percent' ?
+                        item.diskon + '%' :
+                        formatRupiah(item.diskon);
+
                     html += `
-                    <tr>
+                <tr>
                     <td>${item.deskripsi ?? '-'}</td>
-                    <td>${item.qty ?? 0}</td>
+                    <td>${item.qty}</td>
                     <td>${formatRupiah(item.harga)}</td>
-                    <td>${item.diskon ?? 0}%</td>
+                    <td>${diskonText}</td>
                     <td>${item.nama_pajak ?? '-'}</td>
                     <td class="fw-semibold">${formatRupiah(item.jumlah)}</td>
-                    </tr>
-                    `;
-
+                </tr>`;
                 });
 
             }
 
             $('#detail_items_table').html(html);
 
+            /** ================= LAMPIRAN ================= */
 
-            // LAMPIRAN
-            if (header.lampiran) {
-
+            if (h.lampiran) {
                 $('#preview_lampiran').html(`
-                <a href="${header.lampiran}" target="_blank"
+                <a href="${h.lampiran}" target="_blank"
                 class="btn btn-sm btn-outline-primary w-100">
-                Lihat Lampiran
+                    Lihat Lampiran
                 </a>
-                `);
-
+            `);
             } else {
-
-                $('#preview_lampiran').html(`
-                <span class="text-muted">Tidak ada lampiran</span>
-                `);
-
+                $('#preview_lampiran').html(`<span class="text-muted">Tidak ada</span>`);
             }
 
             modalDetail.show();
 
         } catch (err) {
 
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal',
-                text: 'Gagal memuat detail pengajuan',
-                confirmButtonColor: '#3085d6'
-            });
-
             console.error(err);
+
+            alert('Gagal load data');
 
         } finally {
 
-            hideLoading();
+            $('#detail_loading').addClass('d-none');
 
         }
-
     }
 
     $(document).on('click', '.btnEditPengajuan', function() {
