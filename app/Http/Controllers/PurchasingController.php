@@ -20,8 +20,7 @@ class PurchasingController extends Controller
     public function purchasingIndex(Request $request)
     {
         $title = 'Purchasing';
-        $tab = $request->get('tab', 'waiting');
-
+        $tab   = $request->get('tab', 'waiting');
         $today = Carbon::today();
 
         $baseQuery = PengajuanBiaya::query();
@@ -30,34 +29,31 @@ class PurchasingController extends Controller
         // COUNT NOTIFICATION
         // =======================
 
-        // Waiting List
+        // Waiting (belum ada scheduling)
         $countWaiting = (clone $baseQuery)
-            ->whereNull('approved_at')
+            ->whereDoesntHave('scheduling')
             ->where('status', '!=', 'ditolak')
             ->count();
 
-        // Hari Ini (ada scheduling & pembayaran hari ini)
+        // Today
         $countToday = (clone $baseQuery)
             ->whereHas('scheduling', function ($q) use ($today) {
                 $q->whereDate('tgl_pembayaran', $today);
             })
-            ->whereNull('approved_at')
             ->count();
 
-        // Dijadwalkan (bukan hari ini)
+        // Scheduled (> hari ini)
         $countScheduled = (clone $baseQuery)
             ->whereHas('scheduling', function ($q) use ($today) {
-                $q->whereDate('tgl_pembayaran', '!=', $today);
+                $q->whereDate('tgl_pembayaran', '>', $today);
             })
-            ->whereNull('approved_at')
             ->count();
 
-        // Pending (jadwal sudah lewat & belum approve)
+        // Pending (< hari ini)
         $countPending = (clone $baseQuery)
             ->whereHas('scheduling', function ($q) use ($today) {
                 $q->whereDate('tgl_pembayaran', '<', $today);
             })
-            ->whereNull('approved_at')
             ->count();
 
         // Ditolak
@@ -65,9 +61,9 @@ class PurchasingController extends Controller
             ->where('status', 'ditolak')
             ->count();
 
-        // Disetujui
+        // Approved (SUDAH ada scheduling)
         $countApproved = (clone $baseQuery)
-            ->whereNotNull('approved_at')
+            ->whereHas('scheduling')
             ->count();
 
 
@@ -77,37 +73,47 @@ class PurchasingController extends Controller
 
         $query = PengajuanBiaya::with(['items', 'scheduling'])
             ->leftJoin('kontak', 'pengajuan_biaya.kontak_id', '=', 'kontak.id')
-            ->select('pengajuan_biaya.*', 'kontak.nama as penerima');
+            ->select(
+                'pengajuan_biaya.*',
+                'kontak.nama as penerima'
+            );
 
-        if ($tab == 'today') {
+        // =======================
+        // FILTER BY TAB
+        // =======================
+
+        if ($tab === 'today') {
 
             $query->whereHas('scheduling', function ($q) use ($today) {
                 $q->whereDate('tgl_pembayaran', $today);
-            })
-                ->whereNull('pengajuan_biaya.approved_at');
-        } elseif ($tab == 'dijadwalkan') {
+            });
+        } elseif ($tab === 'dijadwalkan') {
 
             $query->whereHas('scheduling', function ($q) use ($today) {
-                $q->whereDate('tgl_pembayaran', '!=', $today);
-            })
-                ->whereNull('pengajuan_biaya.approved_at');
-        } elseif ($tab == 'pending') {
+                $q->whereDate('tgl_pembayaran', '>', $today);
+            });
+        } elseif ($tab === 'pending') {
 
             $query->whereHas('scheduling', function ($q) use ($today) {
                 $q->whereDate('tgl_pembayaran', '<', $today);
-            })
-                ->whereNull('pengajuan_biaya.approved_at');
-        } elseif ($tab == 'ditolak') {
+            });
+        } elseif ($tab === 'ditolak') {
 
             $query->where('pengajuan_biaya.status', 'ditolak');
-        } elseif ($tab == 'disetujui') {
-            $query->where('pengajuan_biaya.status', 'disetujui');
-            // $query->whereNotNull('pengajuan_biaya.approved_at');
+        } elseif ($tab === 'disetujui') {
+
+            // Approved = sudah punya scheduling
+            $query->whereHas('scheduling');
         } else {
-            // WAITING LIST
-            $query->whereNull('pengajuan_biaya.approved_at')
+
+            // WAITING (belum ada scheduling)
+            $query->whereDoesntHave('scheduling')
                 ->where('pengajuan_biaya.status', '!=', 'ditolak');
         }
+
+        // =======================
+        // FINAL DATA
+        // =======================
 
         $data = $query
             ->orderByDesc('pengajuan_biaya.tgl_pengajuan')
@@ -127,6 +133,18 @@ class PurchasingController extends Controller
                 'countApproved'
             )
         );
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $start = $request->start_date;
+        $end   = $request->end_date;
+
+        $data = PengajuanBiaya::whereBetween('tgl_pengajuan', [$start, $end])
+            ->with(['items', 'scheduling'])
+            ->get();
+
+        return view('pdf.pengajuan', compact('data', 'start', 'end'));
     }
 
     public function storeScheduling(Request $request)

@@ -106,7 +106,7 @@
                 Daftar Pengajuan
             </div>
 
-            <button class="btn btn-primary btn-sm btn-pdf">
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalExportPdf">
                 <i class="bi bi-file-earmark-pdf"></i> PDF
             </button>
         </div>
@@ -333,6 +333,7 @@
 @include('pages.finance.purchasing.modal-jadwalkan')
 @include('pages.finance.purchasing.modal-bayarkan')
 @include('pages.finance.purchasing.modal-detail-biaya')
+@include('pages.finance.purchasing.modal-export-pdf')
 @endsection
 
 <script>

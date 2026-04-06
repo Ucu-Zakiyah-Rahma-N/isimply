@@ -176,7 +176,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/finance/laporan-outstanding', [FinanceController::class, 'laporanOutstanding'])->name('invoice.laporan_outstanding');
         Route::get('/outstanding/pdf', [FinanceController::class, 'exportPdf'])->name('outstanding.pdf');
         Route::get('/penerimaan-kas', [FinanceController::class, 'penerimaanKas'])->name('invoice.penerimaan_kas');
-        
+
         // Operasional (Biaya)
         Route::get('/biaya', [OperasionalController::class, 'biayaIndex'])->name('biaya_index');
         Route::post('/kontak/store', [OperasionalController::class, 'store'])->name('kontak.store');
@@ -208,6 +208,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/get-coa-kas-bank', [PurchasingController::class, 'getCoaKasBank'])->name('getCoaKasBank');
         Route::get('/get-akun-coa', [PurchasingController::class, 'getAkunCoa'])->name('getAkunCoa');
         Route::post('/scheduling/store', [PurchasingController::class, 'storeScheduling'])->name('scheduling.store');
+        Route::get('/export-pdf', [PurchasingController::class, 'exportPdf'])->name('exportPdf');
 
         // Manager
         Route::get('/manager', [ManagerController::class, 'managerIndex'])->name('manager_index');
@@ -232,7 +233,7 @@ Route::middleware('auth')->group(function () {
 
 
     //openpdf
-    
+
     // Route::get('/files/{filename}', function ($filename) {
     //     $path = storage_path('app/public/' . $filename);
     //     if (!file_exists($path)) abort(404);
@@ -240,15 +241,15 @@ Route::middleware('auth')->group(function () {
     // })->name('files.view')->where('filename', '.*');
 
     Route::get('/files/{filename}', function ($filename) {
-    $path = storage_path('app/public/' . $filename);
+        $path = storage_path('app/public/' . $filename);
 
-    if (!file_exists($path)) abort(404);
+        if (!file_exists($path)) abort(404);
 
-    return response()->file($path, [
-        'Content-Type' => 'application/pdf',
-        'Content-Disposition' => 'inline; filename="' . basename($path) . '"'
-    ]);
-})->name('files.view')->where('filename', '.*');
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . basename($path) . '"'
+        ]);
+    })->name('files.view')->where('filename', '.*');
 
     //menu timeline
     Route::middleware([
