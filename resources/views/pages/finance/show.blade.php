@@ -21,6 +21,14 @@
                     </option>
                 </select>
             </div>
+            <div class="col-md-3">
+                <label class="form-label">Kode Projek</label>
+                <select class="form-control" name="kode_project">
+                    <option value="{{ $invoice->kode_project }}">
+                        {{ $invoice->po->kode_project ?? '-' }}
+                    </option>
+                </select>
+            </div>
         </div>
 
         {{-- INFORMASI CUSTOMER --}}

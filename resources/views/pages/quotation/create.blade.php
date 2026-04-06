@@ -28,12 +28,6 @@
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
-.qty-input {
-    color: #000 !important;
-    background-color: #fff !important;
-    font-weight: 600;
-    text-align: center;
-}
 
 </style>
 
@@ -209,6 +203,7 @@
                     <option value="2">2 Termin</option>
                     <option value="3">3 Termin</option>
                     <option value="4">4 Termin</option>
+                    <option value="5">5 Termin</option>
                 </select>
             </div>
 
@@ -603,7 +598,7 @@ document.addEventListener('click', function(e) {
 // qty sync
 document.addEventListener('input', function(e) {
     if (e.target.classList.contains('qty-input')) {
-        const card = e.target.closest('.card');
+        const card = e.target.closest('.perizinan-card');
         if (!card) return;
         card.querySelector('.qty-hidden').value = e.target.value;
     }
@@ -612,7 +607,7 @@ document.addEventListener('input', function(e) {
 // satuan sync
 document.addEventListener('change', function(e) {
     if (e.target.classList.contains('satuan-select')) {
-        const card = e.target.closest('.card');
+        const card = e.target.closest('.perizinan-card');
         if (!card) return;
         card.querySelector('.satuan-hidden').value = e.target.value;
     }
@@ -643,6 +638,20 @@ function hitungSubtotal(card) {
     hitungTotal();
 }
 
+//agar format harga ada titik nya per ribu
+// document.addEventListener('input', function(e) {
+//     if (e.target.classList.contains('format-rupiah')) {
+
+//         let angka = e.target.value.replace(/\D/g, ''); // hanya digit
+//         let format = angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+//         e.target.value = format; // tampil titik
+
+//         // simpan angka murni ke hidden input
+//         e.target.parentElement.querySelector('.harga-asli').value = angka;
+//     }
+// });
+
 
 document.addEventListener('input', function (e) {
     if (!e.target.classList.contains('format-rupiah')) return;
@@ -665,7 +674,7 @@ document.addEventListener('input', function (e) {
 //qty ubah manual
 document.addEventListener('input', function(e) {
     if (e.target.classList.contains('qty-input')) {
-        const card = e.target.closest('.card');
+        const card = e.target.closest('.perizinan-card');
         hitungSubtotal(card);
     }
 });

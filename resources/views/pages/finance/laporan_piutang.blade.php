@@ -91,6 +91,8 @@
                     @php
                     $sumNominalSpk = 0;
                     $sumTotalTagihan = 0;
+                    $sumSisaTagihan = 0;
+
                     @endphp
 
                     <tbody>
@@ -106,6 +108,7 @@
 
                         $sumNominalSpk += $nominalSpk;
                         $sumTotalTagihan += $totalTagihan;
+             
                         @endphp
 
                         <tr @if(\Carbon\Carbon::today()->gt(\Carbon\Carbon::parse($row->tgl_jatuh_tempo))) 
@@ -162,6 +165,7 @@
                                 @php
                                     $totalBayar = $row->payments->sum(fn($p) => $p->nominal + $p->nilai_pph);
                                     $sisa = $totalTagihan - $totalBayar;
+                                    $sumSisaTagihan += max($sisa, 0);
                                 @endphp
 
                                 Rp {{ number_format(max($sisa, 0), 0, ',', '.') }}
@@ -229,7 +233,8 @@
                             <td></td>
 
                             <td class="text-end">
-                                Rp {{ number_format($sumTotalTagihan, 0, ',', '.') }}
+                                
+                                Rp {{ number_format($sumSisaTagihan, 0, ',', '.') }}
                             </td>
                             <td></td>
                             <td></td>

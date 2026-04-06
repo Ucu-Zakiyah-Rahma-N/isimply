@@ -395,6 +395,8 @@
                         hargaCell = `
                 <td rowspan="${poItems.length}" class="align-middle text-center">
                     Rp ${rupiah(hargaGabungan)}
+                    
+                     <input type="hidden" name="items[${i}][harga_satuan]" value="${hargaGabungan}">
                 </td>`;
 
                         jumlahCell = `

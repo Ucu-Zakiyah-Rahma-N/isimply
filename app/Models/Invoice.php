@@ -58,6 +58,9 @@ class Invoice extends Model
     public function journal()
     {
         return $this->hasOne(Journal::class);
+                // return $this->hasOne(Journal::class, 'ref_id')
+        // ->where('ref_type', 'invoice');
+
     }
     
 }

@@ -26,7 +26,7 @@ class TaxInvoice extends Model
 
     public function coa()
     {
-        return $this->belongsTo(COA::class, 'coa_id');
+        return $this->belongsTo(Coa::class, 'coa_id');
     }
 
 }

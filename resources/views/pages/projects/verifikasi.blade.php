@@ -18,7 +18,15 @@
                 <h6 class="fw-bold">Informasi Proyek</h6>
                 <table class="table table-sm table-borderless mb-0">
                     <tr>
-                        <td style="width:200px">No PO</td>
+                        <td style="width:100px">Nama Perusahaan</td>
+                        <td>: {{ $project->po?->customer?->nama_perusahaan ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td style="width:100px">Nama Bangunan</td>
+                        <td>: {{ $project->po?->quotation?->nama_bangunan ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td style="width:100px">No PO</td>
                         <td>: {{ optional($project->po)->no_po ?? '-' }}</td>
                     </tr>
                     <tr>
@@ -515,7 +523,7 @@
                                                                     @php
                                                                         $isAdmin = in_array(
                                                                             strtolower(trim(auth()->user()->role)),
-                                                                            ['admin 1', 'admin 2'],
+                                                                            ['admin 1', 'admin 2', 'admin 3', 'admin 4', 'admin 5', 'admin 6', 'admin 7', 'admin 8', 'admin 9', 'admin 10', 'admin 11'],
                                                                         );
                                                                     @endphp
 
@@ -862,7 +870,7 @@
                 @endif
             </td>
             @php
-                $isAdmin = in_array(strtolower(trim(auth()->user()->role)), ['admin 1', 'admin 2']);
+                $isAdmin = in_array(strtolower(trim(auth()->user()->role)), ['admin 1', 'admin 2', 'admin 3', 'admin 4', 'admin 5', 'admin 6', 'admin 7', 'admin 8', 'admin 9', 'admin 10', 'admin 11']);
             @endphp
 
             <td class="text-center">
@@ -965,7 +973,7 @@
                             </div>
 
                             <div class="modal-footer">
-                                <button type="submit" class="btn btn-success">Simpan Tahapan</button>
+                                <button type="submit" id="btnSimpanTahapan" class="btn btn-success">Simpan Tahapan</button>
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                             </div>
 
@@ -977,6 +985,8 @@
         </div>
 
         <script>
+
+
             function confirmVerifikasi(event, form) {
                 event.preventDefault();
 
@@ -1440,14 +1450,55 @@ fetch(`{{ route('projects.updateProgress', ':id') }}`
                 }
             }
 
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('.pilih-opsional').forEach(function(checkbox) {
-                    checkbox.addEventListener('change', function() {
-                        let id = this.dataset.id;
-                        let box = document.getElementById('opsi-' + id);
-                        box.classList.toggle('d-none', !this.checked);
-                    });
+        //store tambahan tahapan
+        document.addEventListener('DOMContentLoaded', function () {
+        
+            // toggle opsi saat checkbox dicentang
+            document.querySelectorAll('.pilih-opsional').forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    const id = this.dataset.id;
+                    const box = document.getElementById('opsi-' + id);
+                    box.classList.toggle('d-none', !this.checked);
                 });
             });
+        
+            // validasi sebelum submit
+            const btn = document.getElementById('btnSimpanTahapan');
+            if (!btn) return;
+        
+            btn.addEventListener('click', function (e) {
+                const tahapanDipilih = document.querySelectorAll(
+                    'input[name="tahapan_opsional[]"]:checked'
+                );
+        
+                if (tahapanDipilih.length === 0) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tahapan belum dipilih',
+                        text: 'Pilih minimal satu tahapan opsional dulu ya',
+                    });
+                    return;
+                }
+        
+                for (const cb of tahapanDipilih) {
+                    const tahapId = cb.value;
+                    const sisipSelect = document.querySelector(
+                        `select[name="sisip_setelah[${tahapId}]"]`
+                    );
+        
+                    if (!sisipSelect || sisipSelect.value === '') {
+                        e.preventDefault();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Posisi tahapan belum ditentukan',
+                            text: 'Pilih “sisipkan setelah tahapan apa” untuk setiap tahapan yang dipilih',
+                        });
+                        return;
+                    }
+                }
+            });
+        });
+
         </script>
     @endsection

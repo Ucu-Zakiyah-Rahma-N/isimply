@@ -74,10 +74,10 @@ th button {
                         <tr class="text-center align-middle">
                             <th>No</th>
                             <th>Tgl PO</th>
+                            <th>Kode Projek</th>
                             <th>Nama Customer</th>
                             <th>Lokasi</th>
                             <th>PIC Marketing</th>
-                            <th>Kode Projek</th>
                             <th>No PO</th>
                             <th>Nama Perizinan</th>
                             <th>Nominal SPK</th>
@@ -118,13 +118,13 @@ th button {
                             <tr>
                                 <td class="text-center">{{ $loop->iteration }}</td>
                                 <td>{{ \Carbon\Carbon::parse($po->tgl_po)->format('d-m-Y') }}</td>
+                                <td>{{ $po->kode_project ?? '-'}}</td>
                                 <td>{{ optional($po->customer)->nama_perusahaan ?? '-' }}</td>
                                 <td>
                                     {{ \Illuminate\Support\Str::title(strtolower($po->quotation->kabupaten->nama ?? '-')) }}                                            
                                 </td>
                                 <td>{{ optional($po->customer->marketing)->nama ?? '-' }}</td>
-                                <td>Kode Projek</td>
-                                <td>{{ $po->no_po }}</td>
+                                <td>{{ $po->no_po ?? '-'}}</td>
                                 <!-- <td>
                                     @if (!empty($po->jenis_perizinan))
                                         @foreach (explode(',', $po->jenis_perizinan) as $izin)

@@ -41,7 +41,10 @@
       <div class="card mb-4 border-0 shadow-sm">
         <div class="card-header bg-light d-flex justify-content-between align-items-center" 
              data-bs-toggle="collapse" data-bs-target="#collectCollapse" style="cursor:pointer;">
-          <h6 class="fw-bold mb-0 text-primary">Pilih Jenis Collect Dokumen</h6>
+            <h6 class="fw-bold mb-0 text-primary">
+                Pilih Pekerjaan sesuai PO :
+                {{ implode(', ', $poPerizinanJenis) }}
+            </h6>
           <i class="bi bi-chevron-down"></i>
         </div>
 
@@ -69,7 +72,7 @@
       <div class="card mb-4 border-0 shadow-sm">
         <div class="card-header bg-light d-flex justify-content-between align-items-center" 
              data-bs-toggle="collapse" data-bs-target="#opsionalCollapse" style="cursor:pointer;">
-          <h6 class="fw-bold mb-0 text-primary">Tahapan Lanjutan (Opsional)</h6>
+          <h6 class="fw-bold mb-0 text-primary">Tahapan Lanjutan</h6>
           <i class="bi bi-chevron-down"></i>
         </div>
 

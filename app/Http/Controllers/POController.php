@@ -24,7 +24,8 @@ class POController extends Controller
         
         $user = auth()->user();
         $query = PO::with(['customer', 'perizinan', 'quotation.kawasan_industri', 'quotation.perizinan'])
-            ->orderBy('tgl_po', 'DESC');
+            ->orderBy('tgl_po', 'DESC')
+            ->orderBy('created_at', 'DESC');
         
         if (
             $user->role === 'admin marketing' &&
@@ -234,8 +235,6 @@ class POController extends Controller
     }
     }
 
-
-
     private function generateSingkatan($nama)
     {
         $nama = strtoupper($nama);
@@ -257,7 +256,8 @@ class POController extends Controller
    private function generateKodeProject($po)
 {
     $tahun = now()->format('Y');
-    $bulan = now()->format('m');
+    // $bulan = now()->format('m');
+    $bulan = \Carbon\Carbon::parse($po->tgl_po)->format('m');
 
     // ambil nama customer (sesuaikan relasi kamu)
     $namaCustomer = $po->customer->nama_perusahaan ?? 'UNKNOWN';

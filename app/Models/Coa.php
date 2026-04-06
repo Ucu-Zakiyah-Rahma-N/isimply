@@ -19,7 +19,7 @@ class Coa extends Model
         'kategori_akun',
         'is_header_akun',
         'is_sub_akun',
-        'saldo',
+        // 'saldo',
         'saldo',
         'parent_akun_id'
     ];
