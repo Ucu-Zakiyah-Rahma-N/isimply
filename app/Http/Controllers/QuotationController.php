@@ -37,7 +37,8 @@ class QuotationController extends Controller
 
         $query = Quotation::with(['customer', 'perizinan', 'kawasan_industri', 'customer.marketing'])
             ->orderBy('tgl_sph', 'DESC')
-            ->orderBy('no_sph', 'DESC');
+            ->orderBy('no_sph', 'DESC')
+            ->orderBy('created_at', 'DESC');
 
         if (
             $user->role === 'admin marketing' &&
@@ -548,9 +549,11 @@ class QuotationController extends Controller
         $satuanPerizinans = SatuanPerizinan::all();
 
         //ambil data termin
-        $terminLama = $quotation->termin_persentase
-            ? json_decode($quotation->termin_persentase, true)
-            : [];
+        // $terminLama = $quotation->termin_persentase
+        //     ? json_decode($quotation->termin_persentase, true)
+        //     : [];
+        $terminLama = $quotation->termin_persentase ?? [];
+
 
 
         $title = 'Edit Quotation';
@@ -570,165 +573,339 @@ class QuotationController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        if (auth()->user()->role === 'admin marketing') {
-            $request->merge([
-                'cabang_id' => auth()->user()->cabang_id
-            ]);
-        }
+{
+    if (auth()->user()->role === 'admin marketing') {
+        $request->merge([
+            'cabang_id' => auth()->user()->cabang_id
+        ]);
+    }
 
-        $old = Quotation::findOrFail($id);
+    $mode = $request->mode_update ?? 'update'; // default update biasa
+
+    $old = Quotation::findOrFail($id);
+
+    // ==========================
+    // VALIDASI TERMIN
+    // ==========================
+    if (is_array($request->termin) && array_sum($request->termin) != 100) {
+        return back()->withErrors(['termin' => 'Total termin harus 100%'])->withInput();
+    }
+
+    // ==========================
+    // BUILD TERMIN LIST
+    // ==========================
+    $terminList = [];
+
+    if (is_array($request->termin)) {
+        foreach ($request->termin as $urutan => $persen) {
+            $terminList[] = [
+                'urutan' => (int) $urutan,
+                'persen' => (float) $persen,
+            ];
+        }
+    }
+
+    // ==========================
+    // MODE: UPDATE BIASA
+    // ==========================
+    if ($mode === 'update') {
+
+        $quotation = $old;
+
+    } else {
 
         // ==========================
-        // TENTUKAN PARENT
+        // MODE: REVISI
         // ==========================
         $parentId = $old->parent_id ?? $old->id;
-
-        // ambil quotation versi 1 (parent asli)
         $parent = Quotation::findOrFail($parentId);
 
-        // ==========================
-        // DUPLIKASI DATA
-        // ==========================
         $quotation = $old->replicate();
 
-        // hitung versi baru
         $newVersion = $old->version + 1;
         $quotation->version = $newVersion;
         $quotation->parent_id = $parentId;
 
-        // ==========================
-        // GENERATE NO SPH (FIX)
-        // ==========================
+        // generate no_sph
         $parentNo = $parent->no_sph;
-
-        // pisahkan counter dan body
         list($counter, $body) = explode('/', $parentNo, 2);
 
-        // bersihkan SP.RevX jika ada (antisipasi revisi ulang)
         $body = preg_replace('/SP\.Rev\d+-/', 'SP', $body);
 
-
-        // versi 1 → tanpa -R
         if ($newVersion === 1) {
-            // versi 1 → tetap tanpa revisi
             $quotation->no_sph = $parentNo;
         } else {
-            // versi 2 = Rev1, versi 3 = Rev2, dst
             $rev = $newVersion - 1;
-
-            // sisipkan Rev setelah SP
             $body = preg_replace('/^SP/', "SP.Rev{$rev}", $body);
-
             $quotation->no_sph = "{$counter}/{$body}";
         }
-
-
-        // Update data umum
-        $quotation->customer_id = $request->customer_id;
-        $quotation->tgl_sph = $request->tgl_sph;
-        // $quotation->fungsi_bangunan = $request->fungsi_bangunan;
-        $quotation->nama_bangunan = $request->nama_bangunan;
-        $quotation->is_same_nama_bangunan = $request->is_same_nama_bangunan;
-        $quotation->provinsi_id = $request->provinsi_id;
-        $quotation->kabupaten_id = $request->kabupaten_id;
-        $quotation->kawasan_id = $request->kawasan_id;
-        $quotation->detail_alamat = $request->detail_alamat;
-        $quotation->is_same_alamat = $request->is_same_alamat;
-        $quotation->lama_pekerjaan = $request->lama_pekerjaan;
-        $quotation->harga_tipe = $request->harga_tipe;
-
-        $quotation->harga_gabungan = ($request->harga_tipe == 'gabungan')
-            ? ($request->harga_gabungan ?? 0)
-            : 0;
-
-        // ------------------------
-        // Update Luas perizinan
-        // ------------------------
-        $luasMap = [
-            'SLF'  => 'luas_slf',
-            'PBG'  => 'luas_pbg',
-            'SHGB' => 'luas_shgb',
-        ];
-
-        foreach ($luasMap as $jenis => $field) {
-            // input luas untuk jenis ini
-            $inputLuas = $request->input($field, []);
-            // cek apakah jenis ini dipilih (ada di perizinan_id)
-            $dipilih = false;
-            foreach ($request->input('perizinan_id', []) as $pid) {
-                if (isset($inputLuas[$pid])) {
-                    $quotation->$field = $inputLuas[$pid];
-                    $dipilih = true;
-                    break;
-                }
-            }
-            if (!$dipilih) {
-                $quotation->$field = null; // jika tidak ada, set null
-            }
-        }
-
-        $quotation->save(); // SIMPAN RECORD BARU (VERSI BARU)
-
-        // ------------------------
-        // Update pivot perizinan & harga satuan
-        // ------------------------
-        $perizinanIds = $request->input('perizinan_id', []);
-
-        $pivotData = [];
-        foreach ($perizinanIds as $pid) {
-            $pivotData[$pid] = [
-                'harga_satuan' => ($request->harga_tipe == 'satuan')
-                    ? ($request->input("harga_satuan.$pid") ?? 0)
-                    : 0,  // jika gabungan → set 0
-            ];
-        }
-        $quotation->perizinan()->sync($pivotData);
-
-        // =======================
-        // NORMALISASI DISKON
-        // =======================
-        $diskonTipe  = $request->diskon_tipe;
-        $diskonNilai = 0;
-        
-        if ($diskonTipe === 'persen') {
-            $diskonNilai = (int) $request->diskon_persen;
-        }
-        
-        if ($diskonTipe === 'nominal') {
-            $diskonNilai = (int) preg_replace('/\D/', '', $request->diskon_nominal);
-        }   
-        
-        $quotation->diskon_tipe  = $diskonTipe;
-        $quotation->diskon_nilai = $diskonNilai;
-
-        //termin
-        if ($request->termin && array_sum($request->termin) != 100) {
-            return back()->withErrors(['termin' => 'Total termin harus 100%'])
-                ->withInput();
-        }
-        // ============================
-        // SIMPAN TERMIN KE JSON
-        // ============================
-        $terminList = [];
-
-        if ($request->termin) {
-            foreach ($request->termin as $urutan => $persen) {
-                $terminList[] = [
-                    'urutan' => (int) $urutan,
-                    'persen' => (float) $persen,
-                ];
-            }
-        }
-
-        // Simpan ke database
-        $quotation->termin_persentase = json_encode($terminList);
-        $quotation->jumlah_termin = count($terminList);
-
-        $quotation->save();
-
-        return redirect()->route('quotation.index')->with('success', 'Quotation revisi versi ' . $quotation->version . ' berhasil dibuat!');
     }
+
+    // ==========================
+    // UPDATE DATA UMUM
+    // ==========================
+    $quotation->customer_id = $request->customer_id;
+    $quotation->tgl_sph = $request->tgl_sph;
+    $quotation->nama_bangunan = $request->nama_bangunan;
+    $quotation->is_same_nama_bangunan = $request->is_same_nama_bangunan;
+    $quotation->provinsi_id = $request->provinsi_id;
+    $quotation->kabupaten_id = $request->kabupaten_id;
+    $quotation->kawasan_id = $request->kawasan_id;
+    $quotation->detail_alamat = $request->detail_alamat;
+    $quotation->is_same_alamat = $request->is_same_alamat;
+    $quotation->lama_pekerjaan = $request->lama_pekerjaan;
+    $quotation->harga_tipe = $request->harga_tipe;
+
+    $quotation->harga_gabungan = ($request->harga_tipe == 'gabungan')
+        ? ($request->harga_gabungan ?? 0)
+        : 0;
+
+    // ==========================
+    // LUAS PERIZINAN
+    // ==========================
+    $luasMap = [
+        'SLF'  => 'luas_slf',
+        'PBG'  => 'luas_pbg',
+        'SHGB' => 'luas_shgb',
+    ];
+
+    foreach ($luasMap as $jenis => $field) {
+        $inputLuas = $request->input($field, []);
+        $dipilih = false;
+
+        foreach ($request->input('perizinan_id', []) as $pid) {
+            if (isset($inputLuas[$pid])) {
+                $quotation->$field = $inputLuas[$pid];
+                $dipilih = true;
+                break;
+            }
+        }
+
+        if (!$dipilih) {
+            $quotation->$field = null;
+        }
+    }
+
+    // ==========================
+    // DISKON
+    // ==========================
+    $diskonTipe  = $request->diskon_tipe;
+    $diskonNilai = 0;
+
+    if ($diskonTipe === 'persen') {
+        $diskonNilai = (int) $request->diskon_persen;
+    }
+
+    if ($diskonTipe === 'nominal') {
+        $diskonNilai = (int) preg_replace('/\D/', '', $request->diskon_nominal);
+    }
+
+    $quotation->diskon_tipe  = $diskonTipe;
+    $quotation->diskon_nilai = $diskonNilai;
+
+    // ==========================
+    // TERMIN
+    // ==========================
+    $quotation->termin_persentase = $terminList;
+    $quotation->jumlah_termin = count($terminList);
+
+    $quotation->save();
+
+    // ==========================
+    // PIVOT
+    // ==========================
+    $perizinanIds = $request->input('perizinan_id', []);
+    $pivotData = [];
+
+    foreach ($perizinanIds as $pid) {
+        $pivotData[$pid] = [
+            'harga_satuan' => ($request->harga_tipe == 'satuan')
+                ? ($request->input("harga_satuan.$pid") ?? 0)
+                : 0,
+        ];
+    }
+
+    $quotation->perizinan()->sync($pivotData);
+
+    // ==========================
+    // RESPONSE
+    // ==========================
+    $msg = ($mode === 'revisi')
+        ? 'Quotation revisi versi ' . $quotation->version . ' berhasil dibuat!'
+        : 'Quotation berhasil diupdate tanpa revisi';
+
+    return redirect()->route('quotation.index')->with('success', $msg);
+}
+    // public function update(Request $request, $id)
+    // {
+    //     if (auth()->user()->role === 'admin marketing') {
+    //         $request->merge([
+    //             'cabang_id' => auth()->user()->cabang_id
+    //         ]);
+    //     }
+
+    //     $old = Quotation::findOrFail($id);
+
+    //     // ==========================
+    //     // TENTUKAN PARENT
+    //     // ==========================
+    //     $parentId = $old->parent_id ?? $old->id;
+
+    //     // ambil quotation versi 1 (parent asli)
+    //     $parent = Quotation::findOrFail($parentId);
+
+    //     // ==========================
+    //     // DUPLIKASI DATA
+    //     // ==========================
+    //     $quotation = $old->replicate();
+
+    //     // hitung versi baru
+    //     $newVersion = $old->version + 1;
+    //     $quotation->version = $newVersion;
+    //     $quotation->parent_id = $parentId;
+
+    //     // ==========================
+    //     // GENERATE NO SPH (FIX)
+    //     // ==========================
+    //     $parentNo = $parent->no_sph;
+
+    //     // pisahkan counter dan body
+    //     list($counter, $body) = explode('/', $parentNo, 2);
+
+    //     // bersihkan SP.RevX jika ada (antisipasi revisi ulang)
+    //     $body = preg_replace('/SP\.Rev\d+-/', 'SP', $body);
+
+
+    //     // versi 1 → tanpa -R
+    //     if ($newVersion === 1) {
+    //         // versi 1 → tetap tanpa revisi
+    //         $quotation->no_sph = $parentNo;
+    //     } else {
+    //         // versi 2 = Rev1, versi 3 = Rev2, dst
+    //         $rev = $newVersion - 1;
+
+    //         // sisipkan Rev setelah SP
+    //         $body = preg_replace('/^SP/', "SP.Rev{$rev}", $body);
+
+    //         $quotation->no_sph = "{$counter}/{$body}";
+    //     }
+
+
+    //     // Update data umum
+    //     $quotation->customer_id = $request->customer_id;
+    //     $quotation->tgl_sph = $request->tgl_sph;
+    //     // $quotation->fungsi_bangunan = $request->fungsi_bangunan;
+    //     $quotation->nama_bangunan = $request->nama_bangunan;
+    //     $quotation->is_same_nama_bangunan = $request->is_same_nama_bangunan;
+    //     $quotation->provinsi_id = $request->provinsi_id;
+    //     $quotation->kabupaten_id = $request->kabupaten_id;
+    //     $quotation->kawasan_id = $request->kawasan_id;
+    //     $quotation->detail_alamat = $request->detail_alamat;
+    //     $quotation->is_same_alamat = $request->is_same_alamat;
+    //     $quotation->lama_pekerjaan = $request->lama_pekerjaan;
+    //     $quotation->harga_tipe = $request->harga_tipe;
+
+    //     $quotation->harga_gabungan = ($request->harga_tipe == 'gabungan')
+    //         ? ($request->harga_gabungan ?? 0)
+    //         : 0;
+
+    //     // ------------------------
+    //     // Update Luas perizinan
+    //     // ------------------------
+    //     $luasMap = [
+    //         'SLF'  => 'luas_slf',
+    //         'PBG'  => 'luas_pbg',
+    //         'SHGB' => 'luas_shgb',
+    //     ];
+
+    //     foreach ($luasMap as $jenis => $field) {
+    //         // input luas untuk jenis ini
+    //         $inputLuas = $request->input($field, []);
+    //         // cek apakah jenis ini dipilih (ada di perizinan_id)
+    //         $dipilih = false;
+    //         foreach ($request->input('perizinan_id', []) as $pid) {
+    //             if (isset($inputLuas[$pid])) {
+    //                 $quotation->$field = $inputLuas[$pid];
+    //                 $dipilih = true;
+    //                 break;
+    //             }
+    //         }
+    //         if (!$dipilih) {
+    //             $quotation->$field = null; // jika tidak ada, set null
+    //         }
+    //     }
+
+    //     $quotation->save(); // SIMPAN RECORD BARU (VERSI BARU)
+
+    //     // ------------------------
+    //     // Update pivot perizinan & harga satuan
+    //     // ------------------------
+    //     $perizinanIds = $request->input('perizinan_id', []);
+
+    //     $pivotData = [];
+    //     foreach ($perizinanIds as $pid) {
+    //         $pivotData[$pid] = [
+    //             'harga_satuan' => ($request->harga_tipe == 'satuan')
+    //                 ? ($request->input("harga_satuan.$pid") ?? 0)
+    //                 : 0,  // jika gabungan → set 0
+    //         ];
+    //     }
+    //     $quotation->perizinan()->sync($pivotData);
+
+    //     // =======================
+    //     // NORMALISASI DISKON
+    //     // =======================
+    //     $diskonTipe  = $request->diskon_tipe;
+    //     $diskonNilai = 0;
+        
+    //     if ($diskonTipe === 'persen') {
+    //         $diskonNilai = (int) $request->diskon_persen;
+    //     }
+        
+    //     if ($diskonTipe === 'nominal') {
+    //         $diskonNilai = (int) preg_replace('/\D/', '', $request->diskon_nominal);
+    //     }   
+        
+    //     $quotation->diskon_tipe  = $diskonTipe;
+    //     $quotation->diskon_nilai = $diskonNilai;
+
+    //     //termin
+    //     if ($request->termin && array_sum($request->termin) != 100) {
+    //         return back()->withErrors(['termin' => 'Total termin harus 100%'])
+    //             ->withInput();
+    //     }
+    //     // ============================
+    //     // SIMPAN TERMIN KE JSON
+    //     // ============================
+    //     $terminList = [];
+
+    //     if ($request->termin) {
+    //         foreach ($request->termin as $urutan => $persen) {
+    //             $terminList[] = [
+    //                 'urutan' => (int) $urutan,
+    //                 'persen' => (float) $persen,
+    //             ];
+    //         }
+    //     }
+
+    //     // Simpan ke database
+    //     // $quotation->termin_persentase = json_encode($terminList);
+
+    //     $terminLama = $quotation->termin_persentase;
+
+    //     if (is_string($terminLama)) {
+    //         $terminLama = json_decode($terminLama, true) ?? [];
+    //     }
+
+    //     $terminLama = $terminLama ?? [];
+
+    //     $quotation->termin_persentase = $terminList;
+    //     $quotation->jumlah_termin = count($terminList);
+
+    //     $quotation->save();
+
+    //     return redirect()->route('quotation.index')->with('success', 'Quotation revisi versi ' . $quotation->version . ' berhasil dibuat!');
+    // }
 
 
     public function destroy($id)
@@ -750,9 +927,6 @@ class QuotationController extends Controller
 
         return response()->json($quotations);
     }
-
-
-
 
     //harus nya di atas show
     public function templateIndex()
@@ -845,14 +1019,14 @@ class QuotationController extends Controller
             'provinsi',
         ])->findOrFail($id);
 
-    Log::info('Quotation loaded', $quotation->toArray());
-    Log::info('DEBUG SPH LAMA', [
-        'id' => $quotation->id,
-        'nama_bangunan' => $quotation->nama_bangunan,
-        'fungsi_bangunan' => $quotation->fungsi_bangunan,
-        'jenis_perizinan' => $quotation->jenis_perizinan_text,
-        'termin_raw' => $quotation->termin_persentase,
-    ]);
+    // Log::info('Quotation loaded', $quotation->toArray());
+    // Log::info('DEBUG SPH LAMA', [
+    //     'id' => $quotation->id,
+    //     'nama_bangunan' => $quotation->nama_bangunan,
+    //     'fungsi_bangunan' => $quotation->fungsi_bangunan,
+    //     'jenis_perizinan' => $quotation->jenis_perizinan_text,
+    //     'termin_raw' => $quotation->termin_persentase,
+    // ]);
 
 //     $kodeIzin = $quotation->perizinan
 //     ->pluck('kode')
@@ -1004,6 +1178,31 @@ if (!empty($quotation->diskon_tipe) && $quotation->total_diskon > 0) {
     $terbilangHargaDasar = Terbilang::convert($totalHargaDasar);
     $terbilangTotalAkhir = Terbilang::convert($totalAkhir);
 
+            Log::info('DEBUG TEMPLATE VALUES', [
+    'tgl_sph' => $quotation->tgl_sph,
+    'no_sph' => $quotation->no_sph,
+    'nama_customer' => $quotation->customer->nama_perusahaan ?? null,
+    'alamat_customer' => trim(
+        ($quotation->customer->detail_alamat ?? '') . ', ' .
+        Str::title(strtolower(optional($quotation->customer->kabupaten)->nama)) . ', ' .
+        Str::title(strtolower(optional($quotation->customer->provinsi)->nama))
+    ),
+    'nama_bangunan' => $quotation->nama_bangunan,
+    'fungsi_bangunan' => $quotation->fungsi_bangunan ?? '-',
+    'lokasi' => trim(
+        "{$quotation->detail_alamat}, " .
+        Str::title(strtolower($quotation->kabupaten->nama)) . ", " .
+        Str::title(strtolower($quotation->provinsi->nama))
+    ),
+    'jenis_perizinan' => $quotation->jenis_perizinan_text,
+    'luas_bangunan' => $quotation->luas_bangunan_text,
+    'izin_total' => $totalHargaDasar,
+    'izin_total_terbilang' => $terbilangHargaDasar,
+    'total_setelah_diskon' => $totalAkhir,
+    'total_setelah_diskon_terbilang' => $terbilangTotalAkhir,
+    'lama_pekerjaan' => $quotation->lama_pekerjaan,
+]);
+
         // ===============================
         // SET DATA
         // ===============================
@@ -1046,6 +1245,11 @@ if (!empty($quotation->diskon_tipe) && $quotation->total_diskon > 0) {
  * TABEL PERIZINAN
  * ======================================
  */
+ Log::info('DEBUG TEMPLATE HARGA_TIPE', [
+    'harga_tipe' => $quotation->harga_tipe,
+    'harga_gabungan' => $quotation->harga_gabungan,
+    'perizinan_count' => $quotation->perizinan->count(),
+]);
 if ($quotation->harga_tipe === 'gabungan') {
 
     /**
@@ -1054,6 +1258,13 @@ if ($quotation->harga_tipe === 'gabungan') {
      * ${izin_no} | ${izin_jenis} | ${izin_harga}
      * TANPA cloneRow
      */
+            Log::info('TEMPLATE: Harga Gabungan', [
+        'izin_no' => '',
+        'izin_jenis' => 'Biaya Perizinan (Gabungan)',
+        'izin_qty' => '-',
+        'izin_satuan' => '-',
+        'izin_harga' => $quotation->harga_gabungan
+    ]);
     
     $template->setValue('izin_no', '');
     $template->setValue('izin_jenis', 'Biaya Perizinan (Gabungan)');
@@ -1071,6 +1282,7 @@ if ($quotation->harga_tipe === 'gabungan') {
      * Harga satuan ? cloneRow
      */
     $jumlahIzin = $quotation->perizinan->count();
+        Log::info('TEMPLATE: Harga Satuan, jumlah izin', ['jumlah_izin' => $jumlahIzin]);
 
     // Pastikan minimal 1 data agar tidak error
     if ($jumlahIzin > 0) {
@@ -1089,13 +1301,24 @@ if ($quotation->harga_tipe === 'gabungan') {
     //     );
     //     $no++;
     // }
+    
+    $satuanMap = SatuanPerizinan::pluck('nama', 'id');
 
     foreach ($quotation->perizinan as $izin) {
 
     $qty    = $izin->pivot->qty ?? 1;
-    // $satuan = optional($izin->pivot->satuan)->nama ?? '-';
+    $satuan = optional($izin->pivot->satuan)->nama ?? '-';
     $hargaSatuan  = (float) ($izin->pivot->harga_satuan ?? 0);
     $hargaTotal   = $qty * $hargaSatuan;
+
+        Log::info("TEMPLATE: Set perizinan #{$no}", [
+            'izin_no' => $no,
+            'izin_jenis' => $izin->jenis,
+            'izin_qty' => $qty,
+            'izin_satuan' => $satuan,
+            'izin_harga' => $hargaSatuan,
+            'izin_harga_total' => $hargaTotal
+        ]);
 
     $template->setValue("izin_no#{$no}", $no);
     $template->setValue("izin_jenis#{$no}", $izin->jenis);
@@ -1149,6 +1372,12 @@ if (!empty($quotation->diskon_tipe) && $quotation->total_diskon > 0) {
         // ===============================
         // CLONE TERMIN
         // ===============================
+
+        Log::info('START PROCESS TERMIN', [
+            'quotation_id' => $quotation->id,
+            'termin_raw'   => $quotation->termin_persentase
+        ]);
+
         // Ambil data termin
         $termin = json_decode($quotation->termin_persentase ?? '[]');
             Log::info('Raw termin_persentase from DB', [
@@ -1157,11 +1386,17 @@ if (!empty($quotation->diskon_tipe) && $quotation->total_diskon > 0) {
         ]);
         if (empty($termin)) {
             $termin = [(object)['urutan' => 1, 'persen' => 100]];
+                Log::info('TERMIN kosong, menggunakan default', [
+                'termin' => $termin]);
         }
 
 $huruf = range('A', 'Z');
 $jenis_perizinan = $quotation->jenis_perizinan_text;
 $totalTermin = count($termin);
+
+Log::info('TOTAL TERMIN', [
+    'totalTermin' => $totalTermin
+]);
 
 $terminPlaceholder = [];
 $kumulatif = 0;
@@ -1220,13 +1455,39 @@ foreach ($termin as $i => $row) {
         'judul' => $judul,
         'sub'   => implode("\n", $subPoin),
     ];
+
+    Log::info("TERMIN #{$i} processed", [
+        'huruf'       => $huruf[$i],
+        'judul'       => $judul,
+        'sub_poin'    => $subPoin,
+        'kumulatif'   => $kumulatif,
+        'persen_row'  => $row->persen
+    ]);
 }
+
+Log::info('TERMIN PLACEHOLDER FINAL', [
+    'terminPlaceholder' => $terminPlaceholder
+]);
+
+
+
+Log::info('START CLONE ROW TERMIN', [
+    'termin_count' => count($terminPlaceholder),
+    'terminPlaceholder' => $terminPlaceholder
+]);
 
         // Clone row sesuai jumlah termin
         $template->cloneRow('termin_huruf', count($terminPlaceholder));
 
         foreach ($terminPlaceholder as $i => $row) {
             $no = $i + 1;
+
+            Log::info("SET TEMPLATE TERMIN #{$no}", [
+                'termin_huruf'  => $row['huruf'],
+                'termin_judul'  => $row['judul'],
+                'termin_sub'    => $row['sub']
+            ]);
+    
             $template->setValue("termin_huruf#{$no}", $row['huruf']);
             $template->setValue("termin_judul#{$no}", $row['judul']);
             $template->setValue("termin_sub#{$no}", $row['sub']); // satu string dengan line break
@@ -1236,7 +1497,13 @@ foreach ($termin as $i => $row) {
         // ===============================
         // DOWNLOAD
         // ===============================
-        $fileName = 'SPH_' . preg_replace('/[\/\\\\]/', '_', $quotation->no_sph) . '.docx';
+        $fileName = 'SPH ' .
+            str_replace('/', '_', $quotation->no_sph) .
+            ' - ' . ($quotation->customer->nama_perusahaan) . '.docx';
+            
+            Log::info('READY TO DOWNLOAD TEMPLATE', [
+    'fileName' => $fileName
+]);
         return response()->streamDownload(fn() => $template->saveAs('php://output'), $fileName);
     }
 

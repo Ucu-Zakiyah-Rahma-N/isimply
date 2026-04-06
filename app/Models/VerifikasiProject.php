@@ -18,6 +18,7 @@ class VerifikasiProject extends Model
     'verified_by',
 ];
     protected $dates = ['verified_at'];
+    
         public function project()
     {
         return $this->belongsTo(Project::class);

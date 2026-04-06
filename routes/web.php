@@ -282,3 +282,6 @@ Route::middleware('auth')->group(function () {
     // catatan
     Route::post('/catatan', [CatatanController::class, 'store'])->name('catatan.store');
 });
+// Route::get('/test-500', function () {
+//     abort(500);
+// });

@@ -90,9 +90,12 @@
             ====================== --}}
                 <div class="col-12 border-start">
 
-                    <div class="card-header fw-bold fs-6">
-                        Status Project
+                <div class="card-header fw-bold fs-6">
+                    Status Project
+                    <div class="fw-normal text-muted" style="font-size: 0.75rem;">
+                        klik nama tahapan untuk melihat timeline
                     </div>
+                </div>
                     <ul class="list-unstyled">
 
                         @foreach ($tahapanProject as $tahapan)

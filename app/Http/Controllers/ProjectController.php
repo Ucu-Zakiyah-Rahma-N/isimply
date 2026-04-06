@@ -336,8 +336,6 @@ $projects = $query
                 $item->status_project = 'On Progress';
             }
 
-
-
             // ======================
             // PERSENTASE ACTUAL
             // ======================
@@ -409,6 +407,12 @@ $projects = $query
         // contoh: array ID perizinan yang ada di PO
         $poPerizinan = $po->quotation->perizinan->pluck('id')->toArray();
 
+        $poPerizinanJenis = Perizinan::whereIn('id', $poPerizinan)
+            ->orderBy('jenis')
+            ->pluck('jenis')
+            ->map(fn ($v) => strtoupper($v))
+            ->toArray();
+
         $customers = Customer::all();
         $projects = Project::with(['customer', 'perizinan'])->get();
         $perizinans = Perizinan::orderBy('jenis')->get();
@@ -424,6 +428,7 @@ $projects = $query
             'po_id' => $po->id,
             'po' => $po,
             'poPerizinan'   => $poPerizinan,
+            'poPerizinanJenis' => $poPerizinanJenis, // NAMA
 
         ];
 
@@ -648,7 +653,7 @@ public function store(Request $request)
         $title = 'Verifikasi Dokumen';
 
         $project = Project::where('po_id', $po_id)
-            ->with(['project_tahapan.tahapan', 'project_perizinan.perizinan', 'quotation'])
+            ->with(['po.customer', 'po.quotation', 'project_tahapan.tahapan', 'project_perizinan.perizinan', 'quotation'])
             ->firstOrFail();
 
         $verifikasiList = VerifikasiProject::where('project_id', $project->id)->get();
@@ -868,7 +873,7 @@ public function store(Request $request)
     {
         $role = strtolower(trim(Auth::user()->role));
 
-        if (!in_array($role, ['admin 1', 'admin 2'])) {
+        if (!in_array($role, ['admin 1', 'admin 2', 'admin 3', 'admin 4', 'admin 5', 'admin 6', 'admin 7', 'admin 8', 'admin 9', 'admin 10', 'admin 11'])) {
             abort(403, 'Anda tidak memiliki akses');
         }
 
@@ -1070,14 +1075,21 @@ public function store(Request $request)
             ->orderBy('urutan')
             ->get();
 
-        // Loop tahapan opsional yg dipilih
+        $req->validate([
+            'tahapan_opsional' => 'required|array|min:1',
+        ]);
+
+          // Loop tahapan opsional yg dipilih
         foreach ($req->tahapan_opsional as $tahapId) {
 
             $afterOrder = $req->sisip_setelah[$tahapId] ?? null;
-
-            if ($afterOrder === null) {
-                continue; // tidak memilih posisi → skip
+            if (!isset($req->sisip_setelah[$tahapId])) {
+                return back()->withErrors([
+                    "sisip_setelah.$tahapId" => 'Wajib memilih posisi sisipan tahapan.',
+                ])->withInput();
             }
+
+            $afterOrder = (int) $req->sisip_setelah[$tahapId];
 
             // Buat slug key input
             $slug = Str::slug($req->nama[$tahapId], '_');
@@ -1195,6 +1207,15 @@ public function store(Request $request)
         $allowedRoles = [
             'admin 1',
             'admin 2',
+            'admin 3',
+            'admin 4',
+            'admin 5',
+            'admin 6',
+            'admin 7',
+            'admin 8',
+            'admin 9',
+            'admin 10',
+            'admin 11',
             'admin marketing',
             'superadmin',
             'CEO',
@@ -1462,6 +1483,15 @@ public function exportTimelinePdf(Request $request)
     $allowedRoles = [
         'admin 1',
         'admin 2',
+        'admin 3',
+        'admin 4',
+        'admin 5',
+        'admin 6',
+        'admin 7',
+        'admin 8',
+        'admin 9',
+        'admin 10',
+        'admin 11',
         'admin marketing',
         'superadmin',
         'CEO',

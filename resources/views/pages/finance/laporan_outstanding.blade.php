@@ -78,12 +78,12 @@
         </div>
     </form>
 
-    <div class="mb-3">
-    <a href="{{ route('finance.outstanding.pdf', ['tahun' => $tahunDipilih]) }}" 
-       class="btn btn-danger btn-sm">
-        <i class="bi bi-file-earmark-pdf"></i> Download PDF
-    </a>
-</div>
+<!--    <div class="mb-3">-->
+<!--    <a href="{{ route('finance.outstanding.pdf', ['tahun' => $tahunDipilih]) }}" -->
+<!--       class="btn btn-danger btn-sm">-->
+<!--        <i class="bi bi-file-earmark-pdf"></i> Download PDF-->
+<!--    </a>-->
+<!--</div>-->
 
     {{-- Table --}}
     <div class="card">

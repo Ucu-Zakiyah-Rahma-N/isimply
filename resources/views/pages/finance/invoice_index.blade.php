@@ -341,7 +341,6 @@
                 <span class="badge bg-danger">Void</span>
                 @endif
             </td>
-
             <td class="text-center">
                 <div class="d-flex justify-content-center align-items-center gap-1">
 
@@ -449,15 +448,15 @@
                         class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-printer"></i>
                     </a>
-                    <!-- <form action="{{ route('finance.invoice.invoice_destroy', $inv->id) }}"
-                        method="POST"
-                        class="form-delete">
-                        @csrf
-                        @method('DELETE')
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </form> -->
+                    <!--<form action="{{ route('finance.invoice.invoice_destroy', $inv->id) }}"-->
+                    <!--    method="POST"-->
+                    <!--    class="form-delete">-->
+                    <!--    @csrf-->
+                    <!--    @method('DELETE')-->
+                    <!--    <button type="button" class="btn btn-sm btn-outline-danger btn-delete">-->
+                    <!--        <i class="bi bi-trash"></i>-->
+                    <!--    </button>-->
+                    <!--</form>-->
                 </div>
             </td>
             </tr>

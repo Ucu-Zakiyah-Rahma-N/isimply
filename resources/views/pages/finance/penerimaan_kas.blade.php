@@ -34,58 +34,81 @@
         <div class="card-body">
 
             {{-- ========================= --}}
-            {{-- REKAP PENERIMAAN --}}
+            {{--  PENERIMAAN KAS--}}
             {{-- ========================= --}}
-            @if(request()->tab == 'rekap' || request()->tab == null)
+            @if(request()->tab == 'kas' || request()->tab == null)
 
-            <h5 class="mb-3" text-center>Rekapitulasi Dana Masuk</h5>
+        <h5 class="mb-3">Penerimaan Kas</h5>
 
-            <form method="GET" class="mb-3">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label class="form-label">Pilih Tahun</label>
-                        <select name="tahun" class="form-select" onchange="this.form.submit()">
-                            @foreach($listTahun as $th)
-                            <option value="{{ $th }}" {{ $tahun == $th ? 'selected' : '' }}>
-                                {{ $th }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-            </form>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>No</th>
+                            <th>Tanggal</th>
+                            <th>Transaksi</th>
+                            <th>Nama Barang/Jasa</th>
+                            <th>Penerima</th>
+                            <th>Kode Projek</th>
+                            <th>Akun</th>
+                            <th>Pemasukan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
 
-            @php
-            $grandTotal = $rekap->sum('total');
-            @endphp
+                        @php $total = 0; @endphp
 
-            <table class="table table-bordered table-sm">
-                <thead class="table-light text-center">
-                    <tr>
-                        <th>No</th>
-                        <th>Bulan</th>
-                        <th class="text-end">Nominal</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($rekap as $i => $row)
-                    <tr>
-                        <td>{{ $i + 1 }}</td>
-                        <td>{{ $row->bulan }}</td>
-                        <td class="text-end">
-                            Rp {{ number_format($row->total, 0, ',', '.') }}
-                        </td>
-                    </tr>
-                    @endforeach
+                        @forelse($kas as $i => $row)
+                        @php $total += $row->nominal; @endphp
+                        <tr>
+                            {{-- NO --}}
+                            <td class="text-center">{{ $i + 1 }}</td>
 
-                    <tr class="table-light text-bold">
-                        <td colspan="2" class="text-end"><b>TOTAL</b></td>
-                        <td class="text-end">
-                            <b>Rp {{ number_format($grandTotal, 0, ',', '.') }} </b>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                            {{-- TANGGAL --}}
+                            <td>{{ \Carbon\Carbon::parse($row->tanggal)->format('d-m-Y') }}</td>
+
+                            {{-- TRANSAKSI (BANK) --}}
+                            <td>{{ $row->bank ?? '-' }}</td>
+
+                            {{-- NAMA BARANG / JASA --}}
+                            <td>
+                                {{ $row->keterangan ?? '-' }} - termin {{ $row->termin_inv ?? '-' }}
+                                @if($row->is_partial ?? false)
+                                🟡
+                                @endif
+                            </td>
+
+                            {{-- PENERIMA (CUSTOMER) --}}
+                            <td>{{ $row->customer ?? '-' }}</td>
+
+                            {{-- KODE PROJEK --}}
+                            <td>-</td>
+
+                            {{-- AKUN (COA) --}}
+                            <td>{{ $row->coa ?? '-' }}</td>
+
+                            {{-- PEMASUKAN --}}
+                            <td class="text-end">
+                                Rp {{ number_format($row->nominal, 0, ',', '.') }}
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="8" class="text-center">Tidak ada data</td>
+                        </tr>
+                        @endforelse
+
+                        {{-- TOTAL --}}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="7" class="text-end">TOTAL</td>
+                            <td class="text-end">
+                                Rp {{ number_format($total,0,',','.') }}
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
 
 
             {{-- ========================= --}}
@@ -187,79 +210,57 @@
             {{-- PENERIMAAN KAS --}}
             {{-- ========================= --}}
             @else
+            
+            
+             <h5 class="mb-3" text-center>Rekapitulasi Dana Masuk</h5>
 
-            <h5 class="mb-3">Penerimaan Kas</h5>
+            <form method="GET" class="mb-3">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Pilih Tahun</label>
+                        <select name="tahun" class="form-select" onchange="this.form.submit()">
+                            @foreach($listTahun as $th)
+                            <option value="{{ $th }}" {{ $tahun == $th ? 'selected' : '' }}>
+                                {{ $th }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </form>
 
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm">
-                    <thead class="table-light text-center">
-                        <tr>
-                            <th>No</th>
-                            <th>Tanggal</th>
-                            <th>Transaksi</th>
-                            <th>Nama Barang/Jasa</th>
-                            <th>Penerima</th>
-                            <th>Kode Projek</th>
-                            <th>Akun</th>
-                            <th>Pemasukan</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            @php
+            $grandTotal = $rekap->sum('total');
+            @endphp
 
-                        @php $total = 0; @endphp
+            <table class="table table-bordered table-sm">
+                <thead class="table-light text-center">
+                    <tr>
+                        <th>No</th>
+                        <th>Bulan</th>
+                        <th class="text-end">Nominal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($rekap as $i => $row)
+                    <tr>
+                        <td>{{ $i + 1 }}</td>
+                        <td>{{ $row->bulan }}</td>
+                        <td class="text-end">
+                            Rp {{ number_format($row->total, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                    @endforeach
 
-                        @forelse($kas as $i => $row)
-                        @php $total += $row->nominal; @endphp
-                        <tr>
-                            {{-- NO --}}
-                            <td class="text-center">{{ $i + 1 }}</td>
-
-                            {{-- TANGGAL --}}
-                            <td>{{ \Carbon\Carbon::parse($row->tanggal)->format('d-m-Y') }}</td>
-
-                            {{-- TRANSAKSI (BANK) --}}
-                            <td>{{ $row->bank ?? '-' }}</td>
-
-                            {{-- NAMA BARANG / JASA --}}
-                            <td>
-                                {{ $row->keterangan ?? '-' }} - termin {{ $row->termin_inv ?? '-' }}
-                                @if($row->is_partial ?? false)
-                                🟡
-                                @endif
-                            </td>
-
-                            {{-- PENERIMA (CUSTOMER) --}}
-                            <td>{{ $row->customer ?? '-' }}</td>
-
-                            {{-- KODE PROJEK --}}
-                            <td>-</td>
-
-                            {{-- AKUN (COA) --}}
-                            <td>{{ $row->coa ?? '-' }}</td>
-
-                            {{-- PEMASUKAN --}}
-                            <td class="text-end">
-                                Rp {{ number_format($row->nominal, 0, ',', '.') }}
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="text-center">Tidak ada data</td>
-                        </tr>
-                        @endforelse
-
-                        {{-- TOTAL --}}
-                        <tr class="table-secondary fw-bold">
-                            <td colspan="7" class="text-end">TOTAL</td>
-                            <td class="text-end">
-                                Rp {{ number_format($total,0,',','.') }}
-                            </td>
-                        </tr>
-
-                    </tbody>
-                </table>
-            </div>
-
+                    <tr class="table-light text-bold">
+                        <td colspan="2" class="text-end"><b>TOTAL</b></td>
+                        <td class="text-end">
+                            <b>Rp {{ number_format($grandTotal, 0, ',', '.') }} </b>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
             @endif
         </div>
     </div>

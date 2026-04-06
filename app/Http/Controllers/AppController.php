@@ -94,7 +94,7 @@ if(in_array(strtolower($user->role), ['superadmin', 'admin marketing', 'ceo',  '
     $summary = DashboardHelper::getMarketingSummary($bulan, $tahun);
 }
 
-if(in_array(strtolower($user->role), ['admin 1', 'admin 2', 'ceo',  'direktur', 'manager marketing', 'manager projek', 'manager finance']))
+if(in_array(strtolower($user->role), ['admin 1', 'admin 2', 'admin 3', 'admin 4', 'admin 5', 'admin 6', 'admin 7', 'admin 8', 'admin 9', 'admin 10', 'admin 11', 'ceo',  'direktur', 'manager marketing', 'manager projek', 'manager finance']))
 {
     $projects = DashboardHelper::getAllProjects();
 

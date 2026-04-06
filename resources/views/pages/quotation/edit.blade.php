@@ -22,6 +22,19 @@
             @csrf
             @method('PUT')
 
+            <br>
+            <label>
+                <input type="radio" name="mode_update" value="update" checked>
+                Ubah Data
+            </label>
+            <br>
+            <label>
+                <input type="radio" name="mode_update" value="revisi">
+                Simpan sebagai Revisi
+            </label>
+            <br>
+            <br>
+            
             {{-- Pilih Customer --}}
             <div class="col md-3 mb-3">
                 <label>Nama Perusahaan<span class="text-danger">*</span></label>

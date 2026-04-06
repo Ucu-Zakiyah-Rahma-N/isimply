@@ -85,7 +85,7 @@
 
         {{-- Filter Tahun --}}
         <select name="tahun" class="form-select" style="width:100px;" onchange="this.form.submit()">
-            @for($y = date('Y'); $y >= 2020; $y--)
+            @for($y = date('Y'); $y >= 2022; $y--)
                 <option value="{{ $y }}" {{ ($tahunFilter == $y) ? 'selected' : '' }}>{{ $y }}</option>
             @endfor
         </select>
@@ -147,7 +147,7 @@
 @endif
 
 
-@if(in_array(strtolower($user->role), ['superadmin', 'admin 1', 'admin 2', 'ceo', 'direktur', 'manager marketing', 'manager projek', 'manager finance']))
+@if(in_array(strtolower($user->role), ['superadmin', 'admin 1', 'admin 2', 'admin 3', 'admin 4', 'admin 5', 'admin 6', 'admin 7', 'admin 8', 'admin 9', 'admin 10', 'admin 11', 'ceo', 'direktur', 'manager marketing', 'manager projek', 'manager finance']))
         {{-- REKAP PROJECT --}}
         <div class="dashboard-header">
     Rekap Project

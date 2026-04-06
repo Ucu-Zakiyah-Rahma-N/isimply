@@ -1531,9 +1531,6 @@ public function index(Request $request)
 
         return redirect()->back()->with('success', 'Akun berhasil ditambahkan');
     }
-
-
-
     public function terima_pembayaran($id)
     {
         $title = 'Terima Pembayaran';
@@ -2457,12 +2454,12 @@ public function exportPdf(Request $request)
     // =========================
     // 🔥 GENERATE PDF VIA CHROME
     // =========================
-    // $pdf = Browsershot::html($html)
-    //     ->format('A4')
-    //     ->landscape()
-    //     ->margins(10, 10, 10, 10)
-    //     ->showBackground()
-    //     ->pdf();
+    $pdf = Browsershot::html($html)
+        ->format('A4')
+        ->landscape()
+        ->margins(10, 10, 10, 10)
+        ->showBackground()
+        ->pdf();
 
     // $pdf = Browsershot::html($html)
     // ->setNodeBinary('/home/u576953852/.nvm/versions/node/v24.13.1/bin/node')

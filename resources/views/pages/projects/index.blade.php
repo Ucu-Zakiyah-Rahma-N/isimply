@@ -94,6 +94,7 @@
 
             <br>
 
+            {{-- 🔹 Filter Section --}}
             <div class="row align-items-end mb-3 g-2">
                 
                 <div class="col-md-2">
@@ -155,12 +156,10 @@
                         </button>
                     </div>
                 </div>
-
+                </div>
             </div>
 
         </div>
-
-    </div>
 
         <div class="table-responsive px-3 pb-3">
             @php
@@ -310,8 +309,8 @@
                             </td>
                             <td>
                                 @php
-                                    $adminRoles = ['admin 1', 'admin 2'];
-                                    $viewerRoles = ['CEO', 'direktur', 'manager'];
+                                    $adminRoles = ['admin 1', 'admin 2', 'admin 3', 'admin 4', 'admin 5', 'admin 6', 'admin 7', 'admin 8', 'admin 9', 'admin 10', 'admin 11'];
+                                    $viewerRoles = ['CEO', 'direktur', 'manager projek', 'manager finance', 'manager marketing'];
                                 @endphp
 
 
@@ -361,6 +360,8 @@
                                         Detail
                                     </a>
                                 @endif
+
+
                             </td>
                             <td>{{ \Carbon\Carbon::parse($project->bast_verified_at)->format('d-m-Y H:i') }}</td>
                         </tr>
@@ -387,6 +388,7 @@
 
 
 
+    {{-- Script Filter --}}
     {{-- Script Filter --}}
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
          <script>
@@ -455,5 +457,6 @@
         const deleteForms = document.querySelectorAll('.delete-project-form');
         })
     </script>
+
 
 @endsection

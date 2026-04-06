@@ -330,8 +330,10 @@
                     addButton.style.display = 'none';
 
                     const hargaGabunganInput = document.getElementById('hargaGabunganInput');
-                    const isGabungan = Boolean(hargaGabunganInput?.value);
+                    // const isGabungan = Boolean(hargaGabunganInput?.value);
                     const hargaGabungan = parseFloat(hargaGabunganInput?.value || 0);
+                    // const isGabungan = hargaGabungan > 0;
+                    const isGabungan = quotation.harga_tipe === 'gabungan';
 
                     let totalQty = 0;
 
@@ -398,7 +400,9 @@
                     let subtotal = 0;
 
                     const hargaGabunganInput = document.getElementById('hargaGabunganInput');
-                    const isGabungan = Boolean(hargaGabunganInput?.value);
+                    // const isGabungan = Boolean(hargaGabunganInput?.value);
+                    // const isGabungan = hargaGabungan > 0;
+                    const isGabungan = quotation.harga_tipe === 'gabungan';
                     
                     if (isGabungan) {
                        subtotal = parseFloat(hargaGabunganInput.value) || 0;
