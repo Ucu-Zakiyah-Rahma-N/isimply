@@ -176,17 +176,19 @@
                 <label>Jumlah Termin Pembayaran <span class="text-danger">*</span></label>
                 <select name="jumlah_termin" id="jumlah_termin" class="form-select" required>
                     <option value="">-- Pilih --</option>
-                    <option value="1" {{ count($terminLama) == 1 ? 'selected' : '' }}>1 Termin</option>
-                    <option value="2" {{ count($terminLama) == 2 ? 'selected' : '' }}>2 Termin</option>
-                    <option value="3" {{ count($terminLama) == 3 ? 'selected' : '' }}>3 Termin</option>
-                    <option value="4" {{ count($terminLama) == 4 ? 'selected' : '' }}>4 Termin</option>
+                    <option value="1" {{ is_array($terminLama) && count($terminLama) == 1 ? 'selected' : '' }}>1 Termin</option>
+                    <option value="2" {{ is_array($terminLama) && count($terminLama) == 2 ? 'selected' : '' }}>2 Termin</option>
+                    <option value="3" {{ is_array($terminLama) && count($terminLama) == 3 ? 'selected' : '' }}>3 Termin</option>
+                    <option value="4" {{ is_array($terminLama) && count($terminLama) == 4 ? 'selected' : '' }}>4 Termin</option>
                 </select>
             </div>
 
             <div id="formTermin">
                 {{-- Jika sudah ada data (edit), tampilkan otomatis --}}
-                @if($terminLama)
+                @if(is_array($terminLama) && count($terminLama))
                     <div class="row">
+                
+                @if(is_array($terminLama))
                     @foreach($terminLama as $t)
                         <div class="col-md-4 mb-3">
                             <label>Termin {{ $t['urutan'] }} (%)</label>
@@ -197,6 +199,7 @@
                                 min="1" max="100">
                         </div>
                     @endforeach
+                @endif
                     </div>
                 @endif
             </div>
