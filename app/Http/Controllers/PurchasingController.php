@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+
 use Carbon\Carbon;
 use App\Models\Kontak;
 use App\Models\Coa;
@@ -13,6 +14,10 @@ use App\Models\FPengajuanBiayaItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Spatie\Browsershot\Browsershot;
+use Illuminate\Support\Facades\View;
+use Throwable;
+use Exception;
 
 class PurchasingController extends Controller
 {
@@ -135,16 +140,97 @@ class PurchasingController extends Controller
         );
     }
 
+    private function transformPengajuan($pengajuan)
+    {
+        $totalDiskonItem = $pengajuan->items->sum(function ($item) {
+            $total = $item->qty * $item->harga;
+            return $item->diskon_type === 'percent'
+                ? $total * ($item->diskon / 100)
+                : $item->diskon;
+        });
+
+        $diskonGlobal = (float) ($pengajuan->diskon_global ?? 0);
+        $totalPajakItem = $pengajuan->items->sum('nilai_pajak');
+        $pajakGlobal = (float) ($pengajuan->nilai_pajak_global ?? 0);
+
+        return [
+            'header' => [
+                'nomor_pengajuan' => $pengajuan->nomor_pengajuan,
+                'tgl_pengajuan'   => optional($pengajuan->tgl_pengajuan)->format('Y-m-d'),
+                'kontak'          => optional($pengajuan->kontak)->nama,
+                'subtotal'        => $pengajuan->subtotal,
+                'total_diskon'    => $totalDiskonItem + $diskonGlobal,
+                'total_pajak'     => $totalPajakItem + $pajakGlobal,
+                'grand_total'     => $pengajuan->grand_total,
+            ],
+            'items' => $pengajuan->items->map(function ($item) {
+                return [
+                    'deskripsi' => $item->deskripsi,
+                    'qty'       => $item->qty,
+                    'harga'     => $item->harga,
+                    'jumlah'    => $item->jumlah,
+                ];
+            })
+        ];
+    }
     public function exportPdf(Request $request)
     {
-        $start = $request->start_date;
-        $end   = $request->end_date;
+        try {
 
-        $data = PengajuanBiaya::whereBetween('tgl_pengajuan', [$start, $end])
-            ->with(['items', 'scheduling'])
-            ->get();
+            $request->validate([
+                'start_date' => 'required|date',
+                'end_date'   => 'required|date|after_or_equal:start_date',
+            ]);
 
-        return view('pdf.pengajuan', compact('data', 'start', 'end'));
+            $start = Carbon::parse($request->start_date)->startOfDay();
+            $end   = Carbon::parse($request->end_date)->endOfDay();
+
+            $pengajuans = PengajuanBiaya::with([
+                'kontak',
+                'items',
+                'items.coa'
+            ])
+                ->whereBetween('tgl_pengajuan', [$start, $end])
+                ->orderByDesc('tgl_pengajuan')
+                ->get();
+
+            // 🔥 pakai transform (SAMA seperti show)
+            $data = $pengajuans->map(function ($p) {
+                return $this->transformPengajuan($p);
+            });
+
+            $html = view('pdf.pengajuan', [
+                'data'  => $data,
+                'start' => $start->format('Y-m-d'),
+                'end'   => $end->format('Y-m-d'),
+            ])->render();
+
+            file_put_contents(storage_path('logs/debug_pdf.html'), $html);
+
+            $pdf = Browsershot::html($html)
+                ->format('A4')
+                ->margins(10, 10, 10, 10)
+                ->showBackground()
+                ->timeout(120)
+                ->setNodeBinary('C:\Program Files\nodejs\node.exe')
+                ->setNpmBinary('C:\Program Files\nodejs\npm.cmd')
+                ->setNodeModulePath(base_path('node_modules'))
+                ->pdf();
+
+            return response($pdf)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="laporan.pdf"');
+        } catch (Throwable $e) {
+
+            Log::error('Export PDF ERROR', [
+                'message' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'error' => true,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function storeScheduling(Request $request)
