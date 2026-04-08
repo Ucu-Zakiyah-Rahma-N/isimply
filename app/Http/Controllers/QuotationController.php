@@ -371,9 +371,9 @@ class QuotationController extends Controller
             ];
         }
         // simpan ke kolom JSON
-        $quotation->update([
-            'termin_persentase' => json_encode($terminList)
-        ]);
+$quotation->update([
+    'termin_persentase' => $terminList
+]);
 
 
         return redirect()->route('quotation.index')->with('success', 'Quotation berhasil dibuat!');
@@ -1013,8 +1013,7 @@ class QuotationController extends Controller
     }
 
 
-    // ini yg bener word nya
-    public function download($id)
+  public function download($id)
     {
         $quotation = Quotation::with([
             'customer',
@@ -1023,14 +1022,14 @@ class QuotationController extends Controller
             'provinsi',
         ])->findOrFail($id);
 
-    // Log::info('Quotation loaded', $quotation->toArray());
-    // Log::info('DEBUG SPH LAMA', [
-    //     'id' => $quotation->id,
-    //     'nama_bangunan' => $quotation->nama_bangunan,
-    //     'fungsi_bangunan' => $quotation->fungsi_bangunan,
-    //     'jenis_perizinan' => $quotation->jenis_perizinan_text,
-    //     'termin_raw' => $quotation->termin_persentase,
-    // ]);
+    Log::info('Quotation loaded', $quotation->toArray());
+    Log::info('DEBUG SPH LAMA', [
+        'id' => $quotation->id,
+        'nama_bangunan' => $quotation->nama_bangunan,
+        'fungsi_bangunan' => $quotation->fungsi_bangunan,
+        'jenis_perizinan' => $quotation->jenis_perizinan_text,
+        'termin_raw' => $quotation->termin_persentase,
+    ]);
 
 //     $kodeIzin = $quotation->perizinan
 //     ->pluck('kode')
@@ -1178,34 +1177,9 @@ if (!empty($quotation->diskon_tipe) && $quotation->total_diskon > 0) {
     $totalAkhir = $totalHargaDasar;
 }
 
-$terbilangHargaDasar = Terbilang::convert($totalHargaDasar);
-$terbilangTotalAkhir = Terbilang::convert($totalAkhir);
-        
-        Log::info('DEBUG TEMPLATE VALUES', [
-    'tgl_sph' => $quotation->tgl_sph,
-    'no_sph' => $quotation->no_sph,
-    'nama_customer' => $quotation->customer->nama_perusahaan ?? null,
-    'alamat_customer' => trim(
-        ($quotation->customer->detail_alamat ?? '') . ', ' .
-        Str::title(strtolower(optional($quotation->customer->kabupaten)->nama)) . ', ' .
-        Str::title(strtolower(optional($quotation->customer->provinsi)->nama))
-    ),
-    'nama_bangunan' => $quotation->nama_bangunan,
-    'fungsi_bangunan' => $quotation->fungsi_bangunan ?? '-',
-    'lokasi' => trim(
-        "{$quotation->detail_alamat}, " .
-        Str::title(strtolower($quotation->kabupaten->nama)) . ", " .
-        Str::title(strtolower($quotation->provinsi->nama))
-    ),
-    'jenis_perizinan' => $quotation->jenis_perizinan_text,
-    'luas_bangunan' => $quotation->luas_bangunan_text,
-    'izin_total' => $totalHargaDasar,
-    'izin_total_terbilang' => $terbilangHargaDasar,
-    'total_setelah_diskon' => $totalAkhir,
-    'total_setelah_diskon_terbilang' => $terbilangTotalAkhir,
-    'lama_pekerjaan' => $quotation->lama_pekerjaan,
-]);
 
+    $terbilangHargaDasar = Terbilang::convert($totalHargaDasar);
+    $terbilangTotalAkhir = Terbilang::convert($totalAkhir);
 
         // ===============================
         // SET DATA
@@ -1235,13 +1209,13 @@ $terbilangTotalAkhir = Terbilang::convert($totalAkhir);
             'luas_bangunan'   => $quotation->luas_bangunan_text,
 
             // 'total_harga' => number_format($totalAkhir, 0, ',', '.'),
-            'izin_total' => number_format($totalHargaDasar, 0, ',', '.'),
-            'izin_total_terbilang' => $terbilangHargaDasar,
-    
-            'total_setelah_diskon' => number_format($totalAkhir, 0, ',', '.'),
-            'total_setelah_diskon_terbilang' => $terbilangTotalAkhir,
+        'izin_total' => number_format($totalHargaDasar, 0, ',', '.'),
+        'izin_total_terbilang' => $terbilangHargaDasar,
 
-            'lama_pekerjaan' => $quotation->lama_pekerjaan
+        'total_setelah_diskon' => number_format($totalAkhir, 0, ',', '.'),
+        'total_setelah_diskon_terbilang' => $terbilangTotalAkhir,
+
+        'lama_pekerjaan' => $quotation->lama_pekerjaan,
         ]);
 
 /**
@@ -1249,12 +1223,6 @@ $terbilangTotalAkhir = Terbilang::convert($totalAkhir);
  * TABEL PERIZINAN
  * ======================================
  */
- Log::info('DEBUG TEMPLATE HARGA_TIPE', [
-    'harga_tipe' => $quotation->harga_tipe,
-    'harga_gabungan' => $quotation->harga_gabungan,
-    'perizinan_count' => $quotation->perizinan->count(),
-]);
-
 if ($quotation->harga_tipe === 'gabungan') {
 
     /**
@@ -1263,13 +1231,6 @@ if ($quotation->harga_tipe === 'gabungan') {
      * ${izin_no} | ${izin_jenis} | ${izin_harga}
      * TANPA cloneRow
      */
-        Log::info('TEMPLATE: Harga Gabungan', [
-        'izin_no' => '',
-        'izin_jenis' => 'Biaya Perizinan (Gabungan)',
-        'izin_qty' => '-',
-        'izin_satuan' => '-',
-        'izin_harga' => $quotation->harga_gabungan
-    ]);
     
     $template->setValue('izin_no', '');
     $template->setValue('izin_jenis', 'Biaya Perizinan (Gabungan)');
@@ -1287,15 +1248,15 @@ if ($quotation->harga_tipe === 'gabungan') {
      * Harga satuan ? cloneRow
      */
     $jumlahIzin = $quotation->perizinan->count();
-    Log::info('TEMPLATE: Harga Satuan, jumlah izin', ['jumlah_izin' => $jumlahIzin]);
 
     // Pastikan minimal 1 data agar tidak error
     if ($jumlahIzin > 0) {
         $template->cloneRow('izin_no', $jumlahIzin);
     }
-    
+
     $satuanMap = SatuanPerizinan::pluck('nama', 'id');
     $no = 1;
+
     // foreach ($quotation->perizinan as $izin) {
     //     $template->setValue("izin_no#{$no}", $no);
     //     $template->setValue("izin_jenis#{$no}", $izin->jenis);
@@ -1305,29 +1266,19 @@ if ($quotation->harga_tipe === 'gabungan') {
     //     );
     //     $no++;
     // }
-    $satuanMap = SatuanPerizinan::pluck('nama', 'id');
 
     foreach ($quotation->perizinan as $izin) {
 
     $qty    = $izin->pivot->qty ?? 1;
-    $satuan = optional($izin->pivot->satuan)->nama ?? '-';
+    // $satuan = optional($izin->pivot->satuan)->nama ?? '-';
     $hargaSatuan  = (float) ($izin->pivot->harga_satuan ?? 0);
     $hargaTotal   = $qty * $hargaSatuan;
-            Log::info("TEMPLATE: Set perizinan #{$no}", [
-            'izin_no' => $no,
-            'izin_jenis' => $izin->jenis,
-            'izin_qty' => $qty,
-            'izin_satuan' => $satuan,
-            'izin_harga' => $hargaSatuan,
-            'izin_harga_total' => $hargaTotal
-        ]);
 
     $template->setValue("izin_no#{$no}", $no);
     $template->setValue("izin_jenis#{$no}", $izin->jenis);
     $template->setValue("izin_qty#{$no}", $qty);
     $template->setValue("izin_satuan#{$no}",$satuanMap[$izin->pivot->satuan_id] ?? '-');
     $template->setValue("izin_harga#{$no}",number_format($izin->pivot->harga_satuan, 0, ',', '.'));
-
     $template->setValue("izin_harga_total#{$no}",number_format($hargaTotal, 0, ',', '.'));
 
     $no++;
@@ -1375,34 +1326,20 @@ if (!empty($quotation->diskon_tipe) && $quotation->total_diskon > 0) {
         // ===============================
         // CLONE TERMIN
         // ===============================
-        
-        
-        Log::info('START PROCESS TERMIN', [
-            'quotation_id' => $quotation->id,
-            'termin_raw'   => $quotation->termin_persentase
-        ]);
         // Ambil data termin
-$termin = $quotation->termin_persentase ?? [];
-Log::info('Raw termin_persentase from DB', [
+        // $termin = json_decode($quotation->termin_persentase ?? '[]');
+        $termin = $quotation->termin_persentase ?? [];
+            Log::info('Raw termin_persentase from DB', [
             'quotation_id' => $quotation->id,
             'raw_value'    => $quotation->termin_persentase,
         ]);
         if (empty($termin)) {
             $termin = [(object)['urutan' => 1, 'persen' => 100]];
-                Log::info('TERMIN kosong, menggunakan default', [
-        'termin' => $termin
-    ]);
-
         }
 
 $huruf = range('A', 'Z');
 $jenis_perizinan = $quotation->jenis_perizinan_text;
 $totalTermin = count($termin);
-
-
-Log::info('TOTAL TERMIN', [
-    'totalTermin' => $totalTermin
-]);
 
 $terminPlaceholder = [];
 $kumulatif = 0;
@@ -1410,7 +1347,7 @@ $kumulatif = 0;
 foreach ($termin as $i => $row) {
 
     // $kumulatif += $row->persen;
-    $kumulatif += $row['persen'];
+      $kumulatif += $row['persen'];
     $subPoin = [];
 
     // ===============================
@@ -1462,47 +1399,13 @@ foreach ($termin as $i => $row) {
         'judul' => $judul,
         'sub'   => implode("\n", $subPoin),
     ];
-    
-        Log::info("TERMIN #{$i} processed", [
-        'huruf'       => $huruf[$i],
-        'judul'       => $judul,
-        'sub_poin'    => $subPoin,
-        'kumulatif'   => $kumulatif,
-        'persen_row'  => $row['persen']
-    ]);
-
-    // $terminPlaceholder[] = [
-    //     'huruf' => $huruf[$i],
-    //     'judul' => htmlspecialchars($judul, ENT_QUOTES, 'UTF-8'),
-    //     'sub'   => htmlspecialchars(implode('<w:br/>', $subPoin), ENT_QUOTES, 'UTF-8'),
-    // ];
-
 }
 
-Log::info('TERMIN PLACEHOLDER FINAL', [
-    'terminPlaceholder' => $terminPlaceholder
-]);
-
-
-
-Log::info('START CLONE ROW TERMIN', [
-    'termin_count' => count($terminPlaceholder),
-    'terminPlaceholder' => $terminPlaceholder
-]);
         // Clone row sesuai jumlah termin
         $template->cloneRow('termin_huruf', count($terminPlaceholder));
 
         foreach ($terminPlaceholder as $i => $row) {
             $no = $i + 1;
-            
-            
-            
-    Log::info("SET TEMPLATE TERMIN #{$no}", [
-        'termin_huruf'  => $row['huruf'],
-        'termin_judul'  => $row['judul'],
-        'termin_sub'    => $row['sub']
-    ]);
-    
             $template->setValue("termin_huruf#{$no}", $row['huruf']);
             $template->setValue("termin_judul#{$no}", $row['judul']);
             $template->setValue("termin_sub#{$no}", $row['sub']); // satu string dengan line break
@@ -1512,14 +1415,7 @@ Log::info('START CLONE ROW TERMIN', [
         // ===============================
         // DOWNLOAD
         // ===============================
-        $fileName = 'SPH ' .
-            str_replace('/', '_', $quotation->no_sph) .
-            ' - ' . ($quotation->customer->nama_perusahaan) . '.docx';
-            
-            Log::info('READY TO DOWNLOAD TEMPLATE', [
-    'fileName' => $fileName
-]);
-
+        $fileName = 'SPH_' . preg_replace('/[\/\\\\]/', '_', $quotation->no_sph) . '.docx';
         return response()->streamDownload(fn() => $template->saveAs('php://output'), $fileName);
     }
 

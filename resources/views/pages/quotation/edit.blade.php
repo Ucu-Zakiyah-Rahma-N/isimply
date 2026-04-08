@@ -87,20 +87,6 @@
                 </div>
             </div>
 
-            {{-- Nama Bangunan --}}
-<div class="col-md-6 mb-3">
-    <label>Nama Bangunan<span class="text-danger">*</span></label>
-    <div class="d-flex align-items-center">
-        <input type="text" name="nama_bangunan" class="form-control" value="{{ $quotation->nama_bangunan }}">
-        <div class="form-check ms-2">
-            <input type="hidden" name="is_same_nama_bangunan" value="0">
-            <input class="form-check-input" type="checkbox" id="copyNama" name="is_same_nama_bangunan" value="1"
-                {{ $quotation->is_same_nama_bangunan ? 'checked' : '' }}>
-            <label class="form-check-label" for="copyNama">Sama</label>
-        </div>
-    </div>
-</div>
-
             <div class="col-md-6 mb-3">
                 <label>Pilih Fungsi Bangunan<span class="text-danger">*</span></label>
                 <select name="fungsi_bangunan" class="form-select @error('fungsi_bangunan') is-invalid @enderror required">
@@ -127,6 +113,22 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
             </div>
+            
+            {{-- Nama Bangunan --}}
+<div class="col-md-6 mb-3">
+    <label>Nama Bangunan<span class="text-danger">*</span></label>
+    <div class="d-flex align-items-center">
+        <input type="text" id="nama_bangunan" name="nama_bangunan" class="form-control" value="{{ $quotation->nama_bangunan }}">
+        <div class="form-check ms-2">
+            <input type="hidden" name="is_same_nama_bangunan" value="0">
+            <input class="form-check-input" type="checkbox" id="copyNama" name="is_same_nama_bangunan" value="1"
+                {{ $quotation->is_same_nama_bangunan ? 'checked' : '' }}>
+            <label class="form-check-label" for="copyNama">Sama</label>
+        </div>
+    </div>
+</div>
+
+
 
 
             {{-- Alamat --}}
@@ -144,7 +146,7 @@
     </select>
 
     <div class="form-check mb-0">
-        <input type="hidden" name="is_same_alamat" value="0">
+        <input type="hidden" name="is_same_alamat" value="0" >
         <input class="form-check-input" type="checkbox" id="copyAlamat" name="is_same_alamat" value="1"
             {{ $quotation->is_same_alamat ? 'checked' : '' }}>
         <label class="form-check-label" for="copyAlamat">Sama</label>
@@ -162,8 +164,8 @@
                 </div>
                 <div class="col-md-6">
                 <label>Detail Alamat<span class="text-danger">*</span></label>
-                <input type="text" name="detail_alamat" class="form-control" value="{{ $quotation->detail_alamat }}">
-            </div>
+                <input type="text" name="detail_alamat" id="detail_alamat" class="form-control" value="{{ $quotation->detail_alamat }}">
+                </div>
             </div>
 
             {{-- Lama Pekerjaan --}}
@@ -340,6 +342,12 @@
             <div class="fw-bold subtotal-text">
                 Rp {{ number_format($subtotal,0,',','.') }}
             </div>
+            
+            
+    <input type="hidden"
+           name="subtotal[{{ $id }}]"
+           class="subtotal-asli"
+           value="{{ $subtotal }}">
         </div>
                 </div>
     </div>
@@ -436,19 +444,42 @@ $(".format-angka").each(function(){
     let val = $(this).val();
     if(val) $(this).val(formatRibuan(val));
 });
+
 // saat mengetik
 $(document).on("input", ".format-angka", function () {
-    let value = $(this).val().replace(/\./g, ""); // hapus titik ribuan
-    if(value === "") { $(this).val(""); return; }
-    $(this).val(formatRibuan(value));
+    let angka = $(this).val().replace(/\D/g, ''); // ambil angka saja
+
+    if(angka === ""){
+        $(this).val('');
+        $(this).closest('.harga-wrapper').find('.harga-asli').val('');
+        return;
+    }
+
+    // tampilkan format ribuan
+    let format = angka.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    $(this).val(format);
+
+    // simpan angka asli ke hidden
+    $(this).closest('.harga-wrapper').find('.harga-asli').val(angka);
+
+    // hitung ulang
+    const card = $(this).closest('.perizinan-card');
+    if(card.length) hitungSubtotal(card[0]);
+
+    hitungTotal();
 });
 
-// sebelum submit ke DB
-$("form").on("submit", function () {
-    $(".format-angka").each(function () {
-        this.value = this.value.replace(/\./g, ""); // hapus titik ribuan
+    // $('#customer-select').select2({ placeholder: 'Pilih nama perusahaan...', width: '100%' });
+    
+function getCustomerData(customer_id, callback) {
+    $.get(`{{ url('customer') }}/${customer_id}/get-customer`, function(res) {
+        console.log("DATA CUSTOMER:", res); // debug
+        if (callback) callback(res);
+    }).fail(function() {
+        Swal.fire('Error', 'Gagal mengambil data perusahaan.', 'error');
     });
-});
+}
 
     // Load kabupaten otomatis
     let selectedProv = '{{ $quotation->provinsi_id }}';
@@ -480,52 +511,129 @@ if(selectedProv) {
     });
 }
 
-function loadKabupaten(provId) {
-    return $.get(`${baseKabupatenUrl}/${provId}`, function(kab){
+function loadKabupaten(provId, selectedKabId = null, callback = null) {
+    $.get(`${baseKabupatenUrl}/${provId}`, function(kab) {
         $('#kabupaten_id').html('<option value="">-- Pilih Kabupaten/Kota --</option>');
         kab.forEach(k => {
-            $('#kabupaten_id').append(`<option value="${k.kode}">${k.nama}</option>`);
+            $('#kabupaten_id').append(
+                `<option value="${k.kode}" ${k.kode == selectedKabId ? 'selected' : ''}>${k.nama}</option>`
+            );
         });
+        if (callback) callback();
     });
 }
 
-function loadKawasan(kabId) {
-    return $.get(`${baseKawasanUrl}/${kabId}`, function(kaw){
+function loadKawasan(kabId, selectedKawasanId = null, callback = null) {
+    $.get(`${baseKawasanUrl}/${kabId}`, function(kaw) {
         $('#kawasan_id').html('<option value="">-- Pilih Kawasan --</option>');
         kaw.forEach(k => {
-            $('#kawasan_id').append(`<option value="${k.id}">${k.nama_kawasan}</option>`);
+            $('#kawasan_id').append(
+                `<option value="${k.id}" ${k.id == selectedKawasanId ? 'selected' : ''}>${k.nama_kawasan}</option>`
+            );
         });
+        if (callback) callback();
     });
 }
 
 
-$('#copyAlamat').change(function(){
-    const checked = $(this).is(':checked');
 
-if(checked){
-        // Prefill otomatis
-        $('#provinsi_id').val(selectedProv);
+// $('#copyNama').on('change', function() {
+//     const customer_id = $('#customer-select').val();
 
-        // Load kabupaten dulu
-        loadKabupaten(selectedProv).then(()=>{
-            $('#kabupaten_id').val(selectedKab);
+//     if (this.checked) {
+//         if (!customer_id) {
+//             Swal.fire('Oops!', 'Silakan pilih customer terlebih dahulu.', 'warning');
+//             $(this).prop('checked', false);
+//             return;
+//         }
 
-            // Load kawasan
-            loadKawasan(selectedKab).then(()=>{
-                $('#kawasan_id').val(selectedKaw);
+//         getCustomerData(customer_id, function(res) {
+//             $('input[name="nama_bangunan"]')
+//                 .val(res.nama_perusahaan)
+//                 .prop('readonly', true);
+//         });
 
-                // Baru set detail alamat
-                $('input[name="detail_alamat"]').val(selectedAlamat);
-            });
+//     } else {
+//         $('input[name="nama_bangunan"]')
+//             .val('')
+//             .prop('readonly', false);
+//     }
+// });
+$('#copyNama').on('change', function() {
+    const customer_id = $('#customer-select').val();
+
+    if (this.checked) {
+        if (!customer_id) {
+            Swal.fire('Oops!', 'Silakan pilih customer terlebih dahulu.', 'warning');
+            $(this).prop('checked', false);
+            return;
+        }
+
+        getCustomerData(customer_id, function(res) {
+            $('#nama_bangunan')
+                .val(res.nama_perusahaan)
+                .prop('readonly', true);
         });
-    }  else {
-        // Reset semua untuk input manual
-        $('#provinsi_id').val('');
-        $('#kabupaten_id').html('<option value="">-- Pilih Kabupaten/Kota --</option>');
-        $('#kawasan_id').html('<option value="">-- Pilih Kawasan --</option>');
-        $('input[name= "detail_alamat"]').val('');
+
+    } else {
+        $('#nama_bangunan')
+            .val('')
+            .prop('readonly', false);
     }
 });
+
+$('#copyAlamat').on('change', function() {
+    const customer_id = $('#customer-select').val();
+
+    if (this.checked) {
+        if (!customer_id) {
+            Swal.fire('Oops!', 'Silakan pilih customer terlebih dahulu.', 'warning');
+            $(this).prop('checked', false);
+            return;
+        }
+
+        getCustomerData(customer_id, function(res) {
+
+            $('#provinsi_id').val(res.provinsi_id).prop('disabled', true);
+
+            loadKabupaten(res.provinsi_id, res.kabupaten_id, function() {
+                $('#kabupaten_id').prop('disabled', true);
+
+                loadKawasan(res.kabupaten_id, res.kawasan_id, function() {
+                    $('#kawasan_id').prop('disabled', true);
+
+                    $('#detail_alamat')
+                        .val(res.detail_alamat)
+                        .prop('readonly', true);
+                });
+            });
+
+        });
+
+    } else {
+        $('#provinsi_id, #kabupaten_id, #kawasan_id')
+            .prop('disabled', false)
+            .val('');
+
+        $('#detail_alamat')
+            .val('')
+            .prop('readonly', false);
+    }
+});
+
+//auto load
+$(document).ready(function(){
+
+    if($('#copyNama').is(':checked')){
+        $('#copyNama').trigger('change');
+    }
+
+    if($('#copyAlamat').is(':checked')){
+        $('#copyAlamat').trigger('change');
+    }
+
+});
+
 
 // Event manual dropdown
 $('#provinsi_id').change(function(){
@@ -911,11 +1019,14 @@ function hitungTotal(){
 
     // === HARGA SATUAN ===
     if(tipeHarga === 'satuan'){
-        $('input[name^="harga_satuan"]').each(function(){
-            const card = $(this).closest('.perizinan-card');
-            const harga = parseInt($(this).val().replace(/\D/g,'')) || 0;
-            const qty   = parseInt(card.find('.qty-hidden').val()) || 1;
-            totalAwal += harga * qty;
+        // $('input[name^="harga_satuan"]').each(function(){
+        //     const card = $(this).closest('.perizinan-card');
+        //     const harga = parseInt($(this).val().replace(/\D/g,'')) || 0;
+        //     const qty   = parseInt(card.find('.qty-hidden').val()) || 1;
+        //     totalAwal += harga * qty;
+        // });
+        $('.subtotal-asli').each(function(){
+            totalAwal += parseInt($(this).val() || 0);
         });
     }
 
@@ -1043,3 +1154,15 @@ document.getElementById('cabang_id').addEventListener('change', function() {
 });
 </script>
 @endsection
+
+
+
+
+
+
+
+
+
+
+
+
