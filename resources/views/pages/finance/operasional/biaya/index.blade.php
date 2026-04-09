@@ -39,13 +39,76 @@
             </div>
         </div>
 
-        <div class="card-header bg-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-semibold">Data Biaya </h5>
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalPengajuanBiaya">
-                    <i class="bi bi-plus-circle"></i> Buat Biaya Baru
+        <div class="card-header bg-white border-0 pb-2">
+
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-semibold mb-0">Data Biaya</h5>
+
+                <button class="btn btn-primary btn-sm px-3"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalPengajuanBiaya">
+                    <i class="bi bi-plus-circle"></i> Buat Biaya
                 </button>
             </div>
+
+            <!-- FILTER -->
+            <form method="GET" action="{{ route('finance.biaya_index') }}">
+                <div class="row g-2 align-items-end">
+
+                    <!-- STATUS -->
+                    <div class="col-auto">
+                        <small class="text-muted d-block mb-1">Status</small>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="">Semua</option>
+                            <option value="dipurchasing" {{ request('status') == 'dipurchasing' ? 'selected' : '' }}>Dipurchasing</option>
+                            <option value="disetujui" {{ request('status') == 'disetujui' ? 'selected' : '' }}>Disetujui</option>
+                            <option value="ditolak" {{ request('status') == 'ditolak' ? 'selected' : '' }}>Ditolak</option>
+                        </select>
+                    </div>
+
+                    <!-- METODE -->
+                    <div class="col-auto">
+                        <small class="text-muted d-block mb-1">Metode</small>
+                        <select name="metode" class="form-select form-select-sm">
+                            <option value="">Semua</option>
+                            <option value="cash" {{ request('metode') == 'cash' ? 'selected' : '' }}>Cash</option>
+                            <option value="transfer" {{ request('metode') == 'transfer' ? 'selected' : '' }}>Transfer</option>
+                        </select>
+                    </div>
+
+                    <!-- PERIODE -->
+                    <div class="col-auto">
+                        <small class="text-muted d-block mb-1">Periode</small>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="date" name="tanggal_dari"
+                                value="{{ request('tanggal_dari') }}"
+                                class="form-control form-control-sm">
+
+                            <span class="text-muted">—</span>
+
+                            <input type="date" name="tanggal_sampai"
+                                value="{{ request('tanggal_sampai') }}"
+                                class="form-control form-control-sm">
+                        </div>
+                    </div>
+
+                    <!-- BUTTON -->
+                    <div class="col-auto d-flex gap-2 ms-2">
+                        <button type="submit" class="btn btn-sm btn-dark px-3">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+
+                        <a href="{{ route('finance.biaya_index') }}"
+                            class="btn btn-sm btn-light border px-3">
+                            Reset
+                        </a>
+                    </div>
+
+                </div>
+            </form>
+
         </div>
 
         <div class="card-body p-0">

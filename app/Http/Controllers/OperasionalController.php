@@ -17,12 +17,35 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class OperasionalController extends Controller
 {
-    public function biayaIndex()
+    public function biayaIndex(Request $request)
     {
         $title = 'Biaya';
-        $data = PengajuanBiaya::with(['items'])
-            ->orderByDesc('tgl_pengajuan')
-            ->get();
+
+        $query = PengajuanBiaya::with(['items']);
+
+        // FILTER STATUS
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('metode')) {
+            $query->where('metode_pembayaran', $request->metode);
+        }
+
+        if ($request->filled('tanggal_dari')) {
+            $query->whereDate('tgl_pengajuan', '>=', $request->tanggal_dari);
+        }
+
+        if ($request->filled('tanggal_sampai')) {
+            $query->whereDate('tgl_pengajuan', '<=', $request->tanggal_sampai);
+        }
+
+        $data = $query->orderByDesc('tgl_pengajuan')->get();
+
         $pajakList = Coa::whereNotNull('kategori_pajak')->get();
 
         return view(
