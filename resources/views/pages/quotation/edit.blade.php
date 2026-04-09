@@ -152,6 +152,10 @@
         <label class="form-check-label" for="copyAlamat">Sama</label>
     </div>
 </div>
+ <input type="hidden" id="provinsi_id_hidden" name="provinsi_id">
+                <input type="hidden" id="kabupaten_id_hidden" name="kabupaten_id">
+                <input type="hidden" id="kawasan_id_hidden" name="kawasan_id">
+                <input type="hidden" id="detail_alamat_hidden" name="detail_alamat">
 </div>
                 <div class="row mb-3">
                 <div class="col-md-6">
@@ -307,22 +311,20 @@
         </div>
 
         
-<div class="col-md-3 mb-2">
+<div class="col-md-3 mb-2 harga-satuan-group">
     <label>Harga Satuan (Rp)</label>
 
-    {{-- tampilan --}}
-    <input type="text"
-           class="form-control format-angka harga-view"
-           value="{{ number_format($harga,0,',','.') }}">
+    <div class="harga-wrapper">
+        <input type="text"
+               class="form-control format-angka harga-view"
+               value="{{ number_format($harga,0,',','.') }}">
 
-    {{-- nilai asli (WAJIB ADA) --}}
-    <input type="hidden"
-           name="harga_satuan[{{ $id }}]"
-           class="harga-asli"
-           value="{{ $harga }}">
+        <input type="hidden"
+               name="harga_satuan[{{ $id }}]"
+               class="harga-asli"
+               value="{{ $harga }}">
+    </div>
 </div>
-
-
 
         @if($luasField)
 
@@ -337,19 +339,21 @@
 @endif
 
         {{-- SUBTOTAL --}}
-        <div>
+        <div class="subtotal-group"
+            style="{{ $quotation->harga_tipe=='gabungan' ? 'display:none' : '' }}">
             <small>Subtotal</small>
             <div class="fw-bold subtotal-text">
                 Rp {{ number_format($subtotal,0,',','.') }}
             </div>
             
-            
-    <input type="hidden"
-           name="subtotal[{{ $id }}]"
-           class="subtotal-asli"
-           value="{{ $subtotal }}">
+                
+        <input type="hidden"
+               name="subtotal[{{ $id }}]"
+               class="subtotal-asli"
+               value="{{ $subtotal }}">
         </div>
-                </div>
+                
+        </div>
     </div>
 </div>
 @endforeach
@@ -446,28 +450,29 @@ $(".format-angka").each(function(){
 });
 
 // saat mengetik
-$(document).on("input", ".format-angka", function () {
-    let angka = $(this).val().replace(/\D/g, ''); // ambil angka saja
+document.addEventListener('input', function(e){
+    if(e.target.classList.contains('format-angka')){
 
-    if(angka === ""){
-        $(this).val('');
-        $(this).closest('.harga-wrapper').find('.harga-asli').val('');
-        return;
+        let angka = e.target.value.replace(/\D/g,'') || 0;
+
+        // format tampilan
+        e.target.value = formatRibuan(angka);
+
+        const card = e.target.closest('.perizinan-card');
+
+        // kalau input di dalam card → harga satuan
+        if(card){
+            const hidden = card.querySelector('.harga-asli');
+            if(hidden) hidden.value = angka;
+
+            hitungSubtotal(card);
+        }
+
+        // kalau harga gabungan
+        if(e.target.id === 'harga_gabungan'){
+            hitungTotal();
+        }
     }
-
-    // tampilkan format ribuan
-    let format = angka.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-    $(this).val(format);
-
-    // simpan angka asli ke hidden
-    $(this).closest('.harga-wrapper').find('.harga-asli').val(angka);
-
-    // hitung ulang
-    const card = $(this).closest('.perizinan-card');
-    if(card.length) hitungSubtotal(card[0]);
-
-    hitungTotal();
 });
 
     // $('#customer-select').select2({ placeholder: 'Pilih nama perusahaan...', width: '100%' });
@@ -594,31 +599,39 @@ $('#copyAlamat').on('change', function() {
 
         getCustomerData(customer_id, function(res) {
 
-            $('#provinsi_id').val(res.provinsi_id).prop('disabled', true);
+    $('#provinsi_id').val(res.provinsi_id).prop('disabled', true);
+    $('#provinsi_id_hidden').val(res.provinsi_id);
 
-            loadKabupaten(res.provinsi_id, res.kabupaten_id, function() {
-                $('#kabupaten_id').prop('disabled', true);
+    loadKabupaten(res.provinsi_id, res.kabupaten_id, function() {
 
-                loadKawasan(res.kabupaten_id, res.kawasan_id, function() {
-                    $('#kawasan_id').prop('disabled', true);
+        $('#kabupaten_id').prop('disabled', true);
+        $('#kabupaten_id_hidden').val(res.kabupaten_id);
 
-                    $('#detail_alamat')
-                        .val(res.detail_alamat)
-                        .prop('readonly', true);
-                });
-            });
+        loadKawasan(res.kabupaten_id, res.kawasan_id, function() {
 
+            $('#kawasan_id').prop('disabled', true);
+            $('#kawasan_id_hidden').val(res.kawasan_id);
+
+            $('#detail_alamat')
+                .val(res.detail_alamat)
+                .prop('readonly', true);
+
+            $('#detail_alamat_hidden').val(res.detail_alamat);
         });
+    });
 
+});
     } else {
-        $('#provinsi_id, #kabupaten_id, #kawasan_id')
-            .prop('disabled', false)
-            .val('');
+    $('#provinsi_id, #kabupaten_id, #kawasan_id')
+        .prop('disabled', false)
+        .val('');
 
-        $('#detail_alamat')
-            .val('')
-            .prop('readonly', false);
-    }
+    $('#provinsi_id_hidden, #kabupaten_id_hidden, #kawasan_id_hidden, #detail_alamat_hidden').val('');
+
+    $('#detail_alamat')
+        .val('')
+        .prop('readonly', false);
+}
 });
 
 //auto load
@@ -647,6 +660,7 @@ $('#kabupaten_id').change(function(){
     $('#kabupaten_id_hidden').val(kabId);
     loadKawasan(kabId);
 });
+
 
 $(document).on('input', '#diskon_nominal_view', function(){
     let angka = this.value.replace(/\D/g,'');
@@ -767,6 +781,18 @@ const formHargaPerizinan = document.getElementById('formHargaPerizinan');
 const hargaTipe = document.getElementById('harga_tipe');
 const inputGabungan = document.querySelector('input[name="harga_gabungan"]');
 
+function toggleSubtotalGlobal(){
+    const tipe = $('#harga_tipe').val();
+
+    $('.perizinan-card').each(function(){
+        if(tipe === 'gabungan'){
+            $(this).find('.subtotal-group').hide();
+        } else {
+            $(this).find('.subtotal-group').show();
+        }
+    });
+}
+
 function hitungSubtotal(card){
     const qty = parseInt(card.querySelector('.qty-hidden')?.value || 1);
 
@@ -870,6 +896,8 @@ checkboxes.forEach(cb => {
             if(!card){
                 const cardHtml = buatCardPerizinan(id,label);
                 formHargaPerizinan.insertAdjacentHTML('beforeend', cardHtml);
+                
+                toggleSubtotalGlobal();
             }
 
             const cardEl = document.getElementById(`harga-${id}`);
@@ -926,6 +954,8 @@ hargaTipe.addEventListener('change', function(){
         hargaGabunganGroup.style.display = 'none';
         formHargaPerizinan.style.display = 'none';
     }
+    toggleSubtotalGlobal();
+hitungTotal();
 });
 
 
@@ -937,47 +967,115 @@ const quotationData = @json([
     'luas_shgb' => $quotation->luas_shgb
 ]);
 
+// checkboxes.forEach(cb => {
+//     const id = parseInt(cb.value);
+//     const label = cb.parentElement.textContent.trim();
+
+//     if(qpData[id]){
+//         cb.checked = true;
+
+//         // buat card jika belum ada
+//         if(!document.getElementById(`harga-${id}`)){
+//             const cardHtml = buatCardPerizinan(id,label);
+//             formHargaPerizinan.insertAdjacentHTML('beforeend', cardHtml);
+            
+//             toggleSubtotalGlobal(); 
+//         }
+
+//         const cardEl = document.getElementById(`harga-${id}`);
+//         if(cardEl){
+//             // set harga
+
+//             // const hargaInput = cardEl.querySelector(`input[name="harga_satuan[${id}]"]`);
+//             // if(hargaInput) hargaInput.value = formatRibuan(qpData[id].harga_satuan);
+            
+//             const hargaHidden = cardEl.querySelector(`input[name="harga_satuan[${id}]"]`);
+//             const hargaView   = cardEl.querySelector('.format-angka');
+
+//             if(hargaHidden && hargaView){
+//                 hargaHidden.value = qpData[id].harga_satuan; // angka murni
+//                 hargaView.value   = formatRibuan(qpData[id].harga_satuan);
+//             }
+
+//             // set luas sesuai jenis
+//             let jenisUpper = label.toUpperCase();
+//             let luasField = null;
+//             if(jenisUpper.includes('SLF')) luasField = 'luas_slf';
+//             else if(jenisUpper.includes('PBG')) luasField = 'luas_pbg';
+//             else if(jenisUpper.includes('SHGB')) luasField = 'luas_shgb';
+
+//             if(luasField){
+//                 const luasInput = cardEl.querySelector(`input[name="${luasField}[${id}]"]`);
+//                 if(luasInput) luasInput.value = quotationData[luasField] ?? '';
+//             }
+//         }
+//     }
+// }
+
 checkboxes.forEach(cb => {
-    const id = parseInt(cb.value);
+    const id = cb.value.toString(); // 🔥 FIX
     const label = cb.parentElement.textContent.trim();
 
-    if(qpData[id]){
+    if(qpData[id] !== undefined){ // 🔥 FIX
         cb.checked = true;
 
-        // buat card jika belum ada
         if(!document.getElementById(`harga-${id}`)){
             const cardHtml = buatCardPerizinan(id,label);
             formHargaPerizinan.insertAdjacentHTML('beforeend', cardHtml);
+            toggleSubtotalGlobal(); 
         }
 
         const cardEl = document.getElementById(`harga-${id}`);
         if(cardEl){
-            // set harga
 
-            // const hargaInput = cardEl.querySelector(`input[name="harga_satuan[${id}]"]`);
-            // if(hargaInput) hargaInput.value = formatRibuan(qpData[id].harga_satuan);
+            // ✅ SATUAN
+            const satuanSelect = cardEl.querySelector('.satuan-select');
+            const satuanHidden = cardEl.querySelector('.satuan-hidden');
+            if(satuanSelect && satuanHidden){
+                satuanSelect.value = qpData[id].satuan_id || '';
+                satuanHidden.value = qpData[id].satuan_id || '';
+            }
 
+            // ✅ QTY
+            const qtyInput = cardEl.querySelector('.qty-input');
+            const qtyHidden = cardEl.querySelector('.qty-hidden');
+            if(qtyInput && qtyHidden){
+                qtyInput.value = qpData[id].qty || 1;
+                qtyHidden.value = qpData[id].qty || 1;
+            }
+
+            // ✅ HARGA
             const hargaHidden = cardEl.querySelector(`input[name="harga_satuan[${id}]"]`);
             const hargaView   = cardEl.querySelector('.format-angka');
 
             if(hargaHidden && hargaView){
-                hargaHidden.value = qpData[id].harga_satuan; // angka murni
+                hargaHidden.value = qpData[id].harga_satuan;
                 hargaView.value   = formatRibuan(qpData[id].harga_satuan);
             }
 
-            // set luas sesuai jenis
-            let jenisUpper = label.toUpperCase();
-            let luasField = null;
-            if(jenisUpper.includes('SLF')) luasField = 'luas_slf';
-            else if(jenisUpper.includes('PBG')) luasField = 'luas_pbg';
-            else if(jenisUpper.includes('SHGB')) luasField = 'luas_shgb';
-
-            if(luasField){
-                const luasInput = cardEl.querySelector(`input[name="${luasField}[${id}]"]`);
-                if(luasInput) luasInput.value = quotationData[luasField] ?? '';
-            }
+            // luas (biarin sama)
         }
     }
+});
+
+$('form').on('submit', function(){
+
+    $('.perizinan-card').each(function(){
+        const select = $(this).find('.satuan-select');
+        const hidden = $(this).find('.satuan-hidden');
+
+        if(select.length && hidden.length){
+            hidden.val(select.val());
+        }
+
+        const qtyInput = $(this).find('.qty-input');
+        const qtyHidden = $(this).find('.qty-hidden');
+
+        if(qtyInput.length && qtyHidden.length){
+            qtyHidden.val(qtyInput.val());
+        }
+    });
+
 });
 
 // ----------------------------
@@ -1084,6 +1182,11 @@ $('#diskon_tipe').on('change', function(){
 
 // AUTO HITUNG SAAT PAGE LOAD
 $(document).ready(function(){
+    document.querySelectorAll('.perizinan-card').forEach(card => {
+        hitungSubtotal(card);
+    });
+
+    toggleSubtotalGlobal();
     hitungTotal();
 });
 
@@ -1152,17 +1255,16 @@ document.getElementById('cabang_id').addEventListener('change', function() {
 });
 
 });
+
+//apus titik sebbelum ke db untuk harga gabungan
+
+$('form').on('submit', function(){
+    let inputGabungan = $('#harga_gabungan');
+
+    if(inputGabungan.length){
+        let bersih = inputGabungan.val().replace(/\D/g,''); // hapus semua selain angka
+        inputGabungan.val(bersih);
+    }
+});
 </script>
 @endsection
-
-
-
-
-
-
-
-
-
-
-
-

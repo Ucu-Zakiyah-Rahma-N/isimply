@@ -28,6 +28,8 @@ class Terbilang
             return self::convert(floor($angka / 1000)) . " Ribu " . self::convert($angka % 1000);
         } elseif ($angka < 1000000000) {
             return self::convert(floor($angka / 1000000)) . " Juta " . self::convert($angka % 1000000);
+        } elseif ($angka < 1000000000000) {
+            return self::convert(floor($angka / 1000000000)) . " Miliar " . self::convert($angka % 1000000000);
         }
 
         return "";

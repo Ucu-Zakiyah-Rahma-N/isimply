@@ -723,6 +723,9 @@ $quotation->update([
             'harga_satuan' => ($request->harga_tipe == 'satuan')
                 ? ($request->input("harga_satuan.$pid") ?? 0)
                 : 0,
+                
+                'satuan_id' => $request->input("satuan_id.$pid"),
+                'qty'       => $request->input("qty.$pid") ?? 1,
         ];
     }
 
@@ -1199,10 +1202,15 @@ if (!empty($quotation->diskon_tipe) && $quotation->total_diskon > 0) {
             'nama_bangunan' => $quotation->nama_bangunan,
             'fungsi_bangunan' => $quotation->fungsi_bangunan ?? '-',
 
+            // 'lokasi' => trim(
+            //     "{$quotation->detail_alamat}, " .
+            //     Str::title(strtolower($quotation->kabupaten->nama)) . ", " .
+            //     Str::title(strtolower($quotation->provinsi->nama))
+            // ),
             'lokasi' => trim(
                 "{$quotation->detail_alamat}, " .
-                Str::title(strtolower($quotation->kabupaten->nama)) . ", " .
-                Str::title(strtolower($quotation->provinsi->nama))
+                Str::title(strtolower(optional($quotation->kabupaten)->nama)) . ", " .
+                Str::title(strtolower(optional($quotation->provinsi)->nama))
             ),
             
             'jenis_perizinan' => $quotation->jenis_perizinan_text,
@@ -1415,7 +1423,12 @@ foreach ($termin as $i => $row) {
         // ===============================
         // DOWNLOAD
         // ===============================
-        $fileName = 'SPH_' . preg_replace('/[\/\\\\]/', '_', $quotation->no_sph) . '.docx';
+        // $fileName = 'SPH_' . preg_replace('/[\/\\\\]/', '_', $quotation->no_sph) . '.docx';
+        $noSph = preg_replace('/[\/\\\\]/', '_', $quotation->no_sph);
+        // $namaBangunan = preg_replace('/[^\w\s\-\(\)]/', '', $quotation->nama_bangunan);
+        $namaPerusahaan = preg_replace('/[^\w\s\-\(\)]/', '', $quotation->customer->nama_perusahaan);        
+        $fileName = "SPH_{$noSph} - {$namaPerusahaan}.docx";
+        
         return response()->streamDownload(fn() => $template->saveAs('php://output'), $fileName);
     }
 

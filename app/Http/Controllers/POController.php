@@ -23,9 +23,10 @@ class POController extends Controller
     {
         
         $user = auth()->user();
-        $query = PO::with(['customer', 'perizinan', 'quotation.kawasan_industri', 'quotation.perizinan'])
+        $query = PO::with(['customer', 'perizinan', 'quotation.kawasan_industri', 'quotation.perizinan', 'projects.project_tahapan'])
             ->orderBy('tgl_po', 'DESC')
             ->orderBy('created_at', 'DESC');
+        
         
         if (
             $user->role === 'admin marketing' &&
