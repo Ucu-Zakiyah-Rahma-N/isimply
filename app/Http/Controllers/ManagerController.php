@@ -16,60 +16,61 @@ use Illuminate\Support\Facades\Log;
 
 class ManagerController extends Controller
 {
-
     public function managerIndex(Request $request)
     {
         $title = 'Manager';
 
-        // default tab pertama = dijadwalkan
-        $tab = $request->get('tab', 'dijadwalkan');
+        // Default tab
+        $tab = $request->get('tab', 'hari_ini');
+
+        // ================= BASE QUERY =================
+        $baseQuery = PengajuanBiaya::query();
 
         // ================= COUNT =================
 
-        $countToday = PengajuanBiaya::where('status', '!=', 'dipending')
+        $countToday = (clone $baseQuery)
+            ->where('status', '!=', 'dipending')
             ->whereHas('scheduling', function ($q) {
                 $q->whereDate('tgl_pembayaran', Carbon::today());
-            })->count();
+            })
+            ->count();
 
-        $countScheduled = PengajuanBiaya::where('status', '!=', 'dipending')
-            ->whereHas('scheduling', function ($q) {
-                $q->whereDate('tgl_pembayaran', '!=', Carbon::today());
-            })->count();
+        $countPending = (clone $baseQuery)
+            ->where('status', 'dipending')
+            ->count();
 
-        $countPending = PengajuanBiaya::where('status', 'dipending')->count();
+        $countReject = (clone $baseQuery)
+            ->where('status', 'ditolak')
+            ->count();
 
-        $countHistory = PengajuanBiaya::whereIn('status', ['disetujui', 'ditolak'])->count();
+        $countHistory = (clone $baseQuery)
+            ->where('status', 'disetujui')
+            ->count();
 
+        // ================= MAIN QUERY =================
 
-        // ================= QUERY =================
-
-        $query = PengajuanBiaya::with(['items', 'scheduling'])
+        $query = PengajuanBiaya::with(['items', 'scheduling', 'user'])
             ->leftJoin('kontak', 'pengajuan_biaya.kontak_id', '=', 'kontak.id')
             ->select('pengajuan_biaya.*', 'kontak.nama as penerima');
 
-
         // ================= FILTER TAB =================
 
-        if ($tab == 'dijadwalkan') {
-
-            $query->where('pengajuan_biaya.status', '!=', 'dipending')
-                ->whereHas('scheduling', function ($q) {
-                    $q->whereDate('tgl_pembayaran', '!=', Carbon::today());
-                });
-        } elseif ($tab == 'hari_ini') {
+        if ($tab == 'hari_ini') {
 
             $query->where('pengajuan_biaya.status', '!=', 'dipending')
                 ->whereHas('scheduling', function ($q) {
                     $q->whereDate('tgl_pembayaran', Carbon::today());
                 });
-        } elseif ($tab == 'dipending') {
+        } elseif ($tab == 'pending') {
 
             $query->where('pengajuan_biaya.status', 'dipending');
+        } elseif ($tab == 'reject') {
+
+            $query->where('pengajuan_biaya.status', 'ditolak');
         } elseif ($tab == 'history') {
 
-            $query->whereIn('pengajuan_biaya.status', ['disetujui', 'ditolak']);
+            $query->where('pengajuan_biaya.status', 'disetujui');
         }
-
 
         // ================= GET DATA =================
 
@@ -77,6 +78,7 @@ class ManagerController extends Controller
             ->orderByDesc('pengajuan_biaya.tgl_pengajuan')
             ->get();
 
+        // ================= RETURN =================
 
         return view(
             'pages.finance.manager.index',
@@ -85,8 +87,8 @@ class ManagerController extends Controller
                 'data',
                 'tab',
                 'countToday',
-                'countScheduled',
                 'countPending',
+                'countReject',
                 'countHistory'
             )
         );

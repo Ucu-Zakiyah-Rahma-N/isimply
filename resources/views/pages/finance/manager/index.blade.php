@@ -121,17 +121,6 @@
     <div class="px-4">
         <ul class="nav custom-tabs">
 
-            <!-- DIJADWALKAN (DEFAULT) -->
-            <li class="nav-item">
-                <a class="nav-link {{ $tab == 'dijadwalkan' ? 'active' : '' }}"
-                    href="{{ route('finance.manager_index', ['tab' => 'dijadwalkan']) }}">
-                    Hari ini
-                    @if($countScheduled > 0)
-                    <span class="badge bg-primary ms-1">{{ $countScheduled }}</span>
-                    @endif
-                </a>
-            </li>
-
             <!-- HARI INI -->
             <li class="nav-item">
                 <a class="nav-link {{ $tab == 'hari_ini' ? 'active' : '' }}"
@@ -145,11 +134,22 @@
 
             <!-- PENDING -->
             <li class="nav-item">
-                <a class="nav-link {{ $tab == 'dipending' ? 'active' : '' }}"
-                    href="{{ route('finance.manager_index', ['tab' => 'dipending']) }}">
+                <a class="nav-link {{ $tab == 'pending' ? 'active' : '' }}"
+                    href="{{ route('finance.manager_index', ['tab' => 'pending']) }}">
                     Pending
                     @if($countPending > 0)
                     <span class="badge bg-warning ms-1">{{ $countPending }}</span>
+                    @endif
+                </a>
+            </li>
+
+            <!-- REJECT -->
+            <li class="nav-item">
+                <a class="nav-link {{ $tab == 'reject' ? 'active' : '' }}"
+                    href="{{ route('finance.manager_index', ['tab' => 'reject']) }}">
+                    Reject
+                    @if($countReject > 0)
+                    <span class="badge bg-danger ms-1">{{ $countReject }}</span>
                     @endif
                 </a>
             </li>
