@@ -142,6 +142,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/invoice/{po}/hold', [FinanceController::class, 'holdInvoice'])->name('hold.invoice');
         Route::post('/invoice/{po}/unhold', [FinanceController::class, 'unholdInvoice'])->name('unhold.invoice');
 
+        // Produk Pengadaan
+        Route::get('/produk-pengadaan', [OperasionalController::class, 'getProduk']);
+
         // akun
         Route::get('/akun', [FinanceController::class, 'akun_index'])->name('akun_index');
         Route::post('/akun/store', [FinanceController::class, 'akun_store'])->name('akun.store');

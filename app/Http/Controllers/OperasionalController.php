@@ -54,6 +54,25 @@ class OperasionalController extends Controller
         );
     }
 
+    public function getProduk($id)
+    {
+        $produk = DB::table('produk_pengadaan')
+            ->where('id_produk', $id)
+            ->first();
+
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $produk
+        ]);
+    }
+
     public function store(Request $request)
     {
         try {
