@@ -397,10 +397,17 @@
                         </a>
                     </li>
 
+                     <li class="sidebar-item">
+                        <a class="sidebar-link" href="#">
+                            <span><i class="bi bi-folder"></i></span>
+                            <span class="hide-menu">Rekap Data</span>
+                        </a>
+                    </li>
+
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('finance.invoice_index') }}">
                             <span><i class="bi bi-file-earmark-spreadsheet"></i></span>
-                            <span class="hide-menu">Rekap Invoice</span>
+                            <span class="hide-menu">Data Invoice</span>
                         </a>
                     </li>
 
@@ -421,7 +428,14 @@
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('finance.invoice.penerimaan_kas') }}">
                             <span><i class="bi bi-safe2"></i></span>
-                            <span class="hide-menu">Penerimaan Bulan Ini</span>
+                            <span class="hide-menu">Data Penerimaan</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="#">
+                            <span><i class="bi bi-list-check"></i></span>
+                            <span class="hide-menu">Data Project Selesai</span>
                         </a>
                     </li>
 
