@@ -1254,7 +1254,7 @@ document.getElementById('cabang_id').addEventListener('change', function() {
         });
 });
 
-});
+// });
 
 //apus titik sebbelum ke db untuk harga gabungan
 

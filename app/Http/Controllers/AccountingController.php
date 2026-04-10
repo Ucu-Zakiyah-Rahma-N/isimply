@@ -41,119 +41,234 @@ class AccountingController extends Controller
 
         return view('pages.finance.bank_cash_index', compact('parents', 'title'));
     }
-    public function bankCashLedger($coaId)
-    {
-        $title = "bank cash";
-        $coa = Coa::findOrFail($coaId);
 
-        $details = JournalDetail::with([
-            'journal.journaldetails.coa' // eager load sampai coa
-        ])
-            ->where('coa_id', $coaId)
-            ->whereHas('journal')
-            ->get()
-            ->sortBy([
-                fn($a, $b) => strcmp($a->journal->tanggal, $b->journal->tanggal),
-                fn($a, $b) => $a->id <=> $b->id
+
+
+public function bankCashLedger(Request $request, $coaId)
+{
+    $title = "bank cash";
+    $coa = Coa::findOrFail($coaId);
+
+    // =========================
+    // BASE QUERY (TANPA JOIN)
+    // =========================
+    $baseQuery = JournalDetail::with([
+        'journal.journaldetails.coa',
+        'journal.invoice.po'
+    ])
+    ->where('coa_id', $coaId)
+    ->whereHas('journal');
+
+    // =========================
+    // FILTER
+    // =========================
+    if ($request->month) {
+
+        $month = date('m', strtotime($request->month));
+        $year  = date('Y', strtotime($request->month));
+
+        $baseQuery->whereHas('journal', function ($q) use ($month, $year) {
+            $q->whereMonth('tanggal', $month)
+              ->whereYear('tanggal', $year);
+        });
+
+    } elseif ($request->start_date && $request->end_date) {
+
+        $baseQuery->whereHas('journal', function ($q) use ($request) {
+            $q->whereBetween('tanggal', [
+                $request->start_date,
+                $request->end_date
             ]);
+        });
+    }
 
-        $saldoAwal = $coa->saldo_awal ?? 0;
+    // =========================
+    // TOTAL GLOBAL (PAKAI BASE QUERY)
+    // =========================
+    $totalDebit = (clone $baseQuery)->sum('debit');
+    $totalCredit = (clone $baseQuery)->sum('credit');
 
-        $saldo = $saldoAwal;
-        $totalDebit = 0;
-        $totalCredit = 0;
+    $saldoAkhir = $coa->saldo_awal +
+        (clone $baseQuery)->sum(DB::raw('debit - credit'));
 
-        foreach ($details as $d) {
+    // =========================
+    // DATA QUERY (PAKAI JOIN)
+    // =========================
+    $dataQuery = (clone $baseQuery)
+        ->join('journals', 'journals.id', '=', 'journal_details.journal_id')
+        ->orderBy('journals.tanggal')
+        ->orderBy('journal_details.id')
+        ->select('journal_details.*');
 
-            $totalDebit += $d->debit;
-            $totalCredit += $d->credit;
+    $perPage = $request->per_page ?? 10;
 
-            $saldo += $d->debit;
-            $saldo -= $d->credit;
+    // =========================
+    // HITUNG LAST PAGE
+    // =========================
+$totalRows = (clone $baseQuery)->count();
+$perPage = $request->per_page ?? 10;
 
-            $d->saldo = $saldo;
+$lastPage = ceil($totalRows / $perPage);
 
-            // Ambil akun lawan (selain bank yang sedang dibuka)
-            $lawan = $d->journal->journaldetails
-                ->where('coa_id', '!=', $coaId)
-                ->sortByDesc('credit')
-                ->first();
+// ✅ hanya redirect kalau:
+// - belum ada page
+// - dan bukan dari aksi user (per_page/filter)
+if (!$request->has('page') && !$request->has('per_page')) {
+    return redirect()->to(request()->fullUrlWithQuery([
+        'page' => $lastPage
+    ]));
+}
 
-            $d->akun_lawan = $lawan?->coa?->nama_akun ?? '-';
+    // =========================
+    // PAGINATION
+    // =========================
+    $details = $dataQuery->paginate($perPage)->withQueryString();
+    
+    // =========================
+    // SALDO BERJALAN
+    // =========================
+    $offset = ($details->currentPage() - 1) * $perPage;
 
-            //penerima berdasarkan ref_type di jurnal
-            $penerima = '-';
+    $saldo = $coa->saldo_awal +
+        (clone $baseQuery)
+            ->take($offset)
+            ->get()
+            ->sum(fn($x) => $x->debit - $x->credit);
 
-            if ($d->journal->ref_type == 'invoice_payment') {
-                $penerima = $coa->nama_akun; // nama bank
-            }
+    foreach ($details as $d) {
 
-            if ($d->journal->ref_type == 'purchase') {
-                $purchase = Kontak::find($d->journal->ref_id);
-                $penerima = $purchase?->contact?->nama ?? '-';
-            }
+        $saldo += $d->debit - $d->credit;
+        $d->saldo = $saldo;
 
-            $d->penerima = $penerima;
+        // akun lawan
+        $lawan = $d->journal->journaldetails
+            ->where('coa_id', '!=', $coaId)
+            ->sortByDesc('credit')
+            ->first();
+
+        $d->akun_lawan = $lawan?->coa?->nama_akun ?? '-';
+
+        // penerima
+        $penerima = '-';
+
+        if ($d->journal->ref_type == 'invoice_payment') {
+            $penerima = $coa->nama_akun;
         }
 
-        $saldoAkhir = $saldo;
+        if ($d->journal->ref_type == 'purchase') {
+            $purchase = Kontak::find($d->journal->ref_id);
+            $penerima = $purchase?->contact?->nama ?? '-';
+        }
 
-        return view('pages.finance.bank_cash', compact(
-            'coa',
-            'details',
-            'title',
-            'totalDebit',
-            'totalCredit',
-            'saldoAwal',
-            'saldoAkhir'
-        ));
+        $d->penerima = $penerima;
     }
-    // public function bankCashLedger($coaId)
-    // {
 
-    //     $title = "bank cash";
-    //     $coa = Coa::findOrFail($coaId);
+    return view('pages.finance.bank_cash', compact(
+        'coa',
+        'details',
+        'title',
+        'totalDebit',
+        'totalCredit',
+        'saldoAkhir'
+    ));
+}
 
-    //     $details = JournalDetail::with('journal')
-    //         ->where('coa_id', $coaId)
-    //         ->join('journals', 'journals.id', '=', 'journal_details.journal_id')
-    //         ->orderBy('journals.tanggal')
-    //         ->orderBy('journal_details.id')
-    //         ->select('journal_details.*')
-    //         ->get();
+//     public function bankCashLedger(Request $request, $coaId)
+//     {
+//         $title = "bank cash";
+//         $coa = Coa::findOrFail($coaId);
 
-    //     $saldoAwal = $coa->saldo_awal ?? 0;
+//   $query = JournalDetail::with([
+//         'journal.journaldetails.coa'
+//     ])
+//     ->where('coa_id', $coaId)
+//     ->whereHas('journal');
 
-    //     $saldo = $saldoAwal;
-    //     $totalDebit = 0;
-    //     $totalCredit = 0;
+    
 
-    //     foreach ($details as $d) {
-    //         $totalDebit += $d->debit;
-    //         $totalCredit += $d->credit;
+//     // =========================
+//     // FILTER BULAN (PRIORITAS)
+//     // =========================
+//     if ($request->month) {
 
-    //         $saldo += $d->debit;
-    //         $saldo -= $d->credit;
+//         $month = date('m', strtotime($request->month));
+//         $year  = date('Y', strtotime($request->month));
 
-    //         $d->saldo = $saldo;
+//         $query->whereHas('journal', function ($q) use ($month, $year) {
+//             $q->whereMonth('tanggal', $month)
+//               ->whereYear('tanggal', $year);
+//         });
 
-    //         $lawan = $d->journal->details
-    //             ->where('coa_id', '!=', $coaId)
-    //             ->first();
+//     }
+//     // =========================
+//     // FILTER RANGE TANGGAL
+//     // =========================
+//     elseif ($request->start_date && $request->end_date) {
 
-    //         $d->akun_lawan = $lawan?->coa?->nama_akun ?? '-';
-    //     }
+//         $query->whereHas('journal', function ($q) use ($request) {
+//             $q->whereBetween('tanggal', [
+//                 $request->start_date,
+//                 $request->end_date
+//             ]);
+//         });
+//     }
 
-    //     $saldoAkhir = $saldoAwal + $totalDebit - $totalCredit;
+//     $details = $query->get()->sortBy([
+//         fn($a, $b) => strcmp($a->journal->tanggal, $b->journal->tanggal),
+//         fn($a, $b) => $a->id <=> $b->id
+//     ]);
 
-    //     return view('pages.finance.bank_cash', compact(
-    //         'coa',
-    //         'details',
-    //         'title',
-    //         'totalDebit',
-    //         'totalCredit',
-    //         'saldoAwal',
-    //         'saldoAkhir'
-    //     ));
-    // }
+
+//         $saldoAwal = $coa->saldo_awal ?? 0;
+
+//         $saldo = $saldoAwal;
+//         $totalDebit = 0;
+//         $totalCredit = 0;
+
+//         foreach ($details as $d) {
+
+//             $totalDebit += $d->debit;
+//             $totalCredit += $d->credit;
+
+//             $saldo += $d->debit;
+//             $saldo -= $d->credit;
+
+//             $d->saldo = $saldo;
+
+//             // Ambil akun lawan (selain bank yang sedang dibuka)
+//             $lawan = $d->journal->journaldetails
+//                 ->where('coa_id', '!=', $coaId)
+//                 ->sortByDesc('credit')
+//                 ->first();
+
+//             $d->akun_lawan = $lawan?->coa?->nama_akun ?? '-';
+
+//             //penerima berdasarkan ref_type di jurnal
+//             $penerima = '-';
+
+//             if ($d->journal->ref_type == 'invoice_payment') {
+//                 $penerima = $coa->nama_akun; // nama bank
+//             }
+
+//             if ($d->journal->ref_type == 'purchase') {
+//                 $purchase = Kontak::find($d->journal->ref_id);
+//                 $penerima = $purchase?->contact?->nama ?? '-';
+//             }
+
+//             $d->penerima = $penerima;
+//         }
+
+//         $saldoAkhir = $saldo;
+
+//         return view('pages.finance.bank_cash', compact(
+//             'coa',
+//             'details',
+//             'title',
+//             'totalDebit',
+//             'totalCredit',
+//             'saldoAwal',
+//             'saldoAkhir'
+//         ));
+//     }
+ 
 }
