@@ -2140,6 +2140,7 @@ public function laporanOutstanding(Request $request)
         'invoices.produk.perizinan',
         'quotation.perizinan',
         'quotation.quotation_perizinan',
+        'quotation.quotation_perizinan.perizinan',
         'quotation.kabupaten'
     ])->where('bast_verified', 1)
     ->orderBy('tgl_po', 'desc');
@@ -2208,12 +2209,20 @@ public function laporanOutstanding(Request $request)
         // =========================
         // PRODUK
         // =========================
-        if ($po->invoices->isNotEmpty()) {
-            $po->all_produk = $po->invoices->flatMap(fn($inv) => $inv->produk->map(fn($item) => $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-'));
-        } else {
-            $po->all_produk = $quotation->quotation_perizinan->map(fn($item) => $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-');
-        }
-
+        // if ($po->invoices->isNotEmpty()) {
+        //     $po->all_produk = $po->invoices->flatMap(fn($inv) => $inv->produk->map(fn($item) => $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-'));
+        // } else {
+        //     $po->all_produk = $quotation->quotation_perizinan->map(fn($item) => $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-');
+        // }
+        $po->all_produk = $po->quotation?->quotation_perizinan
+            ->map(function ($item) {
+                return $item->perizinan?->jenis 
+                    ?? $item->perizinan_lainnya 
+                    ?? '-';
+            })
+            ->filter()
+            ->unique()
+            ->values() ?? collect();
         $po->nominal_spk = $nominalSPK;
         $po->termin_list = $terminList;
 
@@ -2382,17 +2391,25 @@ public function exportPdf(Request $request)
             }
         }
 
-        // PRODUK
+        // PRODUK\
+
+        //lkalo get nya dari produk  di invoice, bukan dari po
+        // if ($po->invoices->isNotEmpty()) {
+        //     $po->all_produk = $po->invoices->flatMap(fn($inv) =>
+        //         $inv->produk->map(fn($item) =>
+        //             $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-'
+        //         )
+        //     );
+        // } else {
+        //     $po->all_produk = $quotation->quotation_perizinan->map(fn($item) =>
+        //         $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-'
+        //     );
+        // }
+
         if ($po->invoices->isNotEmpty()) {
-            $po->all_produk = $po->invoices->flatMap(fn($inv) =>
-                $inv->produk->map(fn($item) =>
-                    $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-'
-                )
-            );
+            $po->all_produk = $po->invoices->flatMap(fn($inv) => $inv->produk->map(fn($item) => $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-'));
         } else {
-            $po->all_produk = $quotation->quotation_perizinan->map(fn($item) =>
-                $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-'
-            );
+            $po->all_produk = $quotation->quotation_perizinan->map(fn($item) => $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-');
         }
 
         $po->nominal_spk = $nominalSPK;

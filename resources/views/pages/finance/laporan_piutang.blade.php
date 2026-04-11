@@ -1,6 +1,12 @@
 @extends('app.template')
 
 @section('content')
+<style>
+    .table td,
+    .table th {
+        border: 1px solid #cec8c8 !important;
+    }
+</style>
 <div class="container">
 
     <h4 class="mb-4">Laporan Piutang</h4>
@@ -48,7 +54,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-6">
+                <!-- <div class="col-md-6">
                     <div class="card border shadow-sm">
                         <div class="card-body">
                             <h6 class="text-muted">30 Hari Mendatang</h6>
@@ -57,7 +63,7 @@
                             </h5>
                         </div>
                     </div>
-                </div>
+                </div> -->
 
             </div>
         </div>
@@ -67,25 +73,40 @@
 
     {{-- Table --}}
     <div class="card">
+
         <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+          <div></div>
+            <div style="position: relative;">
+                <button onclick="toggleColumnMenu()" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2">
+                    Pilih Kolom Hide
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div id="columnMenu"
+                    style="display:none; position:absolute; right:0; top:100%; background:#fff; border:1px solid #ccc; padding:10px; z-index:999;">
+                </div>
+            </div>
+        </div>
+
             <div class="table-responsive">
-                <table class="table table-bordered table-sm">
+                <table class="table table-bordered table-sm table-hover mb-0" border="1" id="myTable"">
                 <!-- <table class="table table-bordered table-sm text-nowrap"> -->
-                    <thead class="table-light text-center align-middle">
+                    <thead class="table-secondary text-center align-middle">
                         <tr>
                             <th>No</th>
                             <th style="min-width:120px;">Tanggal Invoice</th>
-                            <th style="min-width:200px;">Nama Customer</th>
-                            <th style="min-width:150px;">No Invoice</th>
-                            <th style="min-width:150px;">No SPK</th>
-                            <th style="min-width:180px;">Nama Pekerjaan</th>
-                            <th style="min-width:70px;">Termin</th>
+                            <th style="min-width:250px;">Nama Customer</th>
+                            <th style="min-width:160px;">No Invoice</th>
+                            <th style="min-width:190px;">No SPK</th>
+                            <th style="min-width:300px;">Nama Pekerjaan</th>
+                            <th style="min-width:120px;">Termin</th>
                             <th style="min-width:150px;">Nominal SPK</th>
                             <th style="min-width:120px;">PPN</th>
                             <th style="min-width:120px;">PPh</th>
                             <th style="min-width:150px;">Sisa Tagihan</th>
-                            <th style="min-width:80px;">Lama</th>
-                            <th style="min-width:100px;">Selisih</th>         
+                            <th style="min-width:80px;">Waktu Invoice</th>
+                            <th style="min-width:150px;">Selisih
+                            </th>         
                         </tr>
                     </thead>
                     @php
@@ -114,7 +135,7 @@
                         <tr @if(\Carbon\Carbon::today()->gt(\Carbon\Carbon::parse($row->tgl_jatuh_tempo))) 
                                 style="background-color:#ffe5e5;" 
                             @endif>
-                            <td>{{ $i+1 }}</td>
+                            <td class="text-center">{{ $i+1 }}</td>
                             <td>{{ \Carbon\Carbon::parse($row->tgl_inv)->format('d-m-Y') }}</td>
                             <!-- <td>{{ \Carbon\Carbon::parse($row->tgl_jatuh_tempo)->format('d-m-Y') }}</td> -->
                            
@@ -150,15 +171,15 @@
                             <td>{{ $row->keterangan }}</td>
 
                             <td class="text-end fw-bold">
-                                Rp {{ number_format($nominalSpk, 0, ',', '.') }}
+                                {{ number_format($nominalSpk, 0, ',', '.') }}
                             </td>
 
                             <td class="text-end fw-bold">
-                                {{ $ppn > 0 ? 'Rp ' . number_format($ppn, 0, ',', '.') : '-' }}
+                                {{ $ppn > 0 ? number_format($ppn, 0, ',', '.') : '-' }}
                             </td>
 
                             <td>    
-                                {{ $row->nilai_pph > 0 ? 'Rp ' . number_format($row->nilai_pph,0,',','.') : '-' }}
+                                {{ $row->nilai_pph > 0 ? number_format($row->nilai_pph,0,',','.') : '-' }}
                             </td>
 
                             <td class="text-end fw-bold">
@@ -168,7 +189,7 @@
                                     $sumSisaTagihan += max($sisa, 0);
                                 @endphp
 
-                                Rp {{ number_format(max($sisa, 0), 0, ',', '.') }}
+                                {{ number_format(max($sisa, 0), 0, ',', '.') }}
                                 <!-- Rp {{ number_format($totalTagihan, 0, ',', '.') }} -->
                             </td>
 
@@ -190,7 +211,7 @@
                             @endphp
 
                             {{-- LAMA waktu dari tgl invoice ke hari ini --}}
-                            <td>
+                            <td class="text-center">
                             {{ round($umur) }} hari
                             </td>
 
@@ -226,7 +247,7 @@
                             <td colspan="7" class="text-end">TOTAL</td>
 
                             <td class="text-end">
-                                Rp {{ number_format($sumNominalSpk, 0, ',', '.') }}
+                                {{ number_format($sumNominalSpk, 0, ',', '.') }}
                             </td>
 
                             <td></td>
@@ -234,7 +255,7 @@
 
                             <td class="text-end">
                                 
-                                Rp {{ number_format($sumSisaTagihan, 0, ',', '.') }}
+                                {{ number_format($sumSisaTagihan, 0, ',', '.') }}
                             </td>
                             <td></td>
                             <td></td>
@@ -263,5 +284,119 @@ document.getElementById('detailPiutang')
         document.getElementById('iconPiutang')
             .classList.replace('bi-chevron-left', 'bi-chevron-right');
     });
+
+
+
+    //fitur hide header
+    const menu = document.getElementById("columnMenu");
+
+    // reset dulu biar ga dobel
+    menu.innerHTML = '';
+
+    document.querySelectorAll("#myTable thead th").forEach((th, index) => {
+
+        const label = th.cloneNode(true).childNodes[0].textContent.trim();
+
+        const item = document.createElement("div");
+
+        item.innerHTML = `
+        <label style="cursor:pointer;">
+            <input type="checkbox" checked data-col="${index}">
+            ${label}
+        </label>
+    `;
+
+        menu.appendChild(item);
+    });
+
+    // event listener checkbox
+    menu.addEventListener("change", function(e) {
+        if (e.target.type === "checkbox") {
+            toggleCol(e.target.dataset.col);
+        }
+    });
+
+    function toggleCol(colIndex) {
+        const table = document.getElementById("myTable");
+        const rows = table.rows;
+
+        let hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        const isHidden = rows[0].cells[colIndex].style.display === 'none';
+
+        for (let i = 0; i < rows.length; i++) {
+            let cell = rows[i].cells[colIndex];
+            if (cell) cell.style.display = isHidden ? '' : 'none';
+        }
+
+        // update storage
+        if (isHidden) {
+            hiddenCols = hiddenCols.filter(c => c != colIndex);
+        } else {
+            hiddenCols.push(colIndex);
+        }
+
+        localStorage.setItem("hiddenCols", JSON.stringify(hiddenCols));
+    }
+
+
+    function toggleColumnMenu() {
+        const menu = document.getElementById("columnMenu");
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+
+    //close plihan hide di luar  
+    document.addEventListener("click", function(e) {
+        const menu = document.getElementById("columnMenu");
+        const button = document.querySelector("button[onclick='toggleColumnMenu()']");
+
+        if (!menu.contains(e.target) && !button.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+    menu.addEventListener("click", function(e) {
+        e.stopPropagation();
+    });
+
+
+
+    //simpan hide ketika refresh
+    window.addEventListener("load", function() {
+        const hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        hiddenCols.forEach(colIndex => {
+            const table = document.getElementById("myTable");
+            const rows = table.rows;
+
+            for (let i = 0; i < rows.length; i++) {
+                let cell = rows[i].cells[colIndex];
+                if (cell) cell.style.display = 'none';
+            }
+
+            // uncheck checkbox juga
+            const checkbox = document.querySelector(`input[data-col='${colIndex}']`);
+            if (checkbox) checkbox.checked = false;
+        });
+    });
+    //load saat halaam di buka
+    window.addEventListener("load", function() {
+        const hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        hiddenCols.forEach(colIndex => {
+            const table = document.getElementById("myTable");
+            const rows = table.rows;
+
+            for (let i = 0; i < rows.length; i++) {
+                let cell = rows[i].cells[colIndex];
+                if (cell) cell.style.display = 'none';
+            }
+
+            // uncheck checkbox juga
+            const checkbox = document.querySelector(`input[data-col='${colIndex}']`);
+            if (checkbox) checkbox.checked = false;
+        });
+    });
+
 </script>
 @endsection

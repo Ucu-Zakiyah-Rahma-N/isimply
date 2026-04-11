@@ -100,7 +100,7 @@
                             <td>{{ $row->journal->keterangan }}</td>
 
                             <td>{{ $row->penerima }}</td>
-<td>{{ $row->journal->invoice?->po?->kode_project ?? '-' }}</td>
+                            <td>{{ $row->journal->invoice?->po?->kode_project ?? '-' }}</td>
                             <!-- <td>{{ $row->akun_lawan }}</td> -->
 
                             <td class="text-end text-success">

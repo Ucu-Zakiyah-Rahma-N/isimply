@@ -1,6 +1,12 @@
 @extends('app.template')
 
 @section('content')
+
+    <style>
+.table tbody tr {
+    border-bottom: 1.5px solid #aaaaaa;
+}
+</style>
 @php
     $totalSaldo = $parents->sum(function ($parent) {
         return $parent->children->sum('saldo');

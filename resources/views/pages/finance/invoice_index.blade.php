@@ -2,6 +2,10 @@
 
 @section('content')
 <style>
+    .table td,
+    .table th {
+        border: 1px solid #cec8c8 !important;
+    }
     .icon-wrapper {
         width: 50px;
         height: 50px;
@@ -38,7 +42,33 @@
             }
         }
     }
+     th button {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin-left: 5px;
+        cursor: pointer;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    .toggle-btn {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    #columnMenu {
+        z-index: 999;
+        min-width: 200px;
+        max-height: 300px;
+        overflow-y: auto;
+        border-radius: 6px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
 </style>
+
 <div class="card-body">
 <!-- 
     {{-- Rekap Card --}}
@@ -88,14 +118,30 @@
     <div class="card">
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Data Sudah Invoice</h5>
+                <h5 class="card-title mb-0">Data Invoice</h5>
+            </div>
+        </div>
+
+        <div class="card-body">
+
+        <br>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div></div>
+            <div style="position: relative;">
+                <button onclick="toggleColumnMenu()" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2">
+                    Pilih Kolom Hide
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div id="columnMenu"
+                    style="display:none; position:absolute; right:0; top:100%; background:#fff; border:1px solid #ccc; padding:10px; z-index:999;">
+                </div>
             </div>
         </div>
 
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover mb-0">
-                    <thead class="table-light">
+            <div class="table-responsive" style="position: relative;">
+                <table class="table table-bordered table-hover mb-0" border="1" id="myTable">
+                    <thead class="table-secondary">
                         <tr class="text-center align-middle">
                             <th>No</th>
                             <th>Nama Perusahaan</th>
@@ -140,13 +186,11 @@
                             <td>{{ $inv->po->no_po ?? '-' }}</td>
                             <td>
                                 @if ($inv->produk->isNotEmpty())
-                                @foreach ($inv->produk as $item)
-                                <span class="badge bg-primary-subtle text-dark border me-1">
-                                    {{ $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-' }}
-                                </span>
-                                @endforeach
+                                    {{ $inv->produk->map(function($item) {
+                                        return $item->perizinan?->jenis ?? $item->perizinan_lainnya ?? '-';
+                                    })->implode(', ') }}
                                 @else
-                                <span class="text-muted">-</span>
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>{{ $inv->keterangan ?? '-' }}</td>
@@ -157,19 +201,19 @@
                                 : $inv->nominal_invoice;
                                 @endphp
 
-                                Rp {{ number_format($totalFinal, 0, ',', '.') }}
+                                {{ number_format($totalFinal, 0, ',', '.') }}
 
                                 <!-- Rp {{ number_format($inv->nominal_invoice, 0, ',', '.') }} ini kalo tanpa kondisi total after diskon -->
                             </td>
 
                             <td class="text-end fw-bold">
-                                {{ $inv->dpp > 0 ? 'Rp ' . number_format($inv->dpp, 0, ',', '.') : '-' }}
+                                {{ $inv->dpp > 0 ? number_format($inv->dpp, 0, ',', '.') : '-' }}
                             </td>
                             <td class="text-end fw-bold">
-                                {{ $inv->ppn > 0 ? 'Rp ' . number_format($inv->ppn, 0, ',', '.') : '-' }}
+                                {{ $inv->ppn > 0 ? number_format($inv->ppn, 0, ',', '.') : '-' }}
                             </td>
                             <td class="text-end fw-bold">
-                                Rp {{ number_format($inv->grand_total, 0, ',', '.') ?? '-' }}
+                                {{ number_format($inv->grand_total, 0, ',', '.') ?? '-' }}
                             </td>
 
                             {{-- Rencana Pembayaran --}}
@@ -249,7 +293,7 @@
             </td> -->
             <td>
                 {{ $inv->payments->sum('nilai_pph') > 0 
-                    ? 'Rp ' . number_format($inv->payments->sum('nilai_pph'),0,',','.') 
+                    ? number_format($inv->payments->sum('nilai_pph'),0,',','.') 
                     : '-' }}
             </td>
             <!-- <td>
@@ -257,7 +301,7 @@
             </td> -->
             <td>
                 {{ $inv->payments->sum('nominal') > 0 
-                ? 'Rp ' . number_format($inv->payments->sum('nominal'),0,',','.') 
+                ? number_format($inv->payments->sum('nominal'),0,',','.') 
                 : '-' }}
             </td>
             {{-- tgl pembayaran --}}
@@ -508,8 +552,9 @@
             </div>
         </div>
     </div>
-</div>
+    </div>
 
+</div>
 </div>
 
 <script>
@@ -634,5 +679,119 @@
                 }
             });
     }
+
+
+
+
+    const menu = document.getElementById("columnMenu");
+
+    // reset dulu biar ga dobel
+    menu.innerHTML = '';
+
+    document.querySelectorAll("#myTable thead th").forEach((th, index) => {
+
+        const label = th.cloneNode(true).childNodes[0].textContent.trim();
+
+        const item = document.createElement("div");
+
+        item.innerHTML = `
+        <label style="cursor:pointer;">
+            <input type="checkbox" checked data-col="${index}">
+            ${label}
+        </label>
+    `;
+
+        menu.appendChild(item);
+    });
+
+    // event listener checkbox
+    menu.addEventListener("change", function(e) {
+        if (e.target.type === "checkbox") {
+            toggleCol(e.target.dataset.col);
+        }
+    });
+
+    function toggleCol(colIndex) {
+        const table = document.getElementById("myTable");
+        const rows = table.rows;
+
+        let hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        const isHidden = rows[0].cells[colIndex].style.display === 'none';
+
+        for (let i = 0; i < rows.length; i++) {
+            let cell = rows[i].cells[colIndex];
+            if (cell) cell.style.display = isHidden ? '' : 'none';
+        }
+
+        // update storage
+        if (isHidden) {
+            hiddenCols = hiddenCols.filter(c => c != colIndex);
+        } else {
+            hiddenCols.push(colIndex);
+        }
+
+        localStorage.setItem("hiddenCols", JSON.stringify(hiddenCols));
+    }
+
+
+    function toggleColumnMenu() {
+        const menu = document.getElementById("columnMenu");
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+
+    //close plihan hide di luar  
+    document.addEventListener("click", function(e) {
+        const menu = document.getElementById("columnMenu");
+        const button = document.querySelector("button[onclick='toggleColumnMenu()']");
+
+        if (!menu.contains(e.target) && !button.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+    menu.addEventListener("click", function(e) {
+        e.stopPropagation();
+    });
+
+
+
+    //simpan hide ketika refresh
+    window.addEventListener("load", function() {
+        const hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        hiddenCols.forEach(colIndex => {
+            const table = document.getElementById("myTable");
+            const rows = table.rows;
+
+            for (let i = 0; i < rows.length; i++) {
+                let cell = rows[i].cells[colIndex];
+                if (cell) cell.style.display = 'none';
+            }
+
+            // uncheck checkbox juga
+            const checkbox = document.querySelector(`input[data-col='${colIndex}']`);
+            if (checkbox) checkbox.checked = false;
+        });
+    });
+    //load saat halaam di buka
+    window.addEventListener("load", function() {
+        const hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        hiddenCols.forEach(colIndex => {
+            const table = document.getElementById("myTable");
+            const rows = table.rows;
+
+            for (let i = 0; i < rows.length; i++) {
+                let cell = rows[i].cells[colIndex];
+                if (cell) cell.style.display = 'none';
+            }
+
+            // uncheck checkbox juga
+            const checkbox = document.querySelector(`input[data-col='${colIndex}']`);
+            if (checkbox) checkbox.checked = false;
+        });
+    });
+
 </script>
 @endsection

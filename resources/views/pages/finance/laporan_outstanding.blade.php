@@ -2,6 +2,10 @@
 
 @section('content')
 <style>
+    .table td,
+    .table th {
+        border: 1px solid #cec8c8 !important;
+    }
     .toggle-header {
         cursor: pointer;
         transition: 0.2s ease;
@@ -47,11 +51,22 @@
             <div class="collapse mt-3" id="detailOutstanding">
                 <ul class="list-group list-group-flush">
                     @foreach($outstandingPerTahun as $tahun => $total)
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>{{ $tahun }}</span>
-                        <strong class="text-danger">
-                            Rp {{ number_format($total, 0, ',', '.') }}
-                        </strong>
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-center gap-3">
+                            
+                            <span style="min-width:100px; text-align:left;">
+                                <b>{{ $tahun }}</b>
+                            </span>
+
+                            <span style="min-width:20px;" class="fw-bold text-danger">
+                                Rp
+                            </span>
+
+                            <span style="min-width:100px; text-align:left;" class="fw-bold text-danger">
+                                {{ number_format($total, 0, ',', '.') }}
+                            </span>
+
+                        </div>
                     </li>
                     @endforeach
                 </ul>
@@ -60,23 +75,34 @@
         </div>
     </div>
 
-    <form method="GET" class="mb-3">
-        <div class="row">
-            <div class="col-md-3">
-                <select name="tahun" class="form-select" onchange="this.form.submit()">
-                    <option value="all" {{ $tahunDipilih == 'all' ? 'selected' : '' }}>
-                        All
-                    </option>
-                    @for($year = $tahunSekarang; $year >= 2023; $year--)
-                    <option value="{{ $year }}"
-                        {{ $tahunDipilih == $year ? 'selected' : '' }}>
-                        {{ $year }}
-                    </option>
-                    @endfor
-                </select>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+            <form method="GET" class="d-flex">
+                <div style="width:150px;">
+                        <select name="tahun" class="form-select" onchange="this.form.submit()">
+                            <option value="all" {{ $tahunDipilih == 'all' ? 'selected' : '' }}>
+                                All
+                            </option>
+                            @for($year = $tahunSekarang; $year >= 2023; $year--)
+                            <option value="{{ $year }}"
+                                {{ $tahunDipilih == $year ? 'selected' : '' }}>
+                                {{ $year }}
+                            </option>
+                            @endfor
+                        </select>
+                </div>
+            </form>
+
+            <div style="position: relative;">
+                <button onclick="toggleColumnMenu()" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2">
+                    Pilih Kolom Hide
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div id="columnMenu"
+                    style="display:none; position:absolute; right:0; top:100%; background:#fff; border:1px solid #ccc; padding:10px; z-index:999;">
+                </div>
             </div>
         </div>
-    </form>
 
 <!--    <div class="mb-3">-->
 <!--    <a href="{{ route('finance.outstanding.pdf', ['tahun' => $tahunDipilih]) }}" -->
@@ -88,19 +114,22 @@
     {{-- Table --}}
     <div class="card">
         <div class="card-body">
+        
+       
+        
             <div class="table-responsive">
-                <table class="table table-bordered table-sm">
-                    <thead class="table-light text-center align-middle">
+                <table class="table table-bordered table-sm" border="1" id="myTable">
+                    <thead class="table-secondary text-center align-middle">
                         <tr>
                             <th>No</th>
-                            <th>Tanggal PO</th>
-                            <th>Nama Customer</th>
-                            <th>Lokasi</th>
-                            <th>Nama Pekerjaan</th>
-                            <th>Nominal SPK</th>
-                            <th>Termin</th>
-                            <th>Nominal</th>
-                            <th>Keterangan</th>
+                            <th style="min-width:120px;">Tanggal PO</th>
+                            <th style="min-width:250px;">Nama Customer</th>
+                            <th style="min-width:170px;">Lokasi</th>
+                            <th style="min-width:300px;">Nama Pekerjaan</th>
+                            <th style="min-width:150px;">Nominal SPK</th>
+                            <th style="min-width:120px;">Termin</th>
+                            <th style="min-width:150px;">Nominal</th>
+                            <th style="min-width:150px;">Keterangan</th>
 
                         </tr>
                     </thead>
@@ -239,5 +268,118 @@
             document.getElementById('toggleIcon')
                 .classList.replace('bi-chevron-up', 'bi-chevron-down');
         });
+
+
+        
+    const menu = document.getElementById("columnMenu");
+
+    // reset dulu biar ga dobel
+    menu.innerHTML = '';
+
+    document.querySelectorAll("#myTable thead th").forEach((th, index) => {
+
+        const label = th.cloneNode(true).childNodes[0].textContent.trim();
+
+        const item = document.createElement("div");
+
+        item.innerHTML = `
+        <label style="cursor:pointer;">
+            <input type="checkbox" checked data-col="${index}">
+            ${label}
+        </label>
+    `;
+
+        menu.appendChild(item);
+    });
+
+    // event listener checkbox
+    menu.addEventListener("change", function(e) {
+        if (e.target.type === "checkbox") {
+            toggleCol(e.target.dataset.col);
+        }
+    });
+
+    function toggleCol(colIndex) {
+        const table = document.getElementById("myTable");
+        const rows = table.rows;
+
+        let hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        const isHidden = rows[0].cells[colIndex].style.display === 'none';
+
+        for (let i = 0; i < rows.length; i++) {
+            let cell = rows[i].cells[colIndex];
+            if (cell) cell.style.display = isHidden ? '' : 'none';
+        }
+
+        // update storage
+        if (isHidden) {
+            hiddenCols = hiddenCols.filter(c => c != colIndex);
+        } else {
+            hiddenCols.push(colIndex);
+        }
+
+        localStorage.setItem("hiddenCols", JSON.stringify(hiddenCols));
+    }
+
+
+    function toggleColumnMenu() {
+        const menu = document.getElementById("columnMenu");
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+
+    //close plihan hide di luar  
+    document.addEventListener("click", function(e) {
+        const menu = document.getElementById("columnMenu");
+        const button = document.querySelector("button[onclick='toggleColumnMenu()']");
+
+        if (!menu.contains(e.target) && !button.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+    menu.addEventListener("click", function(e) {
+        e.stopPropagation();
+    });
+
+
+
+    //simpan hide ketika refresh
+    window.addEventListener("load", function() {
+        const hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        hiddenCols.forEach(colIndex => {
+            const table = document.getElementById("myTable");
+            const rows = table.rows;
+
+            for (let i = 0; i < rows.length; i++) {
+                let cell = rows[i].cells[colIndex];
+                if (cell) cell.style.display = 'none';
+            }
+
+            // uncheck checkbox juga
+            const checkbox = document.querySelector(`input[data-col='${colIndex}']`);
+            if (checkbox) checkbox.checked = false;
+        });
+    });
+    //load saat halaam di buka
+    window.addEventListener("load", function() {
+        const hiddenCols = JSON.parse(localStorage.getItem("hiddenCols")) || [];
+
+        hiddenCols.forEach(colIndex => {
+            const table = document.getElementById("myTable");
+            const rows = table.rows;
+
+            for (let i = 0; i < rows.length; i++) {
+                let cell = rows[i].cells[colIndex];
+                if (cell) cell.style.display = 'none';
+            }
+
+            // uncheck checkbox juga
+            const checkbox = document.querySelector(`input[data-col='${colIndex}']`);
+            if (checkbox) checkbox.checked = false;
+        });
+    });
+
 </script>
 @endsection
