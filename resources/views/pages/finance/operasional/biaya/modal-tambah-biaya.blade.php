@@ -206,7 +206,7 @@
                     <div class="border rounded p-3 mb-4">
 
                         <div class="row fw-semibold text-muted mb-2">
-                            <div class="col-md-3">Deskripsi</div>
+                            <div class="col-md-3">Deskripsi / Produk</div>
                             <div class="col-md-1">Qty</div>
                             <div class="col-md-2">Harga</div>
                             <div class="col-md-2">Diskon</div>
@@ -217,8 +217,8 @@
                         <div id="itemContainer">
                             <div class="row g-2 align-items-center mb-2 item-row">
 
-                                <div class="col-md-3">
-                                    <input type="text" class="form-control" name="deskripsi[]">
+                                <div class="col-md-3 deskripsi-wrapper">
+                                    <input type="text" class="form-control deskripsi-input" name="deskripsi[]">
                                 </div>
 
                                 <div class="col-md-1">
@@ -443,16 +443,31 @@
     document.addEventListener('DOMContentLoaded', function() {
 
         let pajakList = [];
+        let produkList = [];
 
-        /* ================= LOAD PAJAK ================= */
-        fetch("{{ url('/finance/get/coa-pajak') }}")
-            .then(res => res.json())
-            .then(data => {
-                pajakList = Array.isArray(data) ? data : [];
+        /* ================= LOAD DATA ================= */
 
-                document.querySelectorAll('.pajak').forEach(isiSelectPajak);
-                isiSelectPajak(document.getElementById('pajakGlobal'));
-            });
+        function loadProduk() {
+            return fetch("{{ url('/finance/get/produk') }}")
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) {
+                        produkList = res.data;
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        function loadPajak() {
+            return fetch("{{ url('/finance/get/coa-pajak') }}")
+                .then(res => res.json())
+                .then(data => {
+                    pajakList = Array.isArray(data) ? data : [];
+
+                    document.querySelectorAll('.pajak').forEach(isiSelectPajak);
+                    isiSelectPajak(document.getElementById('pajakGlobal'));
+                });
+        }
 
         function isiSelectPajak(select) {
             if (!select) return;
@@ -468,6 +483,34 @@
                 opt.dataset.kategori = (pajak.kategori_pajak ?? '').toUpperCase();
 
                 select.appendChild(opt);
+            });
+        }
+
+        /* ================= PRODUK SELECT ================= */
+
+        function generateProdukSelect() {
+            let html = `<select class="form-select produk-select" name="produk_id[]">`;
+            html += `<option value="">Pilih Produk</option>`;
+
+            produkList.forEach(p => {
+                html += `<option value="${p.id_produk}">${p.nama_produk}</option>`;
+            });
+
+            html += `</select>`;
+            return html;
+        }
+
+        function switchInputMode(jenis) {
+            document.querySelectorAll('.deskripsi-wrapper').forEach(wrapper => {
+
+                if (jenis === 'pengadaan') {
+                    wrapper.innerHTML = generateProdukSelect();
+                } else {
+                    wrapper.innerHTML = `
+                    <input type="text" class="form-control" name="deskripsi[]">
+                `;
+                }
+
             });
         }
 
@@ -517,7 +560,6 @@
                 pajakSummary[key] = (pajakSummary[key] || 0) + res.pajak;
             });
 
-            /* ===== GLOBAL DISKON ===== */
             let diskonGlobal = 0;
 
             if (globalConfig.useDiskon) {
@@ -528,7 +570,6 @@
                 if (diskonGlobal > subtotal) diskonGlobal = subtotal;
             }
 
-            /* ===== GLOBAL PAJAK ===== */
             let pajakGlobal = 0;
 
             if (globalConfig.usePajak) {
@@ -569,9 +610,9 @@
                 const opt = pajakSelect.options[pajakSelect.selectedIndex];
 
                 items.push({
-                    qty: parseFloat(row.querySelector('.qty').value) || 0,
-                    harga: parseFloat(row.querySelector('.harga').value) || 0,
-                    diskon: parseFloat(row.querySelector('.diskon').value) || 0,
+                    qty: Math.max(0, parseFloat(row.querySelector('.qty').value) || 0),
+                    harga: Math.max(0, parseFloat(row.querySelector('.harga').value) || 0),
+                    diskon: Math.max(0, parseFloat(row.querySelector('.diskon').value) || 0),
                     diskonType: row.querySelector('.diskon-type').value,
 
                     pajak: {
@@ -639,17 +680,20 @@
             });
         }
 
-        /* ================= MAIN ================= */
-
         function hitung() {
             const items = ambilItems();
             const globalConfig = ambilGlobal();
-            const hasil = hitungSemua(items, globalConfig);
-
-            render(hasil);
+            render(hitungSemua(items, globalConfig));
         }
 
-        /* ================= CHECKBOX CONTROL ================= */
+        /* ================= EVENT ================= */
+
+        document.getElementById('itemContainer').addEventListener('input', hitung);
+        document.getElementById('itemContainer').addEventListener('change', hitung);
+
+        document.getElementById('diskonGlobal').addEventListener('input', hitung);
+        document.getElementById('diskonGlobalType').addEventListener('change', hitung);
+        document.getElementById('pajakGlobal').addEventListener('change', hitung);
 
         document.getElementById('useDiskonGlobal').addEventListener('change', function() {
             document.getElementById('diskonGlobal').disabled = !this.checked;
@@ -662,22 +706,12 @@
             hitung();
         });
 
-        /* ================= EVENT ================= */
+        /* ================= SWITCH JENIS ================= */
 
-        document.getElementById('itemContainer')
-            .addEventListener('input', hitung);
-
-        document.getElementById('itemContainer')
-            .addEventListener('change', hitung);
-
-        document.getElementById('diskonGlobal')
-            .addEventListener('input', hitung);
-
-        document.getElementById('diskonGlobalType')
-            .addEventListener('change', hitung);
-
-        document.getElementById('pajakGlobal')
-            .addEventListener('change', hitung);
+        document.querySelector("select[name='jenis_pengajuan']")
+            .addEventListener('change', function() {
+                switchInputMode(this.value);
+            });
 
         /* ================= TAMBAH ITEM ================= */
 
@@ -692,6 +726,13 @@
 
             row.querySelector('.qty').value = 1;
             row.querySelector('.diskon').value = 0;
+
+            const jenis = document.querySelector("select[name='jenis_pengajuan']").value;
+            const wrapper = row.querySelector('.deskripsi-wrapper');
+
+            wrapper.innerHTML = (jenis === 'pengadaan') ?
+                generateProdukSelect() :
+                `<input type="text" class="form-control" name="deskripsi[]">`;
 
             isiSelectPajak(row.querySelector('.pajak'));
 
@@ -710,6 +751,13 @@
                 }
             }
         });
+
+        /* ================= INIT ================= */
+
+        Promise.all([loadProduk(), loadPajak()])
+            .then(() => {
+                hitung();
+            });
 
     });
 </script>

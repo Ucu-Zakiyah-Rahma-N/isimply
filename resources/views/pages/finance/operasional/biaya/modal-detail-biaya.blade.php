@@ -100,7 +100,7 @@
                                     <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>Deskripsi</th>
+                                                <th>Deskripsi / Produk</th>
                                                 <th width="80">Qty</th>
                                                 <th width="120">Harga</th>
                                                 <th width="140">Diskon</th>
@@ -242,7 +242,7 @@
             $('#detail_jenis_pengajuan').text(h.jenis_pengajuan);
             $('#detail_metode_pembayaran').text(h.metode_pembayaran);
             $('#detail_kontak_nama').text(h.kontak_nama ?? '-');
-            $('#detail_project').text(projectMap[h.project_id] ?? '-');
+            $('#detail_project').text(h.po_nomor ?? '-');
 
             /** ================= STATUS ================= */
 

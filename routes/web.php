@@ -143,7 +143,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/invoice/{po}/unhold', [FinanceController::class, 'unholdInvoice'])->name('unhold.invoice');
 
         // Produk Pengadaan
-        Route::get('/produk-pengadaan', [OperasionalController::class, 'getProduk']);
+        Route::get('/get/produk', [OperasionalController::class, 'getProduk']);
 
         // akun
         Route::get('/akun', [FinanceController::class, 'akun_index'])->name('akun_index');

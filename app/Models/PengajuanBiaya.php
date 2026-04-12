@@ -73,4 +73,9 @@ class PengajuanBiaya extends Model
             'id' // local key di pengajuan_biaya
         );
     }
+
+    public function po()
+    {
+        return $this->belongsTo(PO::class, 'project_id', 'id');
+    }
 }

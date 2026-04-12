@@ -20,7 +20,8 @@ class PengajuanBiayaItem extends Model
         'diskon_type',
         'pajak_id',
         'nilai_pajak',
-        'jumlah'
+        'jumlah',
+        'produk_id'
     ];
 
     public function pengajuan()

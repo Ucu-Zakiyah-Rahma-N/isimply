@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Exception;
 
 class OperasionalController extends Controller
 {
@@ -54,23 +55,24 @@ class OperasionalController extends Controller
         );
     }
 
-    public function getProduk($id)
+    public function getProduk()
     {
-        $produk = DB::table('produk_pengadaan')
-            ->where('id_produk', $id)
-            ->first();
+        try {
+            $produk = DB::table('produk_pengadaan')
+                ->select('id_produk', 'nama_produk')
+                ->get();
 
-        if (!$produk) {
+            return response()->json([
+                'success' => true,
+                'data' => $produk
+            ]);
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Produk tidak ditemukan'
-            ], 404);
+                'message' => 'Gagal mengambil data produk',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $produk
-        ]);
     }
 
     public function store(Request $request)
@@ -114,14 +116,17 @@ class OperasionalController extends Controller
     public function store_pengajuan_biaya(Request $request)
     {
         $request->validate([
-            'jenis_pengajuan'   => 'required|in:biaya,pengeluaran',
+            'jenis_pengajuan'   => 'required|in:biaya,pengadaan',
             'tanggal_pengajuan' => 'required|date',
             'metode_pembayaran' => 'required|in:cash,transfer',
             'project_id'        => 'nullable',
             'jenis_project'     => 'nullable|string',
             'kontak_id'         => 'required|integer',
 
-            'deskripsi.*'       => 'required|string',
+            // CONDITIONAL
+            'deskripsi.*'       => 'required_if:jenis_pengajuan,biaya|nullable|string',
+            'produk_id.*'       => 'required_if:jenis_pengajuan,pengadaan|nullable|integer',
+
             'qty.*'             => 'required|numeric|min:1',
             'harga.*'           => 'required|numeric|min:0',
             'diskon.*'          => 'nullable|numeric|min:0',
@@ -136,7 +141,8 @@ class OperasionalController extends Controller
             'use_pajak_global'  => 'nullable',
             'pajak_global_id'   => 'nullable|integer',
 
-            'lampiran'          => 'nullable|file|max:2048'
+            // FILE
+            'lampiran'          => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048'
         ]);
 
         DB::beginTransaction();
@@ -151,7 +157,15 @@ class OperasionalController extends Controller
             }
 
             /** ================== NOMOR ================== */
-            $nomorPengajuan = 'PB-' . now()->format('YmdHis');
+            $prefix = $request->jenis_pengajuan === 'pengadaan' ? 'PP-' : 'PB-';
+            $nomorPengajuan = $prefix . now()->format('YmdHis') . rand(10, 99);
+
+            /** ================== PRELOAD DATA ================== */
+
+            // Ambil semua pajak sekaligus (hindari N+1)
+            $coaList = Coa::whereIn('id', array_filter($request->pajak_id ?? []))
+                ->get()
+                ->keyBy('id');
 
             /** ================== INIT ================== */
             $subtotal = 0;
@@ -160,10 +174,23 @@ class OperasionalController extends Controller
             $items = [];
 
             /** ================== LOOP ITEM ================== */
-            foreach ($request->deskripsi as $i => $deskripsi) {
+            foreach ($request->qty as $i => $qty) {
 
                 $qty    = (float) $request->qty[$i];
                 $harga  = (float) $request->harga[$i];
+
+                $produkId = $request->produk_id[$i] ?? null;
+                $deskripsi = $request->deskripsi[$i] ?? null;
+
+                /** ===== HANDLE PENGADAAN ===== */
+                if ($request->jenis_pengajuan === 'pengadaan') {
+
+                    $produk = DB::table('produk_pengadaan')
+                        ->where('id_produk', $produkId)
+                        ->first();
+
+                    $deskripsi = $produk->nama_produk ?? '-';
+                }
 
                 $diskon     = (float) ($request->diskon[$i] ?? 0);
                 $diskonType = $request->diskon_type[$i] ?? 'percent';
@@ -185,9 +212,9 @@ class OperasionalController extends Controller
                 /** ===== PAJAK ITEM ===== */
                 $nilaiPajak = 0;
 
-                if (!empty($pajakId) && $pajakId != 0) {
+                if (!empty($pajakId) && isset($coaList[$pajakId])) {
 
-                    $coa = Coa::findOrFail($pajakId);
+                    $coa = $coaList[$pajakId];
 
                     $persen   = (float) $coa->nilai_coa;
                     $kategori = strtoupper($coa->kategori_pajak ?? '');
@@ -208,14 +235,15 @@ class OperasionalController extends Controller
 
                 /** ===== SIMPAN ITEM ===== */
                 $items[] = [
-                    'deskripsi'    => $deskripsi,
-                    'qty'          => $qty,
-                    'harga'        => $harga,
-                    'diskon'       => $diskon,
-                    'diskon_type'  => $diskonType,
-                    'pajak_id'     => $pajakId ?: null,
-                    'nilai_pajak'  => $nilaiPajak,
-                    'jumlah'       => $jumlah
+                    'produk_id'   => $produkId ?: null,
+                    'deskripsi'   => $deskripsi,
+                    'qty'         => $qty,
+                    'harga'       => $harga,
+                    'diskon'      => $diskon,
+                    'diskon_type' => $diskonType,
+                    'pajak_id'    => $pajakId ?: null,
+                    'nilai_pajak' => $nilaiPajak,
+                    'jumlah'      => $jumlah
                 ];
             }
 
@@ -224,12 +252,12 @@ class OperasionalController extends Controller
 
             if ($request->boolean('use_diskon_global')) {
 
-                $diskonGlobalInput = (float) $request->diskon_global;
+                $diskonInput = (float) $request->diskon_global;
                 $type = $request->diskon_global_type ?? 'percent';
 
                 $diskonGlobal = $type === 'percent'
-                    ? $subtotal * ($diskonGlobalInput / 100)
-                    : $diskonGlobalInput;
+                    ? $subtotal * ($diskonInput / 100)
+                    : $diskonInput;
 
                 if ($diskonGlobal > $subtotal) {
                     $diskonGlobal = $subtotal;
@@ -241,10 +269,10 @@ class OperasionalController extends Controller
 
             if ($request->boolean('use_pajak_global') && $request->pajak_global_id) {
 
-                $coa = Coa::findOrFail($request->pajak_global_id);
+                $coaGlobal = Coa::findOrFail($request->pajak_global_id);
 
-                $persen   = (float) $coa->nilai_coa;
-                $kategori = strtoupper($coa->kategori_pajak ?? '');
+                $persen   = (float) $coaGlobal->nilai_coa;
+                $kategori = strtoupper($coaGlobal->kategori_pajak ?? '');
 
                 $dasar = $subtotal - $totalDiskonItem - $diskonGlobal;
 
@@ -287,8 +315,7 @@ class OperasionalController extends Controller
                 'pajak_global_id'   => $request->pajak_global_id,
                 'nilai_pajak_global' => $pajakGlobal,
 
-                'user_id' => auth()->id(),
-
+                'user_id'           => auth()->id(),
                 'lampiran'          => $lampiranPath,
                 'status'            => 'dipurchasing'
             ]);
@@ -300,13 +327,13 @@ class OperasionalController extends Controller
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Pengajuan biaya berhasil dibuat'
+                'message' => 'Pengajuan berhasil dibuat'
             ]);
         } catch (Throwable $e) {
 
             DB::rollBack();
 
-            Log::error('STORE PENGAJUAN BIAYA ERROR', [
+            Log::error('STORE PENGAJUAN ERROR', [
                 'error' => $e->getMessage(),
                 'line'  => $e->getLine(),
                 'file'  => $e->getFile()
@@ -314,7 +341,7 @@ class OperasionalController extends Controller
 
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Gagal menyimpan pengajuan biaya'
+                'message' => 'Gagal menyimpan pengajuan'
             ], 500);
         }
     }
@@ -458,11 +485,17 @@ class OperasionalController extends Controller
     {
         try {
 
-            $pengajuan = PengajuanBiaya::with([
-                'kontak:id,nama',
-                'items',
-                'items.coa:id,nama_akun,nilai_coa,kategori_pajak'
-            ])->findOrFail($id);
+            $pengajuan = PengajuanBiaya::query()
+                ->leftJoin('po', 'po.id', '=', 'pengajuan_biaya.project_id')
+                ->leftJoin('kontak', 'kontak.id', '=', 'pengajuan_biaya.kontak_id')
+                ->leftJoin('customers', 'customers.id', '=', 'po.customer_id')
+                ->select(
+                    'pengajuan_biaya.*',
+                    'kontak.nama as kontak_nama',
+                    DB::raw("CONCAT(po.no_po,' - ', customers.nama_perusahaan) as po_nomor")
+                )
+                ->where('pengajuan_biaya.id', $id)
+                ->firstOrFail();
 
             /** ================= HITUNG ULANG ================= */
             $totalDiskonItem = $pengajuan->items->sum(function ($item) {
@@ -491,6 +524,9 @@ class OperasionalController extends Controller
                 'metode_pembayaran' => $pengajuan->metode_pembayaran,
                 'project_id'        => $pengajuan->project_id,
                 'jenis_project'     => $pengajuan->jenis_project,
+                'po_nomor' => $pengajuan->jenis_project === 'PO'
+                    ? $pengajuan->po_nomor
+                    : null,
 
                 'kontak_id'         => $pengajuan->kontak_id,
                 'kontak_nama'       => optional($pengajuan->kontak)->nama,
@@ -740,7 +776,7 @@ class OperasionalController extends Controller
         $data = DB::table('po')
             ->leftJoin('customers', 'po.customer_id', '=', 'customers.id')
             ->select(
-                DB::raw("CONCAT('P-', po.id) as id"),
+                DB::raw("CONCAT(po.id) as id"),
                 DB::raw("CONCAT(po.no_po,' - ', customers.nama_perusahaan) as label"),
                 DB::raw("'PO' as jenis_project")
             )
